@@ -1,0 +1,38 @@
+from __future__ import annotations
+
+from typing import Dict, List
+
+
+def bull_candidates(rows: List[Dict], min_price: float, min_avg_dollar_volume: float) -> List[Dict]:
+    candidates: List[Dict] = []
+    for row in rows:
+        close = row.get("close")
+        high_20d = row.get("high_20d")
+        rsi14 = row.get("rsi14")
+        avg_dv = row.get("avg_dollar_volume_20d")
+
+        if close is None or high_20d is None or rsi14 is None or avg_dv is None:
+            continue
+        if close < min_price or avg_dv < min_avg_dollar_volume:
+            continue
+
+        breakout = close / high_20d if high_20d > 0 else 0.0
+        momentum = max(0.0, min(1.0, (rsi14 - 40.0) / 40.0))
+        liquidity = min(1.0, avg_dv / 50_000_000.0)
+
+        score = (0.5 * breakout) + (0.3 * momentum) + (0.2 * liquidity)
+        if close >= high_20d * 0.995:
+            candidates.append(
+                {
+                    **row,
+                    "engine": "bull",
+                    "score": float(score),
+                    "score_breakdown": {
+                        "breakout": float(breakout),
+                        "momentum": float(momentum),
+                        "liquidity": float(liquidity),
+                    },
+                }
+            )
+
+    return candidates

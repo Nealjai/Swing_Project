@@ -1,0 +1,49 @@
+name: Daily Screener Publish
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub cron is UTC.
+    # 02:15 UTC Tue-Sat targets U.S. market EOD availability for Mon-Fri sessions.
+    # (Runs after U.S. close and typical provider update windows.)
+    - cron: "15 2 * * 2-6"
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run daily screener pipeline
+        run: python scripts/run_daily.py
+
+      - name: Commit updated static artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add docs/data/latest.json docs/data/latest.csv
+
+          if git diff --staged --quiet; then
+            echo "No artifact changes detected; skipping commit."
+            exit 0
+          fi
+
+          git commit -m "chore: update daily screener artifacts"
+          git push

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>US Regime Screener V1</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>US Market Regime Dual-Engine Screener</h1>
+        <p id="generatedAt">Loading latest run...</p>
+      </header>
+
+      <section id="regimeBanner" class="banner neutral">Loading regime...</section>
+
+      <section class="summary-grid">
+        <div class="card">
+          <h3>Engine</h3>
+          <p id="engineName">-</p>
+        </div>
+        <div class="card">
+          <h3>Regime</h3>
+          <p id="regimeName">-</p>
+        </div>
+        <div class="card">
+          <h3>Universe</h3>
+          <p id="universeSize">-</p>
+        </div>
+        <div class="card">
+          <h3>Candidates</h3>
+          <p id="candidateCount">-</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Benchmark (SPY)</h2>
+        <div id="benchmarkStats"></div>
+      </section>
+
+      <section class="card">
+        <h2>Ranked Candidates</h2>
+        <div class="table-wrap">
+          <table id="candidatesTable">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Symbol</th>
+                <th>Score</th>
+                <th>Close</th>
+                <th>20D High</th>
+                <th>RSI14</th>
+                <th>BB Lower</th>
+                <th>SMA200</th>
+                <th>Avg $ Vol (20D)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Diagnostics</h2>
+        <pre id="diagnostics"></pre>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

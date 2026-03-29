@@ -1,0 +1,334 @@
+{
+  "meta": {
+    "generated_at": "2026-03-29T15:21:01.429447+00:00",
+    "regime": "weak",
+    "engine": "weak",
+    "universe_size": 503,
+    "candidate_count": 15,
+    "settings": {
+      "universe_file": "sp500.txt",
+      "benchmark_symbol": "SPY",
+      "lookback_calendar_days": 760,
+      "cache_dir": "data/cache",
+      "cache_max_age_days": 1,
+      "download_batch_size": 100,
+      "min_price": 5.0,
+      "min_avg_dollar_volume": 5000000.0,
+      "sma_regime_length": 200,
+      "breakout_lookback": 20,
+      "rsi_length": 14,
+      "bb_length": 20,
+      "bb_std": 2.0,
+      "weak_rsi_threshold": 30.0,
+      "max_candidates": 50,
+      "output_json": "docs/data/latest.json",
+      "output_csv": "docs/data/latest.csv"
+    }
+  },
+  "benchmark": {
+    "symbol": "SPY",
+    "close": 634.0900268554688,
+    "sma200": 661.6326495361328,
+    "above_sma200": false
+  },
+  "candidates": [
+    {
+      "symbol": "CTAS",
+      "yf_symbol": "CTAS",
+      "close": 165.7100067138672,
+      "high_20d": 209.0800018310547,
+      "rsi14": 19.76021874493901,
+      "bb_upper": 212.95275807108214,
+      "bb_lower": 166.77524485860533,
+      "sma200": 199.79000007629395,
+      "avg_dollar_volume_20d": 500126973.37524414,
+      "engine": "weak",
+      "score": 0.3725792012458391,
+      "score_breakdown": {
+        "reversal_quality": 0.34132604183536636,
+        "extension": 0.006387267760519683,
+        "liquidity": 1.0
+      },
+      "rank": 1
+    },
+    {
+      "symbol": "EL",
+      "yf_symbol": "EL",
+      "close": 67.2300033569336,
+      "high_20d": 106.94999694824219,
+      "rsi14": 20.55240842493076,
+      "bb_upper": 106.0347563802591,
+      "bb_lower": 67.30324410802214,
+      "sma200": 94.91179992675781,
+      "avg_dollar_volume_20d": 460045350.4369354,
+      "engine": "weak",
+      "score": 0.3577863256503919,
+      "score_breakdown": {
+        "reversal_quality": 0.31491971916897465,
+        "extension": 0.0010882202196820724,
+        "liquidity": 1.0
+      },
+      "rank": 2
+    },
+    {
+      "symbol": "META",
+      "yf_symbol": "META",
+      "close": 525.719970703125,
+      "high_20d": 672.77001953125,
+      "rsi14": 22.545641320690322,
+      "bb_upper": 694.6601677529252,
+      "bb_lower": 547.4688239462935,
+      "sma200": 687.6022988891601,
+      "avg_dollar_volume_20d": 9015598727.85675,
+      "engine": "weak",
+      "score": 0.3361571698145165,
+      "score_breakdown": {
+        "reversal_quality": 0.24847862264365592,
+        "extension": 0.039726194975628466,
+        "liquidity": 1.0
+      },
+      "rank": 3
+    },
+    {
+      "symbol": "MSFT",
+      "yf_symbol": "MSFT",
+      "close": 356.7699890136719,
+      "high_20d": 413.04998779296875,
+      "rsi14": 22.255187487153933,
+      "bb_upper": 423.7701874132197,
+      "bb_lower": 361.8638091688116,
+      "sma200": 479.0831996154785,
+      "avg_dollar_volume_20d": 12833347750.19104,
+      "engine": "weak",
+      "score": 0.3333031952286724,
+      "score_breakdown": {
+        "reversal_quality": 0.2581604170948689,
+        "extension": 0.014076622270793118,
+        "liquidity": 1.0
+      },
+      "rank": 4
+    },
+    {
+      "symbol": "GEN",
+      "yf_symbol": "GEN",
+      "close": 18.34000015258789,
+      "high_20d": 22.81999969482422,
+      "rsi14": 22.38468370727381,
+      "bb_upper": 23.463485894760332,
+      "bb_lower": 18.61851426545695,
+      "sma200": 26.970200090408326,
+      "avg_dollar_volume_20d": 155982877.79644012,
+      "engine": "weak",
+      "score": 0.3314096343123091,
+      "score_breakdown": {
+        "reversal_quality": 0.2538438764242064,
+        "extension": 0.014958987000686201,
+        "liquidity": 1.0
+      },
+      "rank": 5
+    },
+    {
+      "symbol": "DIS",
+      "yf_symbol": "DIS",
+      "close": 92.41999816894531,
+      "high_20d": 104.61000061035156,
+      "rsi14": 22.496807344435794,
+      "bb_upper": 105.44534912103582,
+      "bb_lower": 93.73065185552669,
+      "sma200": 111.97654991149902,
+      "avg_dollar_volume_20d": 1174261230.918312,
+      "engine": "weak",
+      "score": 0.3292481684793417,
+      "score_breakdown": {
+        "reversal_quality": 0.2501064218521402,
+        "extension": 0.013983191844238673,
+        "liquidity": 1.0
+      },
+      "rank": 6
+    },
+    {
+      "symbol": "GOOG",
+      "yf_symbol": "GOOG",
+      "close": 273.760009765625,
+      "high_20d": 311.0690002441406,
+      "rsi14": 24.134780696833218,
+      "bb_upper": 318.2325773462912,
+      "bb_lower": 281.3244233861307,
+      "sma200": 263.26999992370605,
+      "avg_dollar_volume_20d": 5998352965.875244,
+      "engine": "weak",
+      "score": 0.3058202283663841,
+      "score_breakdown": {
+        "reversal_quality": 0.1955073101055594,
+        "extension": 0.02688857771201476,
+        "liquidity": 1.0
+      },
+      "rank": 7
+    },
+    {
+      "symbol": "PTC",
+      "yf_symbol": "PTC",
+      "close": 137.61000061035156,
+      "high_20d": 168.5500030517578,
+      "rsi14": 24.54554692559138,
+      "bb_upper": 169.66194481753533,
+      "bb_lower": 138.79705634213266,
+      "sma200": 182.50695022583008,
+      "avg_dollar_volume_20d": 174811629.81430054,
+      "engine": "weak",
+      "score": 0.293473288071453,
+      "score_breakdown": {
+        "reversal_quality": 0.1818151024802873,
+        "extension": 0.008552456104364533,
+        "liquidity": 1.0
+      },
+      "rank": 8
+    },
+    {
+      "symbol": "GOOGL",
+      "yf_symbol": "GOOGL",
+      "close": 274.3399963378906,
+      "high_20d": 312.4700012207031,
+      "rsi14": 25.13520955789801,
+      "bb_upper": 319.0514681049923,
+      "bb_lower": 282.1035306743046,
+      "sma200": 262.7469997406006,
+      "avg_dollar_volume_20d": 8862160283.616486,
+      "engine": "weak",
+      "score": 0.2893358887396563,
+      "score_breakdown": {
+        "reversal_quality": 0.16215968140339973,
+        "extension": 0.02752016012652158,
+        "liquidity": 1.0
+      },
+      "rank": 9
+    },
+    {
+      "symbol": "LULU",
+      "yf_symbol": "LULU",
+      "close": 145.85000610351562,
+      "high_20d": 179.3800048828125,
+      "rsi14": 26.820714984214263,
+      "bb_upper": 178.92857673282202,
+      "bb_lower": 148.68742515926783,
+      "sma200": 190.59659927368165,
+      "avg_dollar_volume_20d": 530863590.0167084,
+      "engine": "weak",
+      "score": 0.2587130177380611,
+      "score_breakdown": {
+        "reversal_quality": 0.1059761671928579,
+        "extension": 0.01908311380544038,
+        "liquidity": 1.0
+      },
+      "rank": 10
+    },
+    {
+      "symbol": "PODD",
+      "yf_symbol": "PODD",
+      "close": 208.22000122070312,
+      "high_20d": 249.22999572753906,
+      "rsi14": 26.9613295802789,
+      "bb_upper": 250.73502729767577,
+      "bb_lower": 211.0199760592578,
+      "sma200": 294.8134008026123,
+      "avg_dollar_volume_20d": 230052209.22576904,
+      "engine": "weak",
+      "score": 0.25462513701556605,
+      "score_breakdown": {
+        "reversal_quality": 0.10128901399070335,
+        "extension": 0.013268766734047952,
+        "liquidity": 1.0
+      },
+      "rank": 11
+    },
+    {
+      "symbol": "ISRG",
+      "yf_symbol": "ISRG",
+      "close": 452.6600036621094,
+      "high_20d": 505.44000244140625,
+      "rsi14": 28.118472014870804,
+      "bb_upper": 506.10137210987114,
+      "bb_lower": 458.7396313080976,
+      "sma200": 507.4974005126953,
+      "avg_dollar_volume_20d": 796330296.1965942,
+      "engine": "weak",
+      "score": 0.23533466791204094,
+      "score_breakdown": {
+        "reversal_quality": 0.06271759950430654,
+        "extension": 0.013252893866292215,
+        "liquidity": 1.0
+      },
+      "rank": 12
+    },
+    {
+      "symbol": "JKHY",
+      "yf_symbol": "JKHY",
+      "close": 153.30999755859375,
+      "high_20d": 172.83999633789062,
+      "rsi14": 29.34989176393323,
+      "bb_upper": 175.01612045082297,
+      "bb_lower": 155.39887741294658,
+      "sma200": 168.78200012207031,
+      "avg_dollar_volume_20d": 164121260.3477478,
+      "engine": "weak",
+      "score": 0.21486775299022515,
+      "score_breakdown": {
+        "reversal_quality": 0.02167027453555903,
+        "extension": 0.01344205240815206,
+        "liquidity": 1.0
+      },
+      "rank": 13
+    },
+    {
+      "symbol": "BRK.B",
+      "yf_symbol": "BRK-B",
+      "close": 468.489990234375,
+      "high_20d": 500.8599853515625,
+      "rsi14": 29.250347089754726,
+      "bb_upper": 503.3990775785584,
+      "bb_lower": 469.21692583941035,
+      "sma200": 490.82859985351564,
+      "avg_dollar_volume_20d": 2535743957.709961,
+      "engine": "weak",
+      "score": 0.212958990990852,
+      "score_breakdown": {
+        "reversal_quality": 0.024988430341509136,
+        "extension": 0.001549252733658088,
+        "liquidity": 1.0
+      },
+      "rank": 14
+    },
+    {
+      "symbol": "TDY",
+      "yf_symbol": "TDY",
+      "close": 593.3099975585938,
+      "high_20d": 693.3800048828125,
+      "rsi14": 29.62800069030287,
+      "bb_upper": 691.0953857462018,
+      "bb_lower": 595.2856079061419,
+      "sma200": 560.4372976684571,
+      "avg_dollar_volume_20d": 193113380.7800293,
+      "engine": "weak",
+      "score": 0.20719561663780137,
+      "score_breakdown": {
+        "reversal_quality": 0.01239997698990436,
+        "extension": 0.003318760476163938,
+        "liquidity": 1.0
+      },
+      "rank": 15
+    }
+  ],
+  "diagnostics": {
+    "downloaded_symbols": 504,
+    "cached_symbols": 0,
+    "missing_or_skipped_count": 1,
+    "skipped": [
+      {
+        "symbol": "Q",
+        "yf_symbol": "Q",
+        "reason": "insufficient_history"
+      }
+    ],
+    "rows_with_metrics": 502
+  }
+}
