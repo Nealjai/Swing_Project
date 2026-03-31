@@ -12,6 +12,7 @@ import yfinance as yf
 from .config import Settings
 
 REQUIRED_COLUMNS = ["Open", "High", "Low", "Close", "Volume"]
+OPTIONAL_COLUMNS = ["Adj Close"]
 
 
 @dataclass
@@ -58,7 +59,11 @@ def _clean_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
     if len(cols) < len(REQUIRED_COLUMNS):
         return pd.DataFrame()
 
-    out = df[REQUIRED_COLUMNS].copy()
+    selected_cols = REQUIRED_COLUMNS + [c for c in OPTIONAL_COLUMNS if c in df.columns]
+    out = df[selected_cols].copy()
+    if "Adj Close" not in out.columns:
+        out["Adj Close"] = out["Close"]
+
     out = out.dropna(subset=["Close"])
     out = out.sort_index()
     return out

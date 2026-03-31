@@ -32,6 +32,12 @@ def weak_candidates(
 
         score = (0.5 * reversal_quality) + (0.3 * extension) + (0.2 * liquidity)
 
+        reasons = [
+            f"Oversold condition: RSI14={rsi14:.2f} <= {weak_rsi_threshold:.2f}",
+            f"Below lower Bollinger Band: close={close:.2f}, bb_lower={bb_lower:.2f}",
+            f"Liquidity filter passed: avg$vol20d={avg_dv:.0f}",
+        ]
+
         candidates.append(
             {
                 **row,
@@ -42,6 +48,8 @@ def weak_candidates(
                     "extension": float(extension),
                     "liquidity": float(liquidity),
                 },
+                "reasons": reasons,
+                "signals": reasons,
             }
         )
 

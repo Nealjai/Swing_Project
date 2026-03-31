@@ -14,6 +14,12 @@
   - Support normalization for yfinance.
   - Preserve display tickers for the UI.
 
+## Dev loop realities (UI vs logic)
+- UI-only changes (HTML/CSS/JS under [`docs/`](docs/:1)) are a simple **save → browser refresh** loop.
+- Logic/data changes require regenerating the data contract by running [`scripts/run_daily.py`](scripts/run_daily.py:1), which rewrites [`docs/data/latest.json`](docs/data/latest.json:1).
+- VS Code Live Server can auto-reload the browser when files change, but it does **not** run Python for you.
+  - Optional future improvement: add a file-watcher that re-runs [`scripts/run_daily.py`](scripts/run_daily.py:1) on pipeline edits.
+
 ## Design preferences
 - Keep modules small and cohesive.
 - Make universe, regime rule, engines, and ranking swappable.

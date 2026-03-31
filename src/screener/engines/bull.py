@@ -22,6 +22,11 @@ def bull_candidates(rows: List[Dict], min_price: float, min_avg_dollar_volume: f
 
         score = (0.5 * breakout) + (0.3 * momentum) + (0.2 * liquidity)
         if close >= high_20d * 0.995:
+            reasons = [
+                f"New/near 20D high: close={close:.2f}, high_20d={high_20d:.2f}",
+                f"Momentum confirmation: RSI14={rsi14:.2f}",
+                f"Liquidity filter passed: avg$vol20d={avg_dv:.0f}",
+            ]
             candidates.append(
                 {
                     **row,
@@ -32,6 +37,8 @@ def bull_candidates(rows: List[Dict], min_price: float, min_avg_dollar_volume: f
                         "momentum": float(momentum),
                         "liquidity": float(liquidity),
                     },
+                    "reasons": reasons,
+                    "signals": reasons,
                 }
             )
 

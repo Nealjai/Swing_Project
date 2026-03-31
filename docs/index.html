@@ -3,70 +3,139 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>US Regime Screener V1</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="container">
-      <header>
-        <h1>US Market Regime Dual-Engine Screener</h1>
-        <p id="generatedAt">Loading latest run...</p>
+      <header class="page-header">
+        <div>
+          <h1>US Market Regime Dual-Engine Screener</h1>
+          <p id="generatedAt">Loading latest run...</p>
+        </div>
+        <p id="loadError" class="error-text hidden"></p>
       </header>
 
       <section id="regimeBanner" class="banner neutral">Loading regime...</section>
 
-      <section class="summary-grid">
-        <div class="card">
-          <h3>Engine</h3>
-          <p id="engineName">-</p>
-        </div>
-        <div class="card">
-          <h3>Regime</h3>
-          <p id="regimeName">-</p>
-        </div>
-        <div class="card">
-          <h3>Universe</h3>
-          <p id="universeSize">-</p>
-        </div>
-        <div class="card">
-          <h3>Candidates</h3>
-          <p id="candidateCount">-</p>
-        </div>
+      <nav class="tabs" aria-label="Dashboard tabs">
+        <button id="tabBtnScreener" class="tab-btn active" data-tab="screener" type="button">Screener Result</button>
+        <button id="tabBtnBackground" class="tab-btn" data-tab="background" type="button">Background</button>
+        <button id="tabBtnHistory" class="tab-btn" data-tab="history" type="button">Historical / Backtest</button>
+      </nav>
+
+      <section id="tabScreener" class="tab-panel active" aria-labelledby="tabBtnScreener">
+        <section class="summary-grid">
+          <div class="card">
+            <h3>Engine</h3>
+            <p id="engineName">-</p>
+          </div>
+          <div class="card">
+            <h3>Regime</h3>
+            <p id="regimeName">-</p>
+          </div>
+          <div class="card">
+            <h3>Universe</h3>
+            <p id="universeSize">-</p>
+          </div>
+          <div class="card">
+            <h3>Candidates</h3>
+            <p id="candidateCount">-</p>
+          </div>
+        </section>
+
+        <section class="split-layout">
+          <div class="left-pane card">
+            <h2>Ranked Candidates</h2>
+            <p class="muted">Sorted by score (highest first). Click a row to load details and chart.</p>
+            <div class="table-wrap">
+              <table id="candidatesTable">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Symbol</th>
+                    <th>Engine</th>
+                    <th>Score</th>
+                    <th>Close</th>
+                    <th>SL</th>
+                    <th>TP</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="right-pane">
+            <section class="card" id="selectedCard">
+              <h2 id="selectedSymbolTitle">Selected stock details</h2>
+              <div id="selectedSymbolMeta" class="selected-meta"></div>
+              <div id="selectedFundamentals" class="fundamentals-grid"></div>
+            </section>
+
+            <section class="card">
+              <div class="chart-header">
+                <h2 id="priceChartTitle">Price & Indicators (1Y)</h2>
+                <div class="legend-toggles" id="chartToggles"></div>
+              </div>
+              <canvas id="priceChart" height="140"></canvas>
+            </section>
+          </div>
+        </section>
       </section>
 
-      <section class="card">
-        <h2>Benchmark (SPY)</h2>
-        <div id="benchmarkStats"></div>
+      <section id="tabBackground" class="tab-panel" aria-labelledby="tabBtnBackground">
+        <section class="card">
+          <h2 id="strategyName">Strategy</h2>
+          <p id="strategySummary">-</p>
+        </section>
+
+        <section class="card">
+          <h2>Market Regime Summary (SPY vs SMA200)</h2>
+          <div id="benchmarkStats"></div>
+          <div id="marketRegimeSummary" class="muted"></div>
+        </section>
+
+        <section class="card">
+          <h2>Dual-Engine Rules (Current Logic)</h2>
+          <div id="enginePlaybook" class="engine-grid"></div>
+          <div id="activeEngineRules" class="active-rules"></div>
+        </section>
+
+        <section class="card">
+          <h2>Scanner Settings</h2>
+          <div id="scannerSettings" class="settings-grid"></div>
+        </section>
+
+        <section class="card">
+          <h2>SPY 1Y Chart</h2>
+          <canvas id="benchmarkChart" height="110"></canvas>
+        </section>
+
+        <section class="card">
+          <h2>Risk Notice</h2>
+          <p id="riskNotice" class="risk-note"></p>
+        </section>
       </section>
 
-      <section class="card">
-        <h2>Ranked Candidates</h2>
-        <div class="table-wrap">
-          <table id="candidatesTable">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Symbol</th>
-                <th>Score</th>
-                <th>Close</th>
-                <th>20D High</th>
-                <th>RSI14</th>
-                <th>BB Lower</th>
-                <th>SMA200</th>
-                <th>Avg $ Vol (20D)</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
+      <section id="tabHistory" class="tab-panel" aria-labelledby="tabBtnHistory">
+        <section class="card">
+          <h2>Historical Result & Backtest</h2>
+          <p class="muted">This tab is a placeholder for the next phase. We will add historical tracking and win/loss backtesting here.</p>
+        </section>
 
-      <section class="card">
-        <h2>Diagnostics</h2>
-        <pre id="diagnostics"></pre>
+        <section class="card">
+          <h2>Diagnostics</h2>
+          <div id="diagnosticsSummary"></div>
+          <pre id="diagnostics"></pre>
+        </section>
       </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

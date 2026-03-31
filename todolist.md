@@ -15,8 +15,10 @@ This checklist reflects the current project state.
 11. [x] Export latest static artifacts to [`docs/data/latest.json`](docs/data/latest.json:1) and [`docs/data/latest.csv`](docs/data/latest.csv:1).
 12. [x] Build static dashboard assets in [`docs/`](docs/:1) for rendering latest results.
 13. [x] Add automation workflow in [`.github/workflows/daily_screener.yml`](.github/workflows/daily_screener.yml:1) for scheduled/manual regeneration and artifact commit.
+14. [x] Expand dashboard + data contract: tabs UI, Chart.js charts, candidate risk (ATR SL/TP), fundamentals, and `charts` payload in [`docs/data/latest.json`](docs/data/latest.json:1).
 
 ## Optional backlog (post-V1)
 
-14. [ ] Expand universe management beyond the initial S&P 500 list.
-15. [ ] Add richer dashboard UX or migrate frontend architecture if complexity grows.
+15. [ ] Add auto-regenerate-on-save workflow (watch pipeline files and re-run [`scripts/run_daily.py`](scripts/run_daily.py:1)).
+16. [ ] Expand universe management beyond the initial S&P 500 list.
+17. [ ] Add richer dashboard UX or migrate frontend architecture if complexity grows.

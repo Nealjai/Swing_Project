@@ -48,17 +48,41 @@ python scripts/run_daily.py
 ```
 This regenerates static artifacts, including [`docs/data/latest.json`](docs/data/latest.json:1) and [`docs/data/latest.csv`](docs/data/latest.csv:1).
 
-## Easiest local viewing method (recommended)
+The JSON now also includes:
+- Candidate `risk` (SL/TP based on ATR14 and bb_lower/high_20d)
+- Candidate `fundamentals` (ROE, P/E, Revenue Growth QoQ/YoY when available)
+- `charts` (1Y chart series for top 20 candidates + SPY benchmark)
+
+## Local web UI testing
+
+### Option A (no installs): run a simple local server
 Serve [`docs/`](docs/:1) as a static site:
 
 ```bash
-python -m http.server 8000 --directory docs
+python -m http.server 5500 --directory docs
 ```
 
 Then open:
-- `http://localhost:8000/`
+- `http://localhost:5500/`
 
-This is preferred over opening [`docs/index.html`](docs/index.html:1) directly because `fetch()` for local JSON/CSV works reliably over HTTP.
+This is preferred over opening [`docs/index.html`](docs/index.html:1) directly because `fetch()` for local JSON works reliably over HTTP.
+
+UI-only changes:
+- Save changes under [`docs/`](docs/:1)
+- Refresh browser
+
+Logic/data changes:
+- Re-run [`scripts/run_daily.py`](scripts/run_daily.py:1) to regenerate [`docs/data/latest.json`](docs/data/latest.json:1)
+- Refresh browser
+
+### Option B (optional): VS Code Live Server (auto-reload)
+If you want **save → browser auto-refresh**:
+1. Install the **Live Server** VS Code extension
+2. Right-click [`docs/index.html`](docs/index.html:1) → **Open with Live Server**
+
+Notes:
+- Live Server only auto-reloads when files change.
+- It does **not** automatically re-run Python; for logic changes you still run [`scripts/run_daily.py`](scripts/run_daily.py:1), then the browser will reload once the JSON changes.
 
 ## GitHub Pages deployment (serve from `/docs`)
 1. Open repository **Settings** → **Pages**.

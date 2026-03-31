@@ -1,5 +1,23 @@
 # Project Report
 
+## 2026-03-30
+
+### Dashboard + export contract expansion
+- Expanded the static dashboard UI under [`docs/`](docs/:1):
+  - Tabbed layout: Screener Results + Background + Historical (placeholder)
+  - Screener Results: left candidates table and right details panel with chart
+  - Chart rendering via Chart.js, with per-series visibility toggles
+  - Background tab includes a SPY benchmark chart
+- Expanded the JSON contract in [`docs/data/latest.json`](docs/data/latest.json:1):
+  - Candidate `risk` fields (ATR-based SL/TP derived from bb_lower/high_20d)
+  - Candidate `fundamentals` fields (ROE, P/E, revenue growth QoQ/YoY when available)
+  - `charts` payload (1Y series for top 20 candidates + SPY benchmark)
+
+### Local dev-loop documented
+- Documented the recommended local preview loop in [`readme.md`](readme.md:1):
+  - Serve the static site from [`docs/`](docs/:1) via `python -m http.server`
+  - Optional Live Server for auto-reload (still requires running [`scripts/run_daily.py`](scripts/run_daily.py:1) for logic/data changes)
+
 ## 2026-03-29
 
 ### Planning documentation

@@ -3,7 +3,9 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
+
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -14,6 +16,7 @@ from screener.config import Settings
 from screener.data import fetch_prices
 from screener.engines import bull_candidates, weak_candidates
 from screener.export import export_outputs
+from screener.fundamentals import fetch_fundamentals
 from screener.indicators import add_indicators, latest_metrics
 from screener.ranking import rank_candidates
 from screener.regime import detect_regime
@@ -26,6 +29,18 @@ def setup_logger() -> logging.Logger:
         format="%(asctime)s | %(levelname)s | %(message)s",
     )
     return logging.getLogger("screener")
+
+
+def _num(value: Any) -> float | None:
+    try:
+        if value is None:
+            return None
+        v = float(value)
+        if np.isnan(v) or np.isinf(v):
+            return None
+        return v
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _build_rows(
@@ -49,6 +64,91 @@ def _build_rows(
         except Exception as exc:  # noqa: BLE001
             logger.warning("Skipping %s while building metrics: %s", item.symbol, exc)
     return rows
+
+
+def _build_chart_series(df, window: int = 252) -> Dict[str, Any]:
+    tail = df.tail(window).copy()
+
+    def _col_values(frame, name: str, fallback: str | None = None) -> List[float | None]:
+        if name in frame.columns:
+            return [_num(v) for v in frame[name].tolist()]
+        if fallback and fallback in frame.columns:
+            return [_num(v) for v in frame[fallback].tolist()]
+        return []
+
+    if tail.empty:
+        return {
+            "dates": [],
+            "close": [],
+            "adj_close": [],
+            "volume": [],
+            "ema9": [],
+            "ema21": [],
+            "sma20": [],
+            "sma50": [],
+            "sma200": [],
+            "bb_lower": [],
+        }
+
+    return {
+        "dates": [idx.strftime("%Y-%m-%d") for idx in tail.index],
+        "close": _col_values(tail, "Close"),
+        "adj_close": _col_values(tail, "signal_close", fallback="Close"),
+        "volume": _col_values(tail, "Volume"),
+        "ema9": _col_values(tail, "ema9"),
+        "ema21": _col_values(tail, "ema21"),
+        "sma20": _col_values(tail, "sma20"),
+        "sma50": _col_values(tail, "sma50"),
+        "sma200": _col_values(tail, "sma200"),
+        "bb_lower": _col_values(tail, "bb_lower"),
+    }
+
+
+def _enrich_candidates(
+    candidates: List[Dict],
+    fundamentals_by_symbol: Dict[str, Dict],
+) -> List[Dict]:
+    out: List[Dict] = []
+
+    for c in candidates:
+        row = dict(c)
+
+        atr14 = _num(row.get("atr14"))
+        support_level = _num(row.get("bb_lower"))
+        resistance_level = _num(row.get("high_20d"))
+        close = _num(row.get("close"))
+
+        stop_loss = (support_level - atr14) if support_level is not None and atr14 is not None else None
+
+        take_profit = None
+        if resistance_level is not None and atr14 is not None:
+            take_profit = resistance_level + atr14
+        elif close is not None and atr14 is not None:
+            take_profit = close + (3.0 * atr14)
+
+        row["risk"] = {
+            "support_level": support_level,
+            "resistance_level": resistance_level,
+            "atr14": atr14,
+            "stop_loss": stop_loss,
+            "take_profit": take_profit,
+            "method": "stop=bb_lower-1*atr14; tp=high_20d+1*atr14 (fallback close+3*atr14)",
+        }
+
+        yf_symbol = str(row.get("yf_symbol") or "")
+        row["fundamentals"] = fundamentals_by_symbol.get(
+            yf_symbol,
+            {
+                "roe": None,
+                "pe": None,
+                "revenue_growth_qoq": None,
+                "revenue_growth_yoy": None,
+            },
+        )
+
+        out.append(row)
+
+    return out
 
 
 def main() -> int:
@@ -134,7 +234,31 @@ def main() -> int:
 
     ranked = rank_candidates(raw_candidates, settings.max_candidates)
 
+    top20_yf_symbols = sorted({str(c.get("yf_symbol")) for c in ranked[:20] if c.get("yf_symbol")})
+    fundamentals_by_symbol = fetch_fundamentals(top20_yf_symbols, logger)
+    ranked = _enrich_candidates(ranked, fundamentals_by_symbol)
+
+    charts_by_symbol = {}
+    for c in ranked[:20]:
+        yf_symbol = str(c.get("yf_symbol") or "")
+        df = enriched.get(yf_symbol)
+        if df is None:
+            continue
+        charts_by_symbol[yf_symbol] = _build_chart_series(df, window=252)
+
     diagnostics = {
+        "counts": {
+            "downloaded_symbols": data_diag.downloaded_symbols,
+            "cached_symbols": data_diag.cached_symbols,
+            "missing_or_skipped_count": len(skipped),
+            "rows_with_metrics": len(rows),
+            "raw_candidates_count": len(raw_candidates),
+            "ranked_candidates_count": len(ranked),
+        },
+        "skipped_tickers": skipped,
+        "warnings": [],
+        "errors": [],
+        # Backward-compatible keys for legacy frontend
         "downloaded_symbols": data_diag.downloaded_symbols,
         "cached_symbols": data_diag.cached_symbols,
         "missing_or_skipped_count": len(skipped),
@@ -149,6 +273,25 @@ def main() -> int:
         "above_sma200": regime.benchmark_above_sma200,
     }
 
+    chart_data = {
+        "window_trading_days": 252,
+        "default_visibility": {
+            "close": True,
+            "sma20": True,
+            "sma50": True,
+            "sma200": True,
+            "ema9": False,
+            "ema21": False,
+            "bb_lower": False,
+            "volume": False,
+        },
+        "benchmark": {
+            "symbol": settings.benchmark_symbol,
+            "series": _build_chart_series(benchmark_enriched, window=252),
+        },
+        "symbols": charts_by_symbol,
+    }
+
     export_outputs(
         settings_snapshot=settings.snapshot(),
         benchmark=benchmark_snapshot,
@@ -159,6 +302,7 @@ def main() -> int:
         universe_size=len(universe),
         json_path=settings.output_json,
         csv_path=settings.output_csv,
+        chart_data=chart_data,
     )
 
     logger.info(

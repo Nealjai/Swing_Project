@@ -17,6 +17,19 @@ def compute_rsi(close: pd.Series, length: int = 14) -> pd.Series:
     return rsi
 
 
+def compute_atr(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) -> pd.Series:
+    prev_close = close.shift(1)
+    tr = pd.concat(
+        [
+            high - low,
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    return tr.rolling(length).mean()
+
+
 def add_indicators(
     df: pd.DataFrame,
     breakout_lookback: int,
@@ -26,17 +39,27 @@ def add_indicators(
     sma_regime_length: int,
 ) -> pd.DataFrame:
     out = df.copy()
-    close = out["Close"]
 
-    out["sma200"] = close.rolling(sma_regime_length).mean()
-    out["high_20d"] = out["High"].rolling(breakout_lookback).max()
-    out["rsi14"] = compute_rsi(close, rsi_length)
+    # Use adjusted close for signal indicators when available.
+    signal_close = out["Adj Close"] if "Adj Close" in out.columns else out["Close"]
+    out["signal_close"] = signal_close
 
-    bb_mid = close.rolling(bb_length).mean()
-    bb_sigma = close.rolling(bb_length).std(ddof=0)
+    out["ema9"] = signal_close.ewm(span=9, adjust=False).mean()
+    out["ema21"] = signal_close.ewm(span=21, adjust=False).mean()
+    out["sma20"] = signal_close.rolling(20).mean()
+    out["sma50"] = signal_close.rolling(50).mean()
+    out["sma200"] = signal_close.rolling(sma_regime_length).mean()
+
+    out["high_20d"] = signal_close.rolling(breakout_lookback).max()
+    out["rsi14"] = compute_rsi(signal_close, rsi_length)
+
+    bb_mid = signal_close.rolling(bb_length).mean()
+    bb_sigma = signal_close.rolling(bb_length).std(ddof=0)
     out["bb_mid"] = bb_mid
     out["bb_upper"] = bb_mid + bb_std * bb_sigma
     out["bb_lower"] = bb_mid - bb_std * bb_sigma
+
+    out["atr14"] = compute_atr(out["High"], out["Low"], out["Close"], length=14)
 
     out["dollar_volume"] = out["Close"] * out["Volume"]
     out["avg_dollar_volume_20d"] = out["dollar_volume"].rolling(20).mean()
@@ -48,10 +71,16 @@ def latest_metrics(df: pd.DataFrame) -> Dict[str, float]:
     row = df.iloc[-1]
     return {
         "close": float(row.get("Close", np.nan)),
+        "adj_close": float(row.get("signal_close", np.nan)),
         "high_20d": float(row.get("high_20d", np.nan)),
         "rsi14": float(row.get("rsi14", np.nan)),
         "bb_upper": float(row.get("bb_upper", np.nan)),
         "bb_lower": float(row.get("bb_lower", np.nan)),
+        "sma20": float(row.get("sma20", np.nan)),
+        "sma50": float(row.get("sma50", np.nan)),
         "sma200": float(row.get("sma200", np.nan)),
+        "ema9": float(row.get("ema9", np.nan)),
+        "ema21": float(row.get("ema21", np.nan)),
+        "atr14": float(row.get("atr14", np.nan)),
         "avg_dollar_volume_20d": float(row.get("avg_dollar_volume_20d", np.nan)),
     }

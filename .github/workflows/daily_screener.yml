@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
   schedule:
     # GitHub cron is UTC.
-    # 02:15 UTC Tue-Sat targets U.S. market EOD availability for Mon-Fri sessions.
-    # (Runs after U.S. close and typical provider update windows.)
+    # Existing run: 02:15 UTC Tue-Sat (10:15 HKT Tue-Sat), targeting U.S. EOD availability.
     - cron: "15 2 * * 2-6"
+    # Added runs per requested Hong Kong local times:
+    # 17:00 HKT daily = 09:00 UTC daily
+    - cron: "0 9 * * *"
+    # 20:50 HKT daily = 12:50 UTC daily
+    - cron: "50 12 * * *"
 
 permissions:
   contents: write

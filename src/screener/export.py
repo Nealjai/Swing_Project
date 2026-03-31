@@ -37,36 +37,60 @@ def export_outputs(
     universe_size: int,
     json_path: str,
     csv_path: str,
+    strategy: Dict | None = None,
+    chart_data: Dict | None = None,
 ) -> None:
-    benchmark_symbol = settings_snapshot.get("benchmark_symbol", "SPY")
-    sma_len = settings_snapshot.get("sma_regime_length", 200)
-    breakout_lookback = settings_snapshot.get("breakout_lookback", 20)
-    weak_rsi_threshold = settings_snapshot.get("weak_rsi_threshold", 30)
+    scanner_settings = {
+        "benchmark_symbol": settings_snapshot.get("benchmark_symbol"),
+        "min_price": settings_snapshot.get("min_price"),
+        "min_avg_dollar_volume": settings_snapshot.get("min_avg_dollar_volume"),
+        "sma_regime_length": settings_snapshot.get("sma_regime_length"),
+        "breakout_lookback": settings_snapshot.get("breakout_lookback"),
+        "rsi_length": settings_snapshot.get("rsi_length"),
+        "bb_length": settings_snapshot.get("bb_length"),
+        "bb_std": settings_snapshot.get("bb_std"),
+        "weak_rsi_threshold": settings_snapshot.get("weak_rsi_threshold"),
+        "max_candidates": settings_snapshot.get("max_candidates"),
+    }
 
-    regime_rule = (
-        f"Regime rule: {benchmark_symbol} close vs SMA{sma_len}. "
-        "Above = bull engine, otherwise weak engine."
-    )
-    bull_rule = f"Bull engine signal: close within 0.5% of {breakout_lookback}-day high."
-    weak_rule = f"Weak engine signal: close at/below lower Bollinger Band and RSI <= {weak_rsi_threshold}."
-    bull_ranking = "Bull ranking factors: breakout (50%), momentum from RSI (30%), liquidity (20%)."
-    weak_ranking = (
-        "Weak ranking factors: reversal quality from RSI (50%), extension below lower band (30%), "
-        "liquidity (20%)."
-    )
-
-    active_engine_name = "Bull Engine (Trend/Breakout)" if engine == "bull" else "Weak Engine (Oversold Rebound)"
-    active_engine_summary = (
-        "Bull regime detected. The trend/breakout engine is active."
-        if engine == "bull"
-        else "Weak regime detected. The oversold-rebound engine is active."
-    )
-    active_engine_logic = [
-        regime_rule,
-        "Filter: keep stocks above minimum price and minimum average dollar volume.",
-        bull_rule if engine == "bull" else weak_rule,
-        bull_ranking if engine == "bull" else weak_ranking,
-    ]
+    default_strategy = {
+        "name": "US Market Regime Dual-Engine Screener",
+        "summary": "Daily US stock scanner that switches between breakout and oversold-rebound engines based on SPY vs SMA200.",
+        "market_regime_logic": {
+            "benchmark": benchmark.get("symbol", "SPY"),
+            "rule": f"Bull if close > SMA{scanner_settings.get('sma_regime_length', 200)}, else weak",
+        },
+        "engines": {
+            "bull": {
+                "title": "Bull: Breakout Momentum Engine",
+                "rules": [
+                    f"Close near/new {scanner_settings.get('breakout_lookback', 20)}D high",
+                    "Momentum confirmation from RSI14",
+                    "Liquidity filter and minimum price must pass",
+                ],
+                "take_profit": "Take profit: resistance_level + 1x ATR14 (fallback close + 3x ATR14)",
+                "stop_loss": "Stop loss: bb_lower - 1x ATR14",
+            },
+            "weak": {
+                "title": "Weak: Oversold Rebound Engine",
+                "rules": [
+                    f"RSI14 <= {scanner_settings.get('weak_rsi_threshold', 30)}",
+                    "Close below lower Bollinger Band",
+                    "Liquidity filter and minimum price must pass",
+                ],
+                "take_profit": "Take profit: resistance_level + 1x ATR14 (fallback close + 3x ATR14)",
+                "stop_loss": "Stop loss: bb_lower - 1x ATR14",
+            },
+        },
+        "fundamental_checklist": [
+            "Dividend Yield (income support in weak tape)",
+            "P/E ratio (avoid extreme overvaluation)",
+            "P/B ratio (asset valuation context)",
+            "ROE (quality and capital efficiency)",
+            "Revenue/EPS growth and balance-sheet debt trend",
+        ],
+        "risk_notice": "Signals are for research only, not investment advice. Enforce stop-loss and position sizing discipline.",
+    }
 
     payload = {
         "meta": {
@@ -76,29 +100,13 @@ def export_outputs(
             "universe_size": universe_size,
             "candidate_count": len(candidates),
             "settings": settings_snapshot,
-            "strategy": {
-                "active_engine_name": active_engine_name,
-                "active_engine_summary": active_engine_summary,
-                "active_engine_logic": active_engine_logic,
-                "regime_rule": regime_rule,
-                "bull_rule": bull_rule,
-                "weak_rule": weak_rule,
-                "bull_ranking": bull_ranking,
-                "weak_ranking": weak_ranking,
-                "selection_overview": [
-                    regime_rule,
-                    f"Bull rules (used only in bull regime): {bull_rule.replace('Bull engine signal: ', '')}",
-                    f"Weak rules (used only in weak regime): {weak_rule.replace('Weak engine signal: ', '')}",
-                    (
-                        "Ranking is score-based inside the active engine. "
-                        f"{bull_ranking if engine == 'bull' else weak_ranking}"
-                    ),
-                ],
-            },
         },
         "benchmark": benchmark,
+        "strategy": strategy or default_strategy,
+        "scanner_settings": scanner_settings,
         "candidates": candidates,
         "diagnostics": diagnostics,
+        "charts": chart_data or {},
     }
 
     payload = _sanitize_dict(payload)
