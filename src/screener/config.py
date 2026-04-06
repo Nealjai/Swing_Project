@@ -15,7 +15,9 @@ class Settings:
     download_batch_size: int = 100
 
     min_price: float = 5.0
-    min_avg_dollar_volume: float = 5_000_000.0
+    min_market_cap: float = 3_000_000_000.0
+    min_beta_1y: float = 1.0
+    min_volume: float = 500_000.0
 
     sma_regime_length: int = 200
     breakout_lookback: int = 20

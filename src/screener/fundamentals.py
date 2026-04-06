@@ -58,7 +58,27 @@ def _extract_quarterly_revenue_growth(ticker: yf.Ticker) -> tuple[float | None, 
     return _safe_float(qoq), _safe_float(yoy)
 
 
-def fetch_fundamentals(yf_symbols: Iterable[str], logger: logging.Logger) -> Dict[str, Dict]:
+def fetch_ticker_info(yf_symbols: Iterable[str], logger: logging.Logger) -> Dict[str, Dict]:
+    out: Dict[str, Dict] = {}
+
+    for yf_symbol in yf_symbols:
+        info: Dict = {}
+        try:
+            ticker = yf.Ticker(yf_symbol)
+            info = ticker.info or {}
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Ticker info fetch failed for %s: %s", yf_symbol, exc)
+
+        out[yf_symbol] = info
+
+    return out
+
+
+def fetch_fundamentals(
+    yf_symbols: Iterable[str],
+    logger: logging.Logger,
+    info_by_symbol: Dict[str, Dict] | None = None,
+) -> Dict[str, Dict]:
     out: Dict[str, Dict] = {}
 
     for yf_symbol in yf_symbols:
@@ -71,7 +91,7 @@ def fetch_fundamentals(yf_symbols: Iterable[str], logger: logging.Logger) -> Dic
 
         try:
             ticker = yf.Ticker(yf_symbol)
-            info = ticker.info or {}
+            info = (info_by_symbol or {}).get(yf_symbol) or {}
 
             fundamentals["roe"] = _safe_float(info.get("returnOnEquity"))
             fundamentals["pe"] = _safe_float(info.get("trailingPE"))

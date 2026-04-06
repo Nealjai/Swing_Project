@@ -72,6 +72,7 @@ def latest_metrics(df: pd.DataFrame) -> Dict[str, float]:
     return {
         "close": float(row.get("Close", np.nan)),
         "adj_close": float(row.get("signal_close", np.nan)),
+        "volume": float(row.get("Volume", np.nan)),
         "high_20d": float(row.get("high_20d", np.nan)),
         "rsi14": float(row.get("rsi14", np.nan)),
         "bb_upper": float(row.get("bb_upper", np.nan)),

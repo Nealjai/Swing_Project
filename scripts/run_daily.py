@@ -16,7 +16,7 @@ from screener.config import Settings
 from screener.data import fetch_prices
 from screener.engines import bull_candidates, weak_candidates
 from screener.export import export_outputs
-from screener.fundamentals import fetch_fundamentals
+from screener.fundamentals import fetch_fundamentals, fetch_ticker_info
 from screener.indicators import add_indicators, latest_metrics
 from screener.ranking import rank_candidates
 from screener.regime import detect_regime
@@ -46,6 +46,7 @@ def _num(value: Any) -> float | None:
 def _build_rows(
     items: List[UniverseItem],
     enriched: Dict[str, object],
+    info_by_symbol: Dict[str, Dict],
     logger: logging.Logger,
 ) -> List[Dict]:
     rows: List[Dict] = []
@@ -59,6 +60,8 @@ def _build_rows(
                 "symbol": item.symbol,
                 "yf_symbol": item.yf_symbol,
                 **metrics,
+                "market_cap": _num((info_by_symbol.get(item.yf_symbol) or {}).get("marketCap")),
+                "beta_1y": _num((info_by_symbol.get(item.yf_symbol) or {}).get("beta")),
             }
             rows.append(row)
         except Exception as exc:  # noqa: BLE001
@@ -161,6 +164,7 @@ def main() -> int:
         yf_symbols.append(settings.benchmark_symbol)
 
     prices, data_diag = fetch_prices(yf_symbols=yf_symbols, settings=settings, logger=logger)
+    info_by_symbol = fetch_ticker_info(yf_symbols, logger)
 
     benchmark_df = prices.get(settings.benchmark_symbol)
     if benchmark_df is None or benchmark_df.empty:
@@ -214,20 +218,24 @@ def main() -> int:
             )
 
     regime = detect_regime(benchmark_enriched)
-    rows = _build_rows(universe, enriched, logger)
+    rows = _build_rows(universe, enriched, info_by_symbol, logger)
 
     if regime.regime == "bull":
         raw_candidates = bull_candidates(
             rows,
             min_price=settings.min_price,
-            min_avg_dollar_volume=settings.min_avg_dollar_volume,
+            min_market_cap=settings.min_market_cap,
+            min_beta_1y=settings.min_beta_1y,
+            min_volume=settings.min_volume,
         )
         engine_name = "bull"
     else:
         raw_candidates = weak_candidates(
             rows,
             min_price=settings.min_price,
-            min_avg_dollar_volume=settings.min_avg_dollar_volume,
+            min_market_cap=settings.min_market_cap,
+            min_beta_1y=settings.min_beta_1y,
+            min_volume=settings.min_volume,
             weak_rsi_threshold=settings.weak_rsi_threshold,
         )
         engine_name = "weak"
@@ -235,7 +243,7 @@ def main() -> int:
     ranked = rank_candidates(raw_candidates, settings.max_candidates)
 
     top20_yf_symbols = sorted({str(c.get("yf_symbol")) for c in ranked[:20] if c.get("yf_symbol")})
-    fundamentals_by_symbol = fetch_fundamentals(top20_yf_symbols, logger)
+    fundamentals_by_symbol = fetch_fundamentals(top20_yf_symbols, logger, info_by_symbol=info_by_symbol)
     ranked = _enrich_candidates(ranked, fundamentals_by_symbol)
 
     charts_by_symbol = {}

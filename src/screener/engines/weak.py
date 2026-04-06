@@ -6,7 +6,9 @@ from typing import Dict, List
 def weak_candidates(
     rows: List[Dict],
     min_price: float,
-    min_avg_dollar_volume: float,
+    min_market_cap: float,
+    min_beta_1y: float,
+    min_volume: float,
     weak_rsi_threshold: float,
 ) -> List[Dict]:
     candidates: List[Dict] = []
@@ -15,10 +17,15 @@ def weak_candidates(
         bb_lower = row.get("bb_lower")
         rsi14 = row.get("rsi14")
         avg_dv = row.get("avg_dollar_volume_20d")
+        volume = row.get("volume")
+        market_cap = row.get("market_cap")
+        beta_1y = row.get("beta_1y")
 
         if close is None or bb_lower is None or rsi14 is None or avg_dv is None:
             continue
-        if close < min_price or avg_dv < min_avg_dollar_volume:
+        if volume is None or market_cap is None or beta_1y is None:
+            continue
+        if close <= min_price or market_cap <= min_market_cap or beta_1y <= min_beta_1y or volume < min_volume:
             continue
 
         below_bb = close <= bb_lower

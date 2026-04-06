@@ -43,7 +43,9 @@ def export_outputs(
     scanner_settings = {
         "benchmark_symbol": settings_snapshot.get("benchmark_symbol"),
         "min_price": settings_snapshot.get("min_price"),
-        "min_avg_dollar_volume": settings_snapshot.get("min_avg_dollar_volume"),
+        "min_market_cap": settings_snapshot.get("min_market_cap"),
+        "min_beta_1y": settings_snapshot.get("min_beta_1y"),
+        "min_volume": settings_snapshot.get("min_volume"),
         "sma_regime_length": settings_snapshot.get("sma_regime_length"),
         "breakout_lookback": settings_snapshot.get("breakout_lookback"),
         "rsi_length": settings_snapshot.get("rsi_length"),
