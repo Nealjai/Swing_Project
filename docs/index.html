@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>US Regime Screener V1</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260406c" />
   </head>
   <body>
     <main class="container">
@@ -24,7 +24,7 @@
       <nav class="tabs" aria-label="Dashboard tabs">
         <button id="tabBtnScreener" class="tab-btn active" data-tab="screener" type="button">Screener Result</button>
         <button id="tabBtnBackground" class="tab-btn" data-tab="background" type="button">Background</button>
-        <button id="tabBtnHistory" class="tab-btn" data-tab="history" type="button">Historical / Backtest</button>
+        <button id="tabBtnHistory" class="tab-btn" data-tab="history" type="button">Backtesting</button>
       </nav>
 
       <section id="tabScreener" class="tab-panel active" aria-labelledby="tabBtnScreener">
@@ -123,8 +123,63 @@
 
       <section id="tabHistory" class="tab-panel" aria-labelledby="tabBtnHistory">
         <section class="card">
-          <h2>Historical Result & Backtest</h2>
-          <p class="muted">This tab is a placeholder for the next phase. We will add historical tracking and win/loss backtesting here.</p>
+          <h2>Backtest Summary</h2>
+          <p id="backtestStatus" class="muted"></p>
+          <p id="backtestError" class="error-text hidden"></p>
+        </section>
+
+        <section class="card">
+          <h2>Engine Metrics</h2>
+          <div id="backtestEngineStats" class="backtest-engine-grid"></div>
+        </section>
+
+        <section class="card">
+          <h2>Portfolio Metrics</h2>
+          <div id="backtestPortfolioStats" class="backtest-portfolio-grid"></div>
+        </section>
+
+        <section class="card">
+          <h2>Portfolio Equity Curve</h2>
+          <canvas id="backtestEquityChart" height="120"></canvas>
+          <p id="backtestChartNote" class="muted"></p>
+        </section>
+
+        <section class="card">
+          <h2>Monthly Returns</h2>
+          <div class="table-wrap">
+            <table id="backtestMonthlyTable">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Return %</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Annual Breakdown (Trade Stats)</h2>
+          <div class="table-wrap">
+            <table id="backtestAnnualTable">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Bull Win Rate</th>
+                  <th>Bull Expectancy</th>
+                  <th>Weak Win Rate</th>
+                  <th>Weak Expectancy</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Methodology</h2>
+          <div id="backtestMethodology" class="methodology"></div>
         </section>
 
         <section class="card">
@@ -136,6 +191,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260406c"></script>
   </body>
 </html>

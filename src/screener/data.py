@@ -27,11 +27,30 @@ def _cache_file(cache_dir: Path, yf_symbol: str) -> Path:
     return cache_dir / f"{safe}.csv"
 
 
-def _is_fresh(path: Path, max_age_days: int) -> bool:
+def _is_fresh(path: Path, max_age_days: int, required_start: str | None = None) -> bool:
     if not path.exists():
         return False
+
     age = datetime.now(timezone.utc) - datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
-    return age <= timedelta(days=max_age_days)
+    if age > timedelta(days=max_age_days):
+        return False
+
+    if required_start:
+        try:
+            required_start_ts = pd.Timestamp(required_start)
+            cached = pd.read_csv(path, usecols=["Date"])
+            if cached.empty:
+                return False
+            cached_dates = pd.to_datetime(cached["Date"], errors="coerce").dropna()
+            if cached_dates.empty:
+                return False
+            # Cache is only acceptable if it fully covers the requested window.
+            if cached_dates.min() > required_start_ts:
+                return False
+        except Exception:  # noqa: BLE001
+            return False
+
+    return True
 
 
 def _read_cached(path: Path) -> pd.DataFrame:
@@ -96,17 +115,17 @@ def fetch_prices(
     skipped: List[dict] = []
     cached_symbols = 0
 
+    start = (datetime.now(timezone.utc) - timedelta(days=settings.lookback_calendar_days)).date().isoformat()
+
     for symbol in yf_symbols:
         cache_path = _cache_file(settings.cache_path, symbol)
-        if _is_fresh(cache_path, settings.cache_max_age_days):
+        if _is_fresh(cache_path, settings.cache_max_age_days, required_start=start):
             cached = _read_cached(cache_path)
             if not cached.empty:
                 prices[symbol] = cached
                 cached_symbols += 1
                 continue
         stale_symbols.append(symbol)
-
-    start = (datetime.now(timezone.utc) - timedelta(days=settings.lookback_calendar_days)).date().isoformat()
 
     downloaded_symbols = 0
     for i in range(0, len(stale_symbols), settings.download_batch_size):

@@ -338,6 +338,78 @@ td:nth-child(3) {
   display: none;
 }
 
+.backtest-engine-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.backtest-engine-card {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.backtest-engine-card.bull {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.backtest-engine-card.weak {
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.backtest-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.backtest-metric {
+  background: #0b1324;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.backtest-metric span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.backtest-metric strong {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.backtest-portfolio-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.backtest-portfolio-card {
+  background: var(--panel-soft);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+#backtestAnnualTable th:first-child,
+#backtestAnnualTable td:first-child,
+#backtestMonthlyTable th:first-child,
+#backtestMonthlyTable td:first-child {
+  text-align: left;
+}
+
+.methodology p {
+  margin: 0 0 8px;
+  white-space: normal;
+}
+
 pre {
   margin: 0;
   white-space: pre-wrap;
@@ -353,7 +425,9 @@ pre {
   .summary-grid,
   .fundamentals-grid,
   .settings-grid,
-  .engine-grid {
+  .engine-grid,
+  .backtest-engine-grid,
+  .backtest-metric-grid {
     grid-template-columns: 1fr;
   }
 

@@ -1,5 +1,38 @@
 # Project Report
 
+## 2026-04-06
+
+### Portfolio simulator (Option C) integrated into backtesting
+- Implemented signal-level candidate generation via [`_generate_symbol_candidates()`](src/screener/backtest/engine.py:236) and extended [`BacktestResult`](src/screener/backtest/engine.py:27) to include `candidates` and `prices` for portfolio simulation inputs.
+- Added portfolio simulator module via [`simulate_portfolio()`](src/screener/backtest/portfolio.py:158) with locked assumptions:
+  - initial capital 10,000
+  - max 5 concurrent positions
+  - equal-weight sizing + integer shares (floor)
+  - no leverage
+  - slippage 0.05% each side
+  - commission $0.32 each side
+  - monthly drawdown guard: halt new entries below -6% from month-start equity
+  - risk cap: 1% per trade vs month-start equity
+  - same-day entry ranking by `signal_avg_dollar_volume_20d` descending
+- Added portfolio risk/performance metrics including Sharpe and Sortino via [`_compute_sharpe_sortino()`](src/screener/backtest/portfolio.py:106).
+- Added monthly return series via [`_build_monthly_returns()`](src/screener/backtest/portfolio.py:135).
+- Extended summary schema via [`build_summary_payload()`](src/screener/backtest/output.py:51) and pipeline wiring in [`main()`](scripts/run_backtest.py:141) to emit `portfolio.assumptions`, `portfolio.metrics`, `portfolio.curve`, and `portfolio.monthly_returns`.
+- Updated dashboard rendering:
+  - portfolio metric cards via [`renderBacktestPortfolioCards()`](docs/app.js:688)
+  - portfolio equity + drawdown chart via [`renderBacktestEquityChart()`](docs/app.js:727)
+  - monthly return table via [`renderBacktestMonthlyTable()`](docs/app.js:836)
+  - history tab structure in [`docs/index.html`](docs/index.html:124)
+  - styling in [`docs/styles.css`](docs/styles.css:388)
+- Regenerated [`docs/data/backtest_summary.json`](docs/data/backtest_summary.json:1) using [`scripts/run_backtest.py`](scripts/run_backtest.py:1) with default test universe.
+
+### Backtesting module + dashboard tab documentation refresh
+- Updated [`readme.md`](readme.md:1) to document local backtest execution via [`scripts/run_backtest.py`](scripts/run_backtest.py:1), including CLI defaults for engine, symbol mode, and date range.
+- Documented backtest artifact contract:
+  - committed summary: [`docs/data/backtest_summary.json`](docs/data/backtest_summary.json:1)
+  - local-only trade logs: `data/backtests/trades_YYYYMMDD_HHMM.csv` (gitignored via [`.gitignore`](.gitignore:1))
+- Added backtest integrity notes to docs (next-open entry, regime filter, 200-bar warmup, adjusted-close signal evaluation vs raw-price P&L semantics).
+- Added Backtesting tab usage notes, including lazy-load behavior and what the empty/error state means when summary data is missing.
+
 ## 2026-03-30
 
 ### Dashboard + export contract expansion

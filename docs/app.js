@@ -13,6 +13,16 @@ function fmtPct(value, digits = 2) {
   return `${(Number(value) * 100).toFixed(digits)}%`;
 }
 
+function fmtPctPoints(value, digits = 2) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  return `${Number(value).toFixed(digits)}%`;
+}
+
+function fmtDollar(value, digits = 2) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  return `$${Number(value).toFixed(digits)}`;
+}
+
 function esc(value) {
   const span = document.createElement('span');
   span.textContent = String(value ?? '-');
@@ -33,6 +43,13 @@ let state = {
   selectedYfSymbol: null,
   priceChart: null,
   benchmarkChart: null,
+  backtestChart: null,
+  backtest: {
+    loaded: false,
+    loading: false,
+    data: null,
+    error: null,
+  },
   indicatorVisibility: {
     close: true,
     sma20: true,
@@ -65,17 +82,43 @@ function renderSummary(meta, diagnostics) {
   document.getElementById('candidateCount').textContent = `${fmtInt(rankedCount)} ranked / ${fmtInt(rawCount)} raw`;
 }
 
+function activateTab(buttons, panels, key) {
+  if (!key) return;
+  for (const b of buttons) b.classList.toggle('active', b.dataset.tab === key);
+  for (const p of panels) p.classList.toggle('active', p.id === `tab${key[0].toUpperCase()}${key.slice(1)}`);
+  if (key === 'history') {
+    void loadBacktestSummaryIfNeeded();
+  }
+}
+
+function getInitialTabKey(buttons, panels) {
+  const hash = String(window.location.hash || '').replace(/^#/, '').toLowerCase();
+  if (hash && buttons.some((b) => b.dataset.tab === hash)) return hash;
+
+  const activeButton = buttons.find((b) => b.classList.contains('active'));
+  if (activeButton?.dataset?.tab) return activeButton.dataset.tab;
+
+  const activePanel = panels.find((p) => p.classList.contains('active'));
+  if (activePanel?.id?.startsWith('tab') && activePanel.id.length > 3) {
+    const key = `${activePanel.id[3].toLowerCase()}${activePanel.id.slice(4)}`;
+    if (buttons.some((b) => b.dataset.tab === key)) return key;
+  }
+
+  return buttons[0]?.dataset?.tab || 'screener';
+}
+
 function renderTabs() {
   const buttons = Array.from(document.querySelectorAll('.tab-btn'));
   const panels = Array.from(document.querySelectorAll('.tab-panel'));
 
   for (const btn of buttons) {
     btn.addEventListener('click', () => {
-      const key = btn.dataset.tab;
-      for (const b of buttons) b.classList.toggle('active', b === btn);
-      for (const p of panels) p.classList.toggle('active', p.id === `tab${key[0].toUpperCase()}${key.slice(1)}`);
+      activateTab(buttons, panels, btn.dataset.tab);
     });
   }
+
+  const initialTab = getInitialTabKey(buttons, panels);
+  activateTab(buttons, panels, initialTab);
 }
 
 function renderStrategy(payload) {
@@ -581,6 +624,355 @@ function showLoadError(message, stack = '') {
   errEl.textContent = stack ? `${message}\n${stack}` : message;
 }
 
+function getMetricValue(statsObj, keys) {
+  const obj = toObject(statsObj);
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+  }
+  return null;
+}
+
+function renderBacktestStatus(message, isError = false) {
+  const statusEl = document.getElementById('backtestStatus');
+  const errEl = document.getElementById('backtestError');
+  if (!statusEl || !errEl) return;
+
+  statusEl.textContent = message || '';
+  if (isError) {
+    errEl.classList.remove('hidden');
+    errEl.textContent =
+      'Backtest summary unavailable. Run scripts/run_backtest.py locally to generate docs/data/backtest_summary.json, then refresh this page.';
+  } else {
+    errEl.classList.add('hidden');
+    errEl.textContent = '';
+  }
+}
+
+function getEngineStats(byEngine, engineLabel) {
+  const section = toObject(byEngine);
+  return toObject(section[engineLabel] ?? section[engineLabel.toLowerCase()] ?? section[engineLabel.toUpperCase()]);
+}
+
+function renderBacktestEngineCards(payload) {
+  const host = document.getElementById('backtestEngineStats');
+  if (!host) return;
+
+  const byEngine = toObject(toObject(toObject(payload).stats).by_engine);
+  const engines = [
+    { label: 'Bull', css: 'bull' },
+    { label: 'Weak', css: 'weak' },
+  ];
+
+  host.innerHTML = engines
+    .map((engine) => {
+      const stats = getEngineStats(byEngine, engine.label);
+      return `
+        <section class="backtest-engine-card ${engine.css}">
+          <h3>${esc(engine.label)} Engine</h3>
+          <div class="backtest-metric-grid">
+            <div class="backtest-metric"><span>Total trades</span><strong>${fmtInt(getMetricValue(stats, ['total_trades', 'trades']))}</strong></div>
+            <div class="backtest-metric"><span>Win rate</span><strong>${fmtPctPoints(getMetricValue(stats, ['win_rate']))}</strong></div>
+            <div class="backtest-metric"><span>Profit factor</span><strong>${fmtNumber(getMetricValue(stats, ['profit_factor']), 2)}</strong></div>
+            <div class="backtest-metric"><span>Expectancy</span><strong>${fmtPctPoints(getMetricValue(stats, ['expectancy_pct', 'expectancy']))}</strong></div>
+            <div class="backtest-metric"><span>Avg win</span><strong>${fmtPctPoints(getMetricValue(stats, ['avg_win_pct']))}</strong></div>
+            <div class="backtest-metric"><span>Avg loss</span><strong>${fmtPctPoints(getMetricValue(stats, ['avg_loss_pct']))}</strong></div>
+            <div class="backtest-metric"><span>Avg hold days</span><strong>${fmtNumber(getMetricValue(stats, ['avg_hold_days']), 2)}</strong></div>
+            <div class="backtest-metric"><span>Max consecutive losses</span><strong>${fmtInt(getMetricValue(stats, ['max_consecutive_losses']))}</strong></div>
+          </div>
+        </section>
+      `;
+    })
+    .join('');
+}
+
+function renderBacktestPortfolioCards(payload) {
+  const host = document.getElementById('backtestPortfolioStats');
+  if (!host) return;
+
+  const portfolio = toObject(payload.portfolio);
+  const assumptions = toObject(portfolio.assumptions);
+  const metrics = toObject(portfolio.metrics);
+
+  host.innerHTML = `
+    <section class="backtest-portfolio-card">
+      <div class="backtest-metric-grid">
+        <div class="backtest-metric"><span>Initial capital</span><strong>${fmtDollar(getMetricValue(assumptions, ['initial_capital']))}</strong></div>
+        <div class="backtest-metric"><span>Total return</span><strong>${fmtPctPoints(getMetricValue(metrics, ['total_return_pct']))}</strong></div>
+        <div class="backtest-metric"><span>CAGR</span><strong>${fmtPctPoints(getMetricValue(metrics, ['cagr_pct']))}</strong></div>
+        <div class="backtest-metric"><span>Max drawdown</span><strong>${fmtPctPoints(getMetricValue(metrics, ['max_drawdown_pct']))}</strong></div>
+        <div class="backtest-metric"><span>Exposure</span><strong>${fmtPctPoints(getMetricValue(metrics, ['exposure_pct']))}</strong></div>
+        <div class="backtest-metric"><span>Months halted</span><strong>${fmtInt(getMetricValue(metrics, ['months_halted']))}</strong></div>
+        <div class="backtest-metric"><span>Sharpe</span><strong>${fmtNumber(getMetricValue(metrics, ['sharpe']), 3)}</strong></div>
+        <div class="backtest-metric"><span>Sortino</span><strong>${fmtNumber(getMetricValue(metrics, ['sortino']), 3)}</strong></div>
+      </div>
+    </section>
+  `;
+}
+
+function buildPortfolioCurveSeries(payload) {
+  const portfolio = toObject(payload.portfolio);
+  const curve = toObject(portfolio.curve);
+  const dates = toArray(curve.dates);
+  const equity = toArray(curve.equity).map((v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  });
+  const drawdown = toArray(curve.drawdown_pct).map((v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? -Math.abs(n) : null;
+  });
+  return { dates, equity, drawdown };
+}
+
+function renderBacktestEquityChart(payload) {
+  const canvas = document.getElementById('backtestEquityChart');
+  const noteEl = document.getElementById('backtestChartNote');
+  if (!canvas || !noteEl) return;
+
+  destroyChart(state.backtestChart);
+
+  const series = buildPortfolioCurveSeries(payload);
+  if (!series.dates.length) {
+    noteEl.textContent = 'No portfolio equity curve data found.';
+    state.backtestChart = null;
+    return;
+  }
+
+  const assumptions = toObject(toObject(payload.portfolio).assumptions);
+  noteEl.textContent = `Portfolio curve uses assumptions: initial=${fmtDollar(assumptions.initial_capital)}, max_positions=${fmtInt(assumptions.max_positions)}, slippage=${fmtPctPoints((Number(assumptions.slippage_pct_each_side) || 0) * 100, 3)} each side, commission=${fmtDollar(assumptions.commission_per_side)} per side.`;
+
+  state.backtestChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: series.dates,
+      datasets: [
+        {
+          label: 'Equity ($)',
+          data: series.equity,
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34, 197, 94, 0.14)',
+          borderWidth: 2,
+          tension: 0.15,
+          pointRadius: 0,
+          yAxisID: 'yEquity',
+        },
+        {
+          label: 'Drawdown %',
+          data: series.drawdown,
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249, 115, 22, 0.12)',
+          borderWidth: 1.6,
+          tension: 0.1,
+          pointRadius: 0,
+          yAxisID: 'yDD',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          ticks: { color: '#cbd5e1', maxTicksLimit: 10 },
+          grid: { color: 'rgba(148, 163, 184, 0.12)' },
+        },
+        yEquity: {
+          type: 'linear',
+          position: 'left',
+          ticks: {
+            color: '#cbd5e1',
+            callback: (value) => `$${Number(value).toLocaleString()}`,
+          },
+          grid: { color: 'rgba(148, 163, 184, 0.12)' },
+        },
+        yDD: {
+          type: 'linear',
+          position: 'right',
+          ticks: {
+            color: '#fbbf24',
+            callback: (value) => `${value}%`,
+          },
+          grid: { drawOnChartArea: false },
+        },
+      },
+      plugins: {
+        legend: { labels: { color: '#e2e8f0' } },
+      },
+    },
+  });
+}
+
+function renderBacktestAnnualTable(payload) {
+  const tbody = document.querySelector('#backtestAnnualTable tbody');
+  if (!tbody) return;
+
+  const stats = toObject(toObject(payload).stats);
+  const byYearEngine = toObject(stats.by_year_engine ?? stats.by_year_by_engine);
+  const years = Object.keys(byYearEngine).sort();
+
+  if (!years.length) {
+    tbody.innerHTML = '<tr><td colspan="5">No annual breakdown available.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = years
+    .map((year) => {
+      const row = toObject(byYearEngine[year]);
+      const bull = getEngineStats(row, 'Bull');
+      const weak = getEngineStats(row, 'Weak');
+      return `
+        <tr>
+          <td>${esc(year)}</td>
+          <td>${fmtPctPoints(getMetricValue(bull, ['win_rate']))}</td>
+          <td>${fmtPctPoints(getMetricValue(bull, ['expectancy_pct', 'expectancy']))}</td>
+          <td>${fmtPctPoints(getMetricValue(weak, ['win_rate']))}</td>
+          <td>${fmtPctPoints(getMetricValue(weak, ['expectancy_pct', 'expectancy']))}</td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
+function renderBacktestMonthlyTable(payload) {
+  const tbody = document.querySelector('#backtestMonthlyTable tbody');
+  if (!tbody) return;
+
+  const monthly = toArray(toObject(toObject(payload).portfolio).monthly_returns);
+  if (!monthly.length) {
+    tbody.innerHTML = '<tr><td colspan="2">No monthly return table available.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = monthly
+    .map((row) => {
+      const item = toObject(row);
+      return `
+        <tr>
+          <td>${esc(item.month ?? '-')}</td>
+          <td>${fmtPctPoints(item.return_pct)}</td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
+function pickFirstString(obj, keys, fallback = '-') {
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return fallback;
+}
+
+function renderBacktestMethodology(payload) {
+  const host = document.getElementById('backtestMethodology');
+  if (!host) return;
+
+  const meta = toObject(payload.meta);
+  const diagnostics = toObject(payload.diagnostics);
+  const config = toObject(diagnostics.config);
+
+  const testPeriod = `${pickFirstString(meta, ['start_date'], config.start_date || '-')} to ${pickFirstString(meta, ['end_date'], config.end_date || '-')}`;
+  const universeSize = meta.symbol_count ?? diagnostics.counts?.symbols_excluding_benchmark ?? '-';
+  const symbolMode = pickFirstString(meta, ['symbol_mode'], '-');
+  const warmup = config.warmup_bars ?? meta.warmup_bars ?? '-';
+
+  const entryRules = pickFirstString(meta, ['entry_rules', 'entry_rule'], 'Signals generated by strategy engines; entries use next session open when conditions pass.');
+  const exitRules = pickFirstString(meta, ['exit_rules', 'exit_rule'], 'Exits follow strategy risk targets (stop-loss / take-profit) from engine outputs.');
+  const regimeLogic = pickFirstString(
+    meta,
+    ['regime_filter_logic', 'regime_logic'],
+    'Regime filter uses SPY vs SMA200: Bull engine above SMA200, Weak engine below SMA200.',
+  );
+
+  const nextOpenEntry = pickFirstString(meta, ['next_open_entry'], 'Enabled');
+  const signalVsPnl = pickFirstString(
+    meta,
+    ['signal_price_vs_pnl_price', 'price_basis_note'],
+    'Signals use adjusted-close indicators; P&L uses raw close/open execution prices from trade simulation.',
+  );
+
+  const pAssump = toObject(meta.portfolio_assumptions ?? toObject(toObject(payload).portfolio).assumptions);
+
+  host.innerHTML = `
+    <p><strong>Test period:</strong> ${esc(testPeriod)}</p>
+    <p><strong>Universe size:</strong> ${esc(universeSize)}</p>
+    <p><strong>Universe mode:</strong> ${esc(symbolMode)}</p>
+    <p><strong>Entry rules:</strong> ${esc(entryRules)}</p>
+    <p><strong>Exit rules:</strong> ${esc(exitRules)}</p>
+    <p><strong>Regime filter logic:</strong> ${esc(regimeLogic)}</p>
+    <p><strong>Warmup:</strong> ${esc(warmup)} bars</p>
+    <p><strong>Next-open entry:</strong> ${esc(nextOpenEntry)}</p>
+    <p><strong>Adjusted-close signals vs raw-close P&L:</strong> ${esc(signalVsPnl)}</p>
+    <p><strong>Portfolio assumptions:</strong> initial ${fmtDollar(pAssump.initial_capital)}, max positions ${fmtInt(pAssump.max_positions)}, slippage ${fmtPctPoints((Number(pAssump.slippage_pct_each_side) || 0) * 100, 3)} each side, commission ${fmtDollar(pAssump.commission_per_side)} each side, monthly DD halt at ${fmtPctPoints(pAssump.monthly_drawdown_limit_pct)}, per-trade risk cap ${fmtPctPoints(pAssump.monthly_risk_per_trade_pct)} of month-start equity.</p>
+  `;
+}
+
+function renderBacktest(payload) {
+  renderBacktestEngineCards(payload);
+  renderBacktestPortfolioCards(payload);
+  renderBacktestEquityChart(payload);
+  renderBacktestMonthlyTable(payload);
+  renderBacktestAnnualTable(payload);
+  renderBacktestMethodology(payload);
+
+  const generatedAt = toObject(payload.meta).generated_at || '-';
+  renderBacktestStatus(`Loaded backtest summary generated at (UTC): ${generatedAt}`);
+}
+
+async function loadBacktestSummaryIfNeeded() {
+  if (state.backtest.loaded || state.backtest.loading) return;
+
+  state.backtest.loading = true;
+  renderBacktestStatus('Loading backtest summary...');
+
+  const url = `data/backtest_summary.json?t=${Date.now()}`;
+  try {
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+
+    const payload = await res.json();
+    state.backtest.loaded = true;
+    state.backtest.data = payload;
+    state.backtest.error = null;
+    renderBacktest(payload);
+  } catch (err) {
+    state.backtest.error = String(err?.message || err);
+    renderBacktestStatus(`Failed to load docs/data/backtest_summary.json (${state.backtest.error}).`, true);
+
+    const statsHost = document.getElementById('backtestEngineStats');
+    if (statsHost) statsHost.innerHTML = '<p class="muted">No backtest metrics available.</p>';
+
+    const portfolioHost = document.getElementById('backtestPortfolioStats');
+    if (portfolioHost) portfolioHost.innerHTML = '<p class="muted">No portfolio metrics available.</p>';
+
+    const annualTbody = document.querySelector('#backtestAnnualTable tbody');
+    if (annualTbody) annualTbody.innerHTML = '<tr><td colspan="5">No annual breakdown available.</td></tr>';
+
+    const monthlyTbody = document.querySelector('#backtestMonthlyTable tbody');
+    if (monthlyTbody) monthlyTbody.innerHTML = '<tr><td colspan="2">No monthly returns available.</td></tr>';
+
+    const methodology = document.getElementById('backtestMethodology');
+    if (methodology) methodology.innerHTML = '<p class="muted">Methodology unavailable because backtest summary could not be loaded.</p>';
+
+    const noteEl = document.getElementById('backtestChartNote');
+    if (noteEl) noteEl.textContent = 'No equity curve available.';
+
+    destroyChart(state.backtestChart);
+    state.backtestChart = null;
+  } finally {
+    state.backtest.loading = false;
+  }
+}
+
 async function loadPayload() {
   const url = `data/latest.json?t=${Date.now()}`;
   const res = await fetch(url, {
@@ -619,6 +1011,10 @@ async function boot() {
     renderDiagnostics(payload.diagnostics || {});
     renderBenchmarkChart();
     initSelection();
+
+    // Keep this aligned with the screener tab behavior: always load data on boot.
+    // Backtesting tab still renders only when opened, but data is guaranteed available.
+    void loadBacktestSummaryIfNeeded();
   } catch (err) {
     showLoadError(String(err?.message || err), String(err?.stack || ''));
   }
