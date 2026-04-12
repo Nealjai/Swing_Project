@@ -37,6 +37,67 @@ function toObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function toFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function computeSmaSeries(values, period) {
+  const src = toArray(values).map(toFiniteNumber);
+  const out = new Array(src.length).fill(null);
+  if (!Number.isInteger(period) || period <= 0) return out;
+
+  let rollingSum = 0;
+  let validCount = 0;
+
+  for (let i = 0; i < src.length; i += 1) {
+    const current = src[i];
+    if (current !== null) {
+      rollingSum += current;
+      validCount += 1;
+    }
+
+    const dropIdx = i - period;
+    if (dropIdx >= 0) {
+      const dropped = src[dropIdx];
+      if (dropped !== null) {
+        rollingSum -= dropped;
+        validCount -= 1;
+      }
+    }
+
+    if (i >= period - 1 && validCount === period) {
+      out[i] = rollingSum / period;
+    }
+  }
+
+  return out;
+}
+
+function computeEmaSeries(values, period) {
+  const src = toArray(values).map(toFiniteNumber);
+  const out = new Array(src.length).fill(null);
+  if (!Number.isInteger(period) || period <= 0) return out;
+
+  const alpha = 2 / (period + 1);
+  let ema = null;
+
+  for (let i = 0; i < src.length; i += 1) {
+    const current = src[i];
+    if (current === null) continue;
+
+    if (ema === null) {
+      ema = current;
+    } else {
+      ema = alpha * current + (1 - alpha) * ema;
+    }
+
+    out[i] = ema;
+  }
+
+  return out;
+}
+
 let state = {
   payload: null,
   selectedSymbol: null,
@@ -44,6 +105,19 @@ let state = {
   priceChart: null,
   benchmarkChart: null,
   backtestChart: null,
+  marketConditionChart: null,
+  screenerChart: null,
+  screenerChartSeries: {},
+  screenerChartSeriesMeta: {},
+  screenerChartSymbol: null,
+  screenerViewMode: 'list',
+  marketCondition: {
+    loaded: false,
+    loading: false,
+    data: null,
+    error: null,
+    rendered: false,
+  },
   backtest: {
     loaded: false,
     loading: false,
@@ -82,12 +156,36 @@ function renderSummary(meta, diagnostics) {
   document.getElementById('candidateCount').textContent = `${fmtInt(rankedCount)} ranked / ${fmtInt(rawCount)} raw`;
 }
 
+function tabKeyToPanelId(key) {
+  const normalized = String(key || '')
+    .split('-')
+    .filter(Boolean)
+    .map((part) => `${part[0]?.toUpperCase() || ''}${part.slice(1)}`)
+    .join('');
+  return `tab${normalized}`;
+}
+
+function panelIdToTabKey(panelId) {
+  const core = String(panelId || '').replace(/^tab/, '');
+  if (!core) return '';
+  return core
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase();
+}
+
 function activateTab(buttons, panels, key) {
   if (!key) return;
   for (const b of buttons) b.classList.toggle('active', b.dataset.tab === key);
-  for (const p of panels) p.classList.toggle('active', p.id === `tab${key[0].toUpperCase()}${key.slice(1)}`);
+
+  const targetPanelId = tabKeyToPanelId(key);
+  for (const p of panels) p.classList.toggle('active', p.id === targetPanelId);
+
   if (key === 'history') {
     void loadBacktestSummaryIfNeeded();
+  }
+
+  if (key === 'market-condition') {
+    void renderMarketCondition();
   }
 }
 
@@ -100,7 +198,7 @@ function getInitialTabKey(buttons, panels) {
 
   const activePanel = panels.find((p) => p.classList.contains('active'));
   if (activePanel?.id?.startsWith('tab') && activePanel.id.length > 3) {
-    const key = `${activePanel.id[3].toLowerCase()}${activePanel.id.slice(4)}`;
+    const key = panelIdToTabKey(activePanel.id);
     if (buttons.some((b) => b.dataset.tab === key)) return key;
   }
 
@@ -281,6 +379,10 @@ function renderCandidateTable(candidates) {
       highlightSelectedRow();
       renderSelectedDetails(c);
       renderSymbolChart(c);
+      updateScreenerDetailsPanel(state.selectedSymbol || state.selectedYfSymbol);
+      if (state.screenerViewMode === 'chart') {
+        void renderScreenerChartForSymbol(state.selectedYfSymbol);
+      }
     });
 
     tbody.appendChild(tr);
@@ -292,6 +394,122 @@ function highlightSelectedRow() {
   for (const row of rows) {
     row.classList.toggle('active', row.dataset.yfSymbol === state.selectedYfSymbol);
   }
+  highlightCompressedSymbolRow();
+}
+
+function getScreenerViewElements() {
+  return {
+    listBtn: document.getElementById('view-switch-list') || document.getElementById('screenerListViewBtn'),
+    chartBtn: document.getElementById('view-switch-chart') || document.getElementById('screenerChartViewBtn'),
+    listView: document.getElementById('screenerListView'),
+    chartView: document.getElementById('screenerChartView'),
+  };
+}
+
+function setScreenerView(mode, renderChartIfNeeded = true) {
+  const { listBtn, chartBtn, listView, chartView } = getScreenerViewElements();
+  const safeMode = mode === 'chart' ? 'chart' : 'list';
+  const isList = safeMode === 'list';
+
+  state.screenerViewMode = safeMode;
+
+  if (listView) listView.style.display = isList ? 'block' : 'none';
+  if (chartView) chartView.style.display = isList ? 'none' : 'block';
+
+  if (listBtn) {
+    listBtn.classList.toggle('active', isList);
+    listBtn.setAttribute('aria-pressed', String(isList));
+  }
+  if (chartBtn) {
+    chartBtn.classList.toggle('active', !isList);
+    chartBtn.setAttribute('aria-pressed', String(!isList));
+  }
+
+  if (!isList && renderChartIfNeeded) {
+    void renderDefaultScreenerChartIfNeeded();
+  }
+}
+
+function initScreenerViewSwitching() {
+  const { listBtn, chartBtn } = getScreenerViewElements();
+
+  if (listBtn && !listBtn.dataset.boundScreenerSwitch) {
+    listBtn.addEventListener('click', () => setScreenerView('list'));
+    listBtn.dataset.boundScreenerSwitch = '1';
+  }
+
+  if (chartBtn && !chartBtn.dataset.boundScreenerSwitch) {
+    chartBtn.addEventListener('click', () => setScreenerView('chart'));
+    chartBtn.dataset.boundScreenerSwitch = '1';
+  }
+
+  const listActive = !!listBtn?.classList.contains('active');
+  const chartActive = !!chartBtn?.classList.contains('active');
+  if (chartActive && !listActive) {
+    setScreenerView('chart', false);
+  } else {
+    setScreenerView('list', false);
+  }
+}
+
+function getCompressedSymbolTableElements() {
+  const table = document.getElementById('compressed-symbol-table') || document.querySelector('.compressed-symbol-table');
+  const body = table?.querySelector('tbody') || document.getElementById('compressedSymbolListBody');
+  return { table, body };
+}
+
+function highlightCompressedSymbolRow() {
+  const { body } = getCompressedSymbolTableElements();
+  if (!body) return;
+  const rows = Array.from(body.querySelectorAll('tr'));
+  for (const row of rows) {
+    row.classList.toggle('active', row.dataset.yfSymbol === state.selectedYfSymbol);
+  }
+}
+
+function renderCompressedSymbolList(candidates) {
+  const { table, body } = getCompressedSymbolTableElements();
+  if (!body) return;
+
+  const safeCandidates = toArray(candidates);
+  body.innerHTML = '';
+
+  if (!safeCandidates.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>No symbols</td>';
+    body.appendChild(tr);
+    return;
+  }
+
+  for (const c of safeCandidates) {
+    const tr = document.createElement('tr');
+    tr.dataset.yfSymbol = String(c.yf_symbol || c.symbol || '');
+    tr.dataset.symbol = String(c.symbol || c.yf_symbol || '');
+    tr.innerHTML = `<td>${esc(c.symbol || c.yf_symbol || '-')}</td>`;
+    body.appendChild(tr);
+  }
+
+  if (table && !table.dataset.boundScreenerSymbols) {
+    table.addEventListener('click', (evt) => {
+      const row = evt.target?.closest?.('tbody tr');
+      if (!row) return;
+      const yfSymbol = String(row.dataset.yfSymbol || row.dataset.symbol || '');
+      if (!yfSymbol) return;
+      state.selectedYfSymbol = yfSymbol;
+      state.selectedSymbol = String(row.dataset.symbol || yfSymbol);
+      highlightSelectedRow();
+      const selected = getCandidateByYfSymbol(yfSymbol);
+      if (selected) {
+        renderSelectedDetails(selected);
+        renderSymbolChart(selected);
+      }
+      updateScreenerDetailsPanel(state.selectedSymbol || state.selectedYfSymbol);
+      void renderScreenerChartForSymbol(yfSymbol);
+    });
+    table.dataset.boundScreenerSymbols = '1';
+  }
+
+  highlightCompressedSymbolRow();
 }
 
 function renderSelectedDetails(candidate) {
@@ -348,6 +566,38 @@ function renderSelectedDetails(candidate) {
       <div class="fund-value">${fmtNumber(c.score, 4)}</div>
     </div>
   `;
+}
+
+function setScreenerDetailField(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function updateScreenerDetailsPanel(symbol) {
+  const panel = document.getElementById('screener-details-panel') || document.querySelector('.screener-details-panel');
+  if (!panel) return;
+
+  const normalized = String(symbol || '').trim();
+  const candidates = toArray(window.screenerData?.candidates);
+  const candidate =
+    candidates.find((c) => String(c?.symbol || '') === normalized || String(c?.yf_symbol || '') === normalized) || null;
+
+  const c = toObject(candidate);
+  const risk = toObject(c.risk);
+  const fundamentals = toObject(c.fundamentals);
+
+  panel.dataset.symbol = String(c.symbol || c.yf_symbol || normalized || '');
+
+  setScreenerDetailField('chartDetailCurrentPrice', fmtNumber(c.close));
+  setScreenerDetailField('chartDetailStopLoss', fmtNumber(risk.stop_loss));
+  setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.take_profit));
+  setScreenerDetailField('chartDetailAtr14', fmtNumber(risk.atr14));
+  setScreenerDetailField('chartDetailRoe', fmtPct(fundamentals.roe));
+  setScreenerDetailField('chartDetailPe', fmtNumber(fundamentals.pe));
+  setScreenerDetailField('chartDetailRevGrowthQoq', fmtPct(fundamentals.revenue_growth_qoq));
+  setScreenerDetailField('chartDetailRevGrowthYoy', fmtPct(fundamentals.revenue_growth_yoy));
+  setScreenerDetailField('chartDetailEngine', String(c.engine || '-'));
+  setScreenerDetailField('chartDetailScore', fmtNumber(c.score, 4));
 }
 
 function getChartConfigForSymbol(symbolOrYfSymbol) {
@@ -604,6 +854,8 @@ function initSelection() {
     ...state.indicatorVisibility,
     ...defaults,
   };
+  syncScreenerIndicatorControlState();
+  bindScreenerIndicatorControls();
 
   const first = candidates[0];
   state.selectedSymbol = String(first.symbol || '');
@@ -612,6 +864,8 @@ function initSelection() {
   renderSelectedDetails(first);
   renderIndicatorToggles();
   renderSymbolChart(first);
+  renderCompressedSymbolList(candidates);
+  updateScreenerDetailsPanel(state.selectedSymbol || state.selectedYfSymbol);
 }
 
 function showLoadError(message, stack = '') {
@@ -973,6 +1227,685 @@ async function loadBacktestSummaryIfNeeded() {
   }
 }
 
+function getMarketConditionChartContainer() {
+  return document.getElementById('spy-chart-container') || document.getElementById('marketConditionSpyChart');
+}
+
+function getLightweightChartsApi() {
+  if (typeof window === 'undefined') return null;
+  return window.LightweightCharts || null;
+}
+
+let lightweightChartsLoadPromise = null;
+
+function loadLightweightChartsIfNeeded() {
+  if (getLightweightChartsApi()) return Promise.resolve(getLightweightChartsApi());
+  if (lightweightChartsLoadPromise) return lightweightChartsLoadPromise;
+
+  lightweightChartsLoadPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-lib="lightweight-charts"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(getLightweightChartsApi()), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Failed to load lightweight-charts library.')), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+    script.async = true;
+    script.dataset.lib = 'lightweight-charts';
+    script.onload = () => resolve(getLightweightChartsApi());
+    script.onerror = () => reject(new Error('Failed to load lightweight-charts library.'));
+    document.head.appendChild(script);
+  });
+
+  return lightweightChartsLoadPromise;
+}
+
+function destroyMarketConditionChart() {
+  if (state.marketConditionChart) {
+    state.marketConditionChart.remove();
+    state.marketConditionChart = null;
+  }
+}
+
+function normalizeOhlcvHistoryRows(rawHistory) {
+  if (Array.isArray(rawHistory)) return rawHistory;
+
+  const history = toObject(rawHistory);
+  const dates = toArray(history.dates?.length ? history.dates : history.Date);
+  const open = toArray(history.open?.length ? history.open : history.Open);
+  const high = toArray(history.high?.length ? history.high : history.High);
+  const low = toArray(history.low?.length ? history.low : history.Low);
+  const close = toArray(history.close?.length ? history.close : history.Close);
+  const volume = toArray(history.volume?.length ? history.volume : history.Volume);
+  const rawSma20 = toArray(history.sma20?.length ? history.sma20 : history.SMA20);
+  const rawSma50 = toArray(history.sma50?.length ? history.sma50 : history.SMA50);
+  const rawSma200 = toArray(history.sma200?.length ? history.sma200 : history.SMA200);
+  const rawEma9 = toArray(history.ema9?.length ? history.ema9 : history.EMA9);
+  const rawEma21 = toArray(history.ema21?.length ? history.ema21 : history.EMA21);
+  const bbLower = toArray(history.bb_lower?.length ? history.bb_lower : history.BB_LOWER);
+
+  const sma20 = rawSma20.length ? rawSma20 : computeSmaSeries(close, 20);
+  const sma50 = rawSma50.length ? rawSma50 : computeSmaSeries(close, 50);
+  const sma200 = rawSma200.length ? rawSma200 : computeSmaSeries(close, 200);
+  const ema9 = rawEma9.length ? rawEma9 : computeEmaSeries(close, 9);
+  const ema21 = rawEma21.length ? rawEma21 : computeEmaSeries(close, 21);
+
+  const rows = [];
+  for (let i = 0; i < dates.length; i += 1) {
+    const date = String(dates[i] || '').slice(0, 10);
+    if (!date) continue;
+    rows.push({
+      date,
+      open: open[i],
+      high: high[i],
+      low: low[i],
+      close: close[i],
+      volume: volume[i],
+      sma20: sma20[i],
+      sma50: sma50[i],
+      sma200: sma200[i],
+      ema9: ema9[i],
+      ema21: ema21[i],
+      bb_lower: bbLower[i],
+    });
+  }
+
+  return rows;
+}
+
+function toSeriesDataPairs(historyRows, key) {
+  return toArray(historyRows)
+    .map((row) => {
+      const item = toObject(row);
+      const time = String(item.date || item.time || '').slice(0, 10);
+      const value = Number(item[key]);
+      if (!time || !Number.isFinite(value)) return null;
+      return { time, value };
+    })
+    .filter(Boolean);
+}
+
+function toCandles(historyRows) {
+  return toArray(historyRows)
+    .map((row) => {
+      const item = toObject(row);
+      const time = String(item.date || item.time || '').slice(0, 10);
+      const open = Number(item.open);
+      const high = Number(item.high);
+      const low = Number(item.low);
+      const close = Number(item.close);
+      if (!time || !Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) {
+        return null;
+      }
+      return { time, open, high, low, close };
+    })
+    .filter(Boolean);
+}
+
+function toMarkerSeries(rawMarkers, shape, color, position, defaultText = '') {
+  return toArray(rawMarkers)
+    .map((row) => {
+      const item = toObject(row);
+      const time = String(item.date || item.time || '').slice(0, 10);
+      if (!time) return null;
+      return {
+        time,
+        position,
+        color,
+        shape,
+        text: String(item.text || item.label || defaultText || ''),
+      };
+    })
+    .filter(Boolean);
+}
+
+function renderLightweightCandleChart({
+  container,
+  historyRows,
+  lineSeries = [],
+  markers = [],
+  width = Math.max(container?.clientWidth || 0, 640),
+  height = 420,
+  candleVisible = true,
+}) {
+  const LW = getLightweightChartsApi();
+  if (!LW) throw new Error('lightweight-charts API not available.');
+
+  const chart = LW.createChart(container, {
+    width,
+    height,
+    layout: {
+      background: { color: '#0f172a' },
+      textColor: '#cbd5e1',
+    },
+    grid: {
+      vertLines: { color: 'rgba(148, 163, 184, 0.15)' },
+      horzLines: { color: 'rgba(148, 163, 184, 0.15)' },
+    },
+    crosshair: { mode: LW.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: 'rgba(148, 163, 184, 0.3)' },
+    timeScale: { borderColor: 'rgba(148, 163, 184, 0.3)' },
+  });
+
+  const seriesMap = {};
+  const legendItems = [];
+
+  const candleSeries = chart.addCandlestickSeries({
+    upColor: '#22c55e',
+    downColor: '#ef4444',
+    borderVisible: false,
+    wickUpColor: '#22c55e',
+    wickDownColor: '#ef4444',
+    visible: candleVisible,
+  });
+
+  candleSeries.setData(toCandles(historyRows));
+  seriesMap.candles = candleSeries;
+  legendItems.push({
+    id: 'candles',
+    label: 'Candles',
+    color: '#64748b',
+    series: candleSeries,
+    defaultVisible: !!candleVisible,
+  });
+
+  for (const def of toArray(lineSeries)) {
+    const item = toObject(def);
+    if (!item.key) continue;
+
+    const isHistogram = String(item.type || '').toLowerCase() === 'histogram';
+
+    let s;
+    if (isHistogram) {
+      const histogramOptions = {
+        color: item.color || 'rgba(148, 163, 184, 0.35)',
+        priceLineVisible: item.priceLineVisible ?? false,
+        lastValueVisible: item.lastValueVisible ?? false,
+        visible: item.visible ?? true,
+        priceScaleId: item.priceScaleId || '',
+        priceFormat: item.priceFormat || { type: 'volume' },
+      };
+
+      if (Number.isInteger(item.pane) && item.pane >= 0) {
+        try {
+          s = chart.addHistogramSeries(histogramOptions, item.pane);
+        } catch (_err) {
+          s = chart.addHistogramSeries(histogramOptions);
+        }
+      } else {
+        s = chart.addHistogramSeries(histogramOptions);
+      }
+    } else {
+      s = chart.addLineSeries({
+        color: item.color || '#60a5fa',
+        lineWidth: item.lineWidth ?? 2,
+        priceLineVisible: item.priceLineVisible ?? false,
+        lastValueVisible: item.lastValueVisible ?? false,
+        visible: item.visible ?? true,
+        lineStyle: item.lineStyle,
+      });
+    }
+
+    s.setData(toSeriesDataPairs(historyRows, item.key));
+    const itemId = item.id || item.key;
+    seriesMap[itemId] = s;
+    legendItems.push({
+      id: itemId,
+      label: item.label || String(item.key || itemId || '-'),
+      color: item.legendColor || item.color || '#94a3b8',
+      series: s,
+      defaultVisible: item.visible ?? true,
+    });
+  }
+
+  if (toArray(markers).length) {
+    candleSeries.setMarkers(
+      toArray(markers).sort((a, b) => String(a.time).localeCompare(String(b.time))),
+    );
+  }
+
+  chart.__seriesMap = seriesMap;
+  chart.__legendItems = legendItems;
+  chart.timeScale().fitContent();
+  return chart;
+}
+
+function ensureMarketConditionLegend(container) {
+  const parent = container?.parentElement;
+  if (!parent) return;
+
+  let legend = parent.querySelector('.market-chart-legend');
+  if (!legend) {
+    legend = document.createElement('div');
+    legend.className = 'market-chart-legend';
+    parent.insertBefore(legend, container);
+  }
+
+  legend.innerHTML = `
+    <span class="market-chart-legend-item"><i style="background:#64748b"></i>Candles</span>
+    <span class="market-chart-legend-item"><i style="background:#f59e0b"></i>50-day MA</span>
+    <span class="market-chart-legend-item"><i style="background:#a855f7"></i>200-day MA</span>
+    <span class="market-chart-legend-item"><i style="background:#22c55e"></i>FTD (F)</span>
+    <span class="market-chart-legend-item"><i style="background:#ef4444"></i>Distribution Day (D)</span>
+  `;
+}
+
+function updateMarketConditionIndicatorStyles(data) {
+  const regimeEl = document.getElementById('marketConditionRegime');
+  const vixEl = document.getElementById('marketConditionVixPrice');
+
+  if (regimeEl) {
+    const regime = String(data.regime_label || data.regime || '').trim().toLowerCase();
+    regimeEl.className = 'indicator-value regime';
+    if (regime === 'bull' || regime === 'risk-on' || regime === 'uptrend') {
+      regimeEl.classList.add('regime-bull');
+    } else if (regime === 'bear' || regime === 'weak' || regime === 'risk-off' || regime === 'downtrend') {
+      regimeEl.classList.add('regime-bear');
+    } else {
+      regimeEl.classList.add('regime-choppy');
+    }
+  }
+
+  if (vixEl) {
+    const vixValue = Number(data.vix_close);
+    vixEl.className = 'indicator-value';
+    if (Number.isFinite(vixValue) && vixValue > 22) {
+      vixEl.classList.add('warning');
+    }
+  }
+}
+
+function renderMarketConditionChart(container, history, data, chartMarkers) {
+  if (!container) {
+    throw new Error('Market Condition chart container not found (expected #spy-chart-container or #marketConditionSpyChart).');
+  }
+
+  container.innerHTML = '';
+  destroyMarketConditionChart();
+
+  const ddMarkerRaw = toArray(data.distribution_day_markers).length
+    ? data.distribution_day_markers
+    : chartMarkers.distribution_days;
+  const ftdMarkerRaw = toArray(data.ftd_markers).length ? data.ftd_markers : chartMarkers.follow_through_days;
+
+  const ddMarkers = toMarkerSeries(ddMarkerRaw, 'arrowDown', '#ef4444', 'aboveBar', 'D');
+  const ftdMarkers = toMarkerSeries(ftdMarkerRaw, 'arrowUp', '#22c55e', 'belowBar', 'F');
+
+  const chart = renderLightweightCandleChart({
+    container,
+    historyRows: history,
+    lineSeries: [
+      { key: 'sma50', color: '#f59e0b', lineWidth: 2 },
+      { key: 'sma200', color: '#a855f7', lineWidth: 2 },
+    ],
+    markers: [...ddMarkers, ...ftdMarkers],
+  });
+
+  ensureMarketConditionLegend(container);
+  state.marketConditionChart = chart;
+
+  if (!container.dataset.marketChartResizeBound) {
+    window.addEventListener('resize', () => {
+      if (!state.marketConditionChart) return;
+      const currentContainer = getMarketConditionChartContainer();
+      if (!currentContainer) return;
+      state.marketConditionChart.applyOptions({ width: Math.max(currentContainer.clientWidth || 0, 640) });
+    });
+    container.dataset.marketChartResizeBound = '1';
+  }
+}
+
+function getScreenerChartContainer() {
+  return document.getElementById('screenerChartContainer');
+}
+
+function getSeriesVisible(series, fallbackVisible = true) {
+  if (!series || typeof series.options !== 'function') return fallbackVisible;
+  const options = toObject(series.options());
+  if (typeof options.visible === 'boolean') return options.visible;
+  return fallbackVisible;
+}
+
+function updateScreenerChartLegend(chart) {
+  const legend = document.getElementById('screener-chart-legend');
+  if (!legend) return;
+
+  const legendItems = toArray(chart?.__legendItems);
+  const excludedSeriesIds = new Set(['candles', 'close']);
+  const excludedLabels = new Set(['candles', 'adj close']);
+
+  const visibleItems = legendItems.filter((item) => {
+    const entry = toObject(item);
+    const entryId = String(entry.id || '').toLowerCase();
+    const entryLabel = String(entry.label || '').toLowerCase();
+    const defaultVisible = entry.defaultVisible ?? true;
+
+    if (excludedSeriesIds.has(entryId) || excludedLabels.has(entryLabel)) {
+      return false;
+    }
+
+    return getSeriesVisible(entry.series, defaultVisible);
+  });
+
+  legend.innerHTML = visibleItems
+    .map((item) => {
+      const entry = toObject(item);
+      const color = String(entry.color || '#94a3b8');
+      return `<span class="legend-item"><span class="legend-color" style="background:${esc(color)}"></span><span class="legend-label">${esc(entry.label || '-')}</span></span>`;
+    })
+    .join('');
+}
+
+function destroyScreenerChart() {
+  if (state.screenerChart) {
+    state.screenerChart.remove();
+    state.screenerChart = null;
+  }
+  state.screenerChartSeries = {};
+  state.screenerChartSeriesMeta = {};
+  updateScreenerChartLegend(null);
+}
+
+function normalizeScreenerIndicatorKey(rawKey) {
+  const key = String(rawKey || '').trim();
+  if (key === 'bbLower') return 'bb_lower';
+  return key;
+}
+
+function getScreenerIndicatorControlsRoot() {
+  return document.getElementById('screener-indicator-controls') || document.querySelector('.screener-indicator-controls');
+}
+
+function syncScreenerIndicatorControlState() {
+  const root = getScreenerIndicatorControlsRoot();
+  if (!root) return;
+
+  const boxes = Array.from(root.querySelectorAll('input[type="checkbox"][name="chartIndicator"]'));
+  for (const box of boxes) {
+    const key = normalizeScreenerIndicatorKey(box.value);
+    box.checked = !!state.indicatorVisibility[key];
+  }
+}
+
+function bindScreenerIndicatorControls() {
+  const root = getScreenerIndicatorControlsRoot();
+  if (!root || root.dataset.boundIndicatorControls) {
+    syncScreenerIndicatorControlState();
+    return;
+  }
+
+  root.addEventListener('change', (evt) => {
+    const target = evt.target;
+    if (!target || target.tagName !== 'INPUT') return;
+
+    const key = normalizeScreenerIndicatorKey(target.value);
+    if (!key) return;
+
+    state.indicatorVisibility[key] = !!target.checked;
+
+    const series = toObject(state.screenerChart?.__seriesMap || state.screenerChartSeries)[key];
+    if (series && typeof series.applyOptions === 'function') {
+      series.applyOptions({ visible: !!target.checked });
+      updateScreenerChartLegend(state.screenerChart);
+    }
+  });
+
+  root.dataset.boundIndicatorControls = '1';
+  syncScreenerIndicatorControlState();
+}
+
+function getCandidateBySymbol(symbol) {
+  return toArray(state.payload?.candidates).find((c) => String(c.symbol) === String(symbol)) || null;
+}
+
+async function fetch3YDailyData(symbol) {
+  const rawSymbol = String(symbol || '').trim();
+  if (!rawSymbol) return [];
+
+  const safeSymbol = rawSymbol.replaceAll('/', '_');
+  const url = `data/daily/${encodeURIComponent(safeSymbol)}.json?t=${Date.now()}`;
+
+  try {
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        console.warn(`No 3Y daily data file found for ${rawSymbol} at ${url}.`);
+        return [];
+      }
+      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error(`Failed to fetch 3Y daily data for ${rawSymbol}:`, err);
+    return [];
+  }
+}
+
+async function renderScreenerChartForSymbol(symbolOrYfSymbol) {
+  const selected = getCandidateByYfSymbol(symbolOrYfSymbol) || getCandidateBySymbol(symbolOrYfSymbol);
+  if (!selected) return;
+
+  const container = getScreenerChartContainer();
+  if (!container) return;
+
+  state.screenerChartSymbol = String(selected.yf_symbol || selected.symbol || symbolOrYfSymbol || '');
+  state.selectedYfSymbol = String(selected.yf_symbol || selected.symbol || '');
+  state.selectedSymbol = String(selected.symbol || selected.yf_symbol || '');
+  highlightSelectedRow();
+  updateScreenerDetailsPanel(state.selectedSymbol || state.selectedYfSymbol);
+  bindScreenerIndicatorControls();
+
+  const titleEl = document.querySelector('.screener-chart-pane .chart-header h2');
+  if (titleEl) {
+    titleEl.textContent = `${state.selectedSymbol || '-'} Price Chart (3Y)`;
+  }
+
+  if (typeof fetch3YDailyData !== 'function') {
+    container.innerHTML = '<p class="muted">3Y daily data fetcher not wired yet.</p>';
+    destroyScreenerChart();
+    return;
+  }
+
+  await loadLightweightChartsIfNeeded();
+
+  const raw = await fetch3YDailyData(state.screenerChartSymbol);
+  const history = normalizeOhlcvHistoryRows(raw);
+
+  destroyScreenerChart();
+  container.innerHTML = '';
+
+  if (!history.length) {
+    container.innerHTML = `<p class="muted">No 3Y daily candle data available for ${esc(state.selectedSymbol || '-')}.</p>`;
+    return;
+  }
+
+  state.screenerChart = renderLightweightCandleChart({
+    container,
+    historyRows: history,
+    lineSeries: [
+      {
+        id: 'sma20',
+        key: 'sma20',
+        color: '#f59e0b',
+        lineWidth: 1.8,
+        label: 'SMA20',
+        visible: !!state.indicatorVisibility.sma20,
+      },
+      {
+        id: 'sma50',
+        key: 'sma50',
+        color: '#22c55e',
+        lineWidth: 1.8,
+        label: 'SMA50',
+        visible: !!state.indicatorVisibility.sma50,
+      },
+      {
+        id: 'sma200',
+        key: 'sma200',
+        color: '#e879f9',
+        lineWidth: 1.8,
+        label: 'SMA200',
+        visible: !!state.indicatorVisibility.sma200,
+      },
+      {
+        id: 'ema9',
+        key: 'ema9',
+        color: '#06b6d4',
+        lineWidth: 1.7,
+        label: 'EMA9',
+        visible: !!state.indicatorVisibility.ema9,
+      },
+      {
+        id: 'ema21',
+        key: 'ema21',
+        color: '#84cc16',
+        lineWidth: 1.7,
+        label: 'EMA21',
+        visible: !!state.indicatorVisibility.ema21,
+      },
+      {
+        id: 'bb_lower',
+        key: 'bb_lower',
+        color: '#ef4444',
+        lineWidth: 1.6,
+        label: 'BB Lower',
+        visible: !!state.indicatorVisibility.bb_lower,
+      },
+      {
+        id: 'volume',
+        key: 'volume',
+        type: 'histogram',
+        color: 'rgba(148, 163, 184, 0.35)',
+        label: 'Volume',
+        visible: !!state.indicatorVisibility.volume,
+        pane: 1,
+      },
+    ],
+  });
+  state.screenerChartSeries = toObject(state.screenerChart?.__seriesMap);
+  state.screenerChartSeriesMeta = toObject(state.screenerChart?.__legendItems);
+  syncScreenerIndicatorControlState();
+
+  updateScreenerChartLegend(state.screenerChart);
+
+  if (!container.dataset.screenerChartResizeBound) {
+    window.addEventListener('resize', () => {
+      if (!state.screenerChart) return;
+      const chartContainer = getScreenerChartContainer();
+      if (!chartContainer) return;
+      state.screenerChart.applyOptions({ width: Math.max(chartContainer.clientWidth || 0, 640) });
+    });
+    container.dataset.screenerChartResizeBound = '1';
+  }
+}
+
+async function renderDefaultScreenerChartIfNeeded() {
+  if (state.screenerChart) return;
+  const candidates = toArray(state.payload?.candidates);
+  if (!candidates.length) return;
+
+  const first = candidates[0];
+  const defaultSymbol = String(first.yf_symbol || first.symbol || '');
+  if (!defaultSymbol) return;
+  await renderScreenerChartForSymbol(defaultSymbol);
+}
+
+async function renderMarketCondition() {
+  if (state.marketCondition.rendered || state.marketCondition.loading) return;
+
+  state.marketCondition.loading = true;
+
+  try {
+    let payload = state.marketCondition.data;
+
+    if (!payload) {
+      const urls = [
+        `docs/data/market_condition.json?t=${Date.now()}`,
+        `data/market_condition.json?t=${Date.now()}`,
+      ];
+
+      let lastErr = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
+          });
+          if (!res.ok) {
+            lastErr = new Error(`HTTP ${res.status} ${res.statusText}`);
+            continue;
+          }
+          payload = await res.json();
+          break;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      if (!payload) {
+        throw lastErr || new Error('Unable to load market condition data.');
+      }
+
+      state.marketCondition.data = payload;
+      state.marketCondition.loaded = true;
+      state.marketCondition.error = null;
+    }
+
+    const data = toObject(payload);
+    const history = normalizeOhlcvHistoryRows(data.spy_history);
+    const chartMarkers = toObject(data.chart_markers);
+
+    const ftdDates = toArray(data.follow_through_day_dates).length
+      ? toArray(data.follow_through_day_dates)
+      : toArray(data.ftd_dates);
+
+    const ftdCount = ftdDates.length || data.ftd_count;
+
+    document.getElementById('marketConditionRegime').textContent = String(data.regime_label || data.regime || '-');
+    document.getElementById('marketConditionSpyPrice').textContent = fmtNumber(data.spy_close);
+    document.getElementById('marketConditionVixPrice').textContent = fmtNumber(data.vix_close);
+    document.getElementById('marketConditionDistributionDays').textContent = fmtInt(
+      data.distribution_day_count_25d ?? data.distribution_day_count,
+    );
+    document.getElementById('marketConditionFtdCount').textContent = fmtInt(ftdCount);
+    updateMarketConditionIndicatorStyles(data);
+
+    const container = getMarketConditionChartContainer();
+    if (!container) {
+      throw new Error('Market Condition chart container not found (expected #spy-chart-container or #marketConditionSpyChart).');
+    }
+
+    if (!history.length) {
+      container.innerHTML = '<p class="muted">No SPY history available for market condition chart.</p>';
+      state.marketCondition.rendered = true;
+      return;
+    }
+
+    await loadLightweightChartsIfNeeded();
+    renderMarketConditionChart(container, history, data, chartMarkers);
+    state.marketCondition.rendered = true;
+  } catch (err) {
+    state.marketCondition.error = String(err?.message || err);
+    const container = getMarketConditionChartContainer();
+    if (container) {
+      container.innerHTML = `<p class="error-text">Failed to load Market Condition data/chart: ${esc(state.marketCondition.error)}</p>`;
+    }
+  } finally {
+    state.marketCondition.loading = false;
+  }
+}
+
 async function loadPayload() {
   const url = `data/latest.json?t=${Date.now()}`;
   const res = await fetch(url, {
@@ -998,9 +1931,11 @@ async function loadPayload() {
 async function boot() {
   try {
     renderTabs();
+    initScreenerViewSwitching();
 
     const payload = await loadPayload();
     state.payload = payload;
+    window.screenerData = payload;
 
     const meta = toObject(payload.meta);
 
@@ -1015,6 +1950,7 @@ async function boot() {
     // Keep this aligned with the screener tab behavior: always load data on boot.
     // Backtesting tab still renders only when opened, but data is guaranteed available.
     void loadBacktestSummaryIfNeeded();
+    void renderMarketCondition();
   } catch (err) {
     showLoadError(String(err?.message || err), String(err?.stack || ''));
   }

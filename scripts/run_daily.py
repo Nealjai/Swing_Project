@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import sys
 from pathlib import Path
@@ -13,13 +14,14 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from screener.config import Settings
-from screener.data import fetch_prices
+from screener.data import fetch_prices, get_daily_data
 from screener.engines import bull_candidates, weak_candidates
 from screener.export import export_outputs
 from screener.fundamentals import fetch_fundamentals, fetch_ticker_info
 from screener.indicators import add_indicators, latest_metrics
 from screener.ranking import rank_candidates
 from screener.regime import detect_regime
+from screener.market_condition import get_market_condition
 from screener.universe import UniverseItem, load_universe
 
 
@@ -154,6 +156,50 @@ def _enrich_candidates(
     return out
 
 
+def export_daily_data(symbols: List[str], years: int = 3, logger: logging.Logger | None = None) -> None:
+    out_dir = ROOT / "docs" / "data" / "daily"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    unique_symbols = sorted({str(s) for s in symbols if str(s).strip()})
+    for symbol in unique_symbols:
+        try:
+            df = get_daily_data(symbol, years=years)
+        except Exception as exc:  # noqa: BLE001
+            if logger:
+                logger.warning("Failed to fetch %s daily data: %s", symbol, exc)
+            df = None
+
+        frame = df.copy() if df is not None else None
+        if frame is None or frame.empty:
+            payload = {
+                "Date": [],
+                "Open": [],
+                "High": [],
+                "Low": [],
+                "Close": [],
+                "Volume": [],
+            }
+        else:
+            frame = frame.sort_index()
+            payload = {
+                "Date": [idx.strftime("%Y-%m-%d") for idx in frame.index],
+                "Open": [_num(v) for v in frame["Open"].tolist()] if "Open" in frame.columns else [],
+                "High": [_num(v) for v in frame["High"].tolist()] if "High" in frame.columns else [],
+                "Low": [_num(v) for v in frame["Low"].tolist()] if "Low" in frame.columns else [],
+                "Close": [_num(v) for v in frame["Close"].tolist()] if "Close" in frame.columns else [],
+                "Volume": [_num(v) for v in frame["Volume"].tolist()] if "Volume" in frame.columns else [],
+            }
+            if "Adj Close" in frame.columns:
+                payload["Adj Close"] = [_num(v) for v in frame["Adj Close"].tolist()]
+
+        safe_symbol = symbol.replace("/", "_")
+        out_path = out_dir / f"{safe_symbol}.json"
+        out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    if logger:
+        logger.info("Exported 3Y daily data JSON for %s symbols to %s", len(unique_symbols), out_dir)
+
+
 def main() -> int:
     settings = Settings()
     logger = setup_logger()
@@ -162,6 +208,8 @@ def main() -> int:
     yf_symbols = sorted({u.yf_symbol for u in universe})
     if settings.benchmark_symbol not in yf_symbols:
         yf_symbols.append(settings.benchmark_symbol)
+
+    export_daily_data(yf_symbols, years=3, logger=logger)
 
     prices, data_diag = fetch_prices(yf_symbols=yf_symbols, settings=settings, logger=logger)
     info_by_symbol = fetch_ticker_info(yf_symbols, logger)
@@ -312,6 +360,15 @@ def main() -> int:
         csv_path=settings.output_csv,
         chart_data=chart_data,
     )
+
+    print("Generating market condition data...")
+    market_condition = get_market_condition()
+
+    market_condition_path = Path("docs/data/market_condition.json")
+    market_condition_path.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"Saving market condition data to {market_condition_path}...")
+    market_condition_path.write_text(json.dumps(market_condition, indent=2), encoding="utf-8")
 
     logger.info(
         "Finished run: regime=%s engine=%s candidates=%s universe=%s",

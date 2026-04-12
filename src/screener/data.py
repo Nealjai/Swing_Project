@@ -103,6 +103,25 @@ def _extract_symbol_frame(download_df: pd.DataFrame, symbol: str) -> pd.DataFram
     return _clean_ohlcv(download_df)
 
 
+def get_daily_data(symbol: str, years: int = 3) -> pd.DataFrame:
+    """Fetch daily OHLCV data for a single symbol for the last `years` years."""
+    safe_years = max(1, int(years))
+    start = (datetime.now(timezone.utc) - timedelta(days=365 * safe_years)).date().isoformat()
+
+    df = yf.download(
+        tickers=[symbol],
+        start=start,
+        interval="1d",
+        auto_adjust=False,
+        progress=False,
+        group_by="ticker",
+        threads=False,
+    )
+
+    frame = _extract_symbol_frame(df, symbol)
+    return frame
+
+
 def fetch_prices(
     yf_symbols: List[str],
     settings: Settings,

@@ -1,242 +1,399 @@
-# US Market Regime Dual-Engine Stock Screener — V1 Spec
 
-## Summary
-This project produces a static, GitHub Pages-hosted stock screening dashboard for U.S. equities. A Python pipeline determines the current market regime using a benchmark (SPY) and a simple regime rule (price vs 200-day SMA). Based on the regime, it runs one of two screening engines (bull vs weak) to rank candidate stocks for manual research.
+# Specification: Market Condition Tab
 
-V1 is screening and research only. No broker integration, order routing, or automated execution.
+## 1. Architecture Overview
 
-## Goals
-- Generate daily end-of-day screening outputs for a defined U.S. equity universe.
-- Detect market regime using SPY and a 200-day simple moving average rule.
-- Run a dual-engine screener that adapts candidate selection and ranking to regime.
-- Publish outputs as static data files consumable by a lightweight frontend.
-- Deliver a static dashboard (HTML/CSS/JS) that loads the latest results and displays:
-  - regime state
-  - active engine
-  - ranked candidates
-  - indicator context
-  - basic fundamentals where available
+This document outlines the plan to add a new "Market Condition" tab to the application. The new feature will introduce a dedicated backend module for market analysis and a corresponding frontend component for visualization.
 
-## Non-goals (V1)
-- Trade execution, alerts, broker APIs, order management, or portfolio optimization.
-- Intraday scanning; V1 uses daily EOD data only.
-- A backend service or database requirement; V1 is file-based.
-- Guaranteeing full fundamental coverage; missing data must be handled gracefully.
+The overall architecture will be updated as follows:
 
-## Defaults to Encode (Explicit V1 Decisions)
-- Universe: tickers from [`sp500.txt`](sp500.txt:1). Treat as V1 universe; allow swapping later.
-- Regime benchmark: SPY.
-- Regime rule: SPY close vs 200-day SMA.
-  - Bull regime if close > SMA200
-  - Weak regime otherwise
-- Data source: daily EOD via yfinance.
-- Outputs: generate both JSON (primary) and CSV (secondary) for the frontend.
-- Cadence: local manual run and automated GitHub Actions regeneration.
-  - Workflow: [`.github/workflows/daily_screener.yml`](.github/workflows/daily_screener.yml:1)
-  - Publish artifacts: [`docs/data/latest.json`](docs/data/latest.json:1) and [`docs/data/latest.csv`](docs/data/latest.csv:1)
-- V1 is screening and research only, no execution.
+1.  **Backend**: A new module, `src/screener/market_condition.py`, will be created to encapsulate all logic for calculating the market regime, distribution days (DD), and follow-through days (FTD).
+2.  **Daily Script**: The existing `scripts/run_daily.py` will be modified to import and execute the new market condition script.
+3.  **Data Output**: The result will be saved as a new JSON file: `docs/data/market_condition.json`.
+4.  **Frontend**: The `docs/app.js` will fetch this new data file. A new tab will be added to `docs/index.html`, and `app.js` will render the indicators and a new SPY chart in this tab.
+5.  **Charting**: The project currently uses `Chart.js`. For consistency, the new SPY chart will also be implemented using `Chart.js`, not `lightweight-charts`.
 
-## User Flow and System Flow
-### User flow
-1. User runs the local Python pipeline.
-2. Pipeline fetches or refreshes daily EOD data.
-3. Pipeline computes indicators, detects regime, runs the relevant engine, ranks candidates.
-4. Pipeline writes versioned and latest outputs as JSON and CSV.
-5. User opens the static dashboard (locally or via GitHub Pages) to review candidates.
-
-### System flow
-- Inputs: universe file, configuration, market data.
-- Processing: normalize tickers, fetch data, compute indicators, detect regime, screen, rank.
-- Outputs: JSON and CSV files; static frontend reads JSON primarily.
+### Mermaid Diagram: System Flow
 
 ```mermaid
-flowchart TD
-  U[User] --> R[Run Python pipeline]
-  R --> Y[yfinance daily EOD]
-  Y --> P[Prices and basic fundamentals]
-  P --> G[Regime detection on SPY]
-  G --> E{Regime}
-  E -->|Bull| B[Bull engine screener]
-  E -->|Weak| W[Weak engine screener]
-  B --> K[Ranking and packaging]
-  W --> K
-  K --> O[Write outputs JSON and CSV]
-  O --> S[Static dashboard HTML CSS JS]
-  S --> GH[GitHub Pages]
-  U --> GH
+graph TD
+    A[scripts/run_daily.py] --> B{Generate Market Condition};
+    B --> C[src/screener/market_condition.py];
+    C --> D{Fetch SPY & VIX Data};
+    D --> E[src/screener/data.py];
+    C --> F{Calculate Regime, DD, FTD};
+    F --> G[Save to docs/data/market_condition.json];
+    
+    subgraph Frontend
+        H[docs/index.html]
+        I[docs/app.js]
+        J[docs/styles.css]
+    end
+
+    G --> I;
+    I --> H;
 ```
 
-## Architecture Overview
-### High-level architecture
-- Batch pipeline: Python scripts run on demand and generate static artifacts.
-- Storage: generated artifacts are committed or published for GitHub Pages consumption.
-- Frontend: static HTML/CSS/JS reads JSON outputs via fetch and renders tables and detail panels.
+## 2. Data Structure
 
-### Data model orientation
-- Output files are the contract between pipeline and UI.
-- JSON is primary for the UI because it supports nested structures, metadata, and richer fields.
-- CSV is secondary for quick inspection, spreadsheet import, and interoperability.
+The `docs/data/market_condition.json` file will have the following structure:
 
-### Key design constraints
-- Universe must represent U.S.-listed common stocks only.
-- Exclusions: OTC, preferreds, warrants, rights, ETFs, ETNs, options, futures, crypto, derivatives.
-- Must remain modular so data source, ranking logic, and UI can evolve independently.
+```json
+{
+  "generated_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "regime": "Bull",
+  "spy_close": 450.75,
+  "vix_close": 15.2,
+  "distribution_day_count": 3,
+  "ftd_count": 1,
+  "chart_data": {
+    "dates": ["2023-01-01", "..."],
+    "spy_close": [440.1, "..."],
+    "sma50": [430.5, "..."],
+    "sma200": [400.2, "..."],
+    "distribution_days": [
+        { "date": "2023-10-26", "price": 413.72 },
+    ],
+    "follow_through_days": [
+        { "date": "2023-11-02", "price": 431.75 },
+    ]
+  }
+}
+```
 
-## Chosen Stack and Rationale
-### Python pipeline
-- Python is used for:
-  - data collection via yfinance
-  - indicator and regime computation
-  - screening logic and ranking
-  - exporting JSON and CSV
-- Rationale:
-  - strong ecosystem for data processing
-  - easy iteration on quant screening logic
-  - produces static artifacts for a no-backend deployment
+## 3. Backend Implementation
 
-### Static frontend on GitHub Pages
-- Plain HTML/CSS/JS in V1.
-- Rationale:
-  - minimal build complexity
-  - easy hosting with GitHub Pages
-  - fast load times for static content
-  - keeps V1 focused on signal generation and presentation
+### 3.1. New File: `src/screener/market_condition.py`
 
-## Main Modules and Responsibilities
-Proposed modules are conceptual; file paths may vary with final repository layout.
+This file will contain the logic for market analysis.
 
-- Universe
-  - Load universe tickers from [`sp500.txt`](sp500.txt:1).
-  - Normalize tickers for yfinance compatibility.
-    - Example: BRK.B and BF.B may require mapping to BRK-B and BF-B for yfinance.
-  - Validate and filter to U.S.-listed common stock intent.
+```python
+# src/screener/market_condition.py
 
-- Configuration
-  - Centralize defaults and thresholds.
-  - Include scan parameters like:
-    - SMA lengths
-    - breakout lookback
-    - RSI thresholds
-    - Bollinger Band settings
-    - min price and liquidity constraints
+import pandas as pd
+from src.screener import data
 
-- Data acquisition
-  - Fetch daily EOD OHLCV for SPY and universe tickers.
-  - Optional caching to avoid repeated downloads.
+def calculate_regime(spy_df: pd.DataFrame) -> str:
+    """
+    Calculates the market regime based on three signals.
+    - Signal 1: SPY close > 200-day SMA.
+    - Signal 2: SPY close > 50-day SMA.
+    - Signal 3: 50-day SMA 5-day direction > +0.1%.
+    """
+    # ... implementation ...
+    return "Bull" # or "Bear", "Choppy"
 
-- Indicators
-  - Compute common indicators used by engines and ranking:
-    - SMA
-    - RSI
-    - Bollinger Bands
-    - rolling highs and lows
-    - simple relative strength metrics versus SPY
+def calculate_distribution_days(spy_df: pd.DataFrame) -> (int, list):
+    """
+    Identifies and counts distribution days over a rolling 25-day window.
+    - SPY close down >= 0.2%.
+    - Volume > prior day's volume.
+    """
+    # ... implementation ...
+    return (3, [{"date": "...", "price": ...}])
 
-- Regime detection
-  - Compute SMA200 for SPY.
-  - Determine regime based on SPY close vs SMA200.
-  - Persist regime metadata to outputs.
+def calculate_follow_through_days(spy_df: pd.DataFrame) -> (int, list):
+    """
+    Identifies and counts Follow-Through Days (FTD).
+    - Occurs on day 4 or later of a rally attempt.
+    - SPY gain >= 1.25%.
+    - Volume > prior day's volume.
+    """
+    # ... implementation ...
+    return (1, [{"date": "...", "price": ...}])
 
-- Screening engines
-  - Bull engine
-    - Trend and momentum oriented candidate selection.
-    - Example signals: new 20-day highs, breakouts, strong relative strength.
-  - Weak engine
-    - Oversold rebound oriented candidate selection.
-    - Example signals: RSI below threshold, price below lower Bollinger Band, optional reversal confirmation.
+def generate_market_condition_data() -> dict:
+    """
+    Main function to generate the complete market condition data package.
+    """
+    spy_df = data.get_history('SPY', days=300)
+    vix_df = data.get_history('^VIX', days=5)
 
-- Ranking
-  - Combine signal strength, liquidity, relative strength, and basic fundamental quality.
-  - Output a final rank score and component metrics for explainability.
+    # Calculate indicators
+    regime = calculate_regime(spy_df)
+    dd_count, dd_markers = calculate_distribution_days(spy_df)
+    ftd_count, ftd_markers = calculate_follow_through_days(spy_df)
 
-- Exporters
-  - Write JSON and CSV outputs.
-  - Keep stable schema for the frontend.
-  - Output both a latest file and versioned snapshots.
+    # Prepare data structure
+    market_condition = {
+        "generated_at": pd.Timestamp.utcnow().isoformat(),
+        "regime": regime,
+        "spy_close": spy_df['Close'].iloc[-1],
+        "vix_close": vix_df['Close'].iloc[-1],
+        "distribution_day_count": dd_count,
+        "ftd_count": ftd_count,
+        "chart_data": {
+            "dates": spy_df.index.strftime('%Y-%m-%d').tolist(),
+            "spy_close": spy_df['Close'].tolist(),
+            "sma50": spy_df['SMA50'].tolist(),
+            "sma200": spy_df['SMA200'].tolist(),
+            "distribution_days": dd_markers,
+            "follow_through_days": ftd_markers,
+        }
+    }
+    return market_condition
 
-- Frontend UI
-  - Load JSON output.
-  - Render:
-    - regime banner
-    - engine name
-    - candidates table sorted by rank
-    - expandable detail view per ticker
+```
 
-## Data Flow
+### 3.2. Modifications to `scripts/run_daily.py`
+
+The daily script will be updated to run the new market condition analysis.
+
+```python
+# scripts/run_daily.py
+
+# ... existing imports ...
+from src.screener import market_condition # New import
+import json
+
+def save_json(data: dict, path: str):
+    """Utility to save dict to JSON."""
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+def main():
+    # ... existing logic to run screener and save latest.json ...
+
+    # --- New Section ---
+    print("Running market condition analysis...")
+    market_data = market_condition.generate_market_condition_data()
+    save_json(market_data, 'docs/data/market_condition.json')
+    print("Market condition data saved.")
+    # --- End New Section ---
+
+if __name__ == "__main__":
+    main()
+```
+
+## 4. Frontend Implementation
+
+### 4.1. `docs/index.html` Changes
+
+-   Add a new tab button and tab panel.
+
+```html
+<!-- In nav.tabs -->
+<button id="tabBtnMarketCondition" class="tab-btn" data-tab="marketCondition" type="button">Market Condition</button>
+<button id="tabBtnScreener" class="tab-btn active" data-tab="screener" type="button">Screener Result</button>
+<button id="tabBtnBackground" class="tab-btn" data-tab="background" type="button">Background</button>
+<button id="tabBtnHistory" class="tab-btn" data-tab="history" type="button">Backtesting</button>
+
+<!-- After </section> for tabScreener -->
+<section id="tabMarketCondition" class="tab-panel" aria-labelledby="tabBtnMarketCondition">
+    <section class="summary-grid">
+        <div class="card">
+            <h3>Regime</h3>
+            <p id="mcRegime">-</p>
+        </div>
+        <div class="card">
+            <h3>SPY Close</h3>
+            <p id="mcSpyClose">-</p>
+        </div>
+        <div class="card">
+            <h3>VIX Close</h3>
+            <p id="mcVixClose">-</p>
+        </div>
+        <div class="card">
+            <h3>Distribution Days</h3>
+            <p id="mcDdCount">-</p>
+        </div>
+        <div class="card">
+            <h3>Follow-Through Days</h3>
+            <p id="mcFtdCount">-</p>
+        </div>
+    </section>
+    <section class="card">
+        <h2>SPY Chart (1Y)</h2>
+        <canvas id="marketConditionChart" height="120"></canvas>
+    </section>
+</section>
+```
+
+### 4.2. `docs/app.js` Changes
+
+-   Fetch `market_condition.json`.
+-   Render the indicators and the new chart.
+
+```javascript
+// In state object
+let state = {
+    // ... existing state
+    marketCondition: {
+        loaded: false,
+        loading: false,
+        data: null,
+        error: null,
+    },
+    marketConditionChart: null,
+};
+
+// New function to load market condition data
+async function loadMarketConditionData() {
+    if (state.marketCondition.loaded || state.marketCondition.loading) return;
+    state.marketCondition.loading = true;
+    
+    try {
+        const res = await fetch(`data/market_condition.json?t=${Date.now()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        state.marketCondition.data = data;
+        state.marketCondition.loaded = true;
+        renderMarketCondition(data);
+    } catch (err) {
+        state.marketCondition.error = err.message;
+        // Handle error display
+    } finally {
+        state.marketCondition.loading = false;
+    }
+}
+
+// New function to render the data
+function renderMarketCondition(data) {
+    document.getElementById('mcRegime').textContent = data.regime;
+    document.getElementById('mcSpyClose').textContent = fmtNumber(data.spy_close);
+    document.getElementById('mcVixClose').textContent = fmtNumber(data.vix_close);
+    document.getElementById('mcDdCount').textContent = fmtInt(data.distribution_day_count);
+    document.getElementById('mcFtdCount').textContent = fmtInt(data.ftd_count);
+
+    renderMarketConditionChart(data.chart_data);
+}
+
+// New function to render the chart
+function renderMarketConditionChart(chartData) {
+    const ctx = document.getElementById('marketConditionChart');
+    destroyChart(state.marketConditionChart);
+
+    // Scatter data for markers
+    const ddPoints = chartData.distribution_days.map(d => ({ x: d.date, y: d.price }));
+    const ftdPoints = chartData.follow_through_days.map(d => ({ x: d.date, y: d.price }));
+
+    state.marketConditionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.dates,
+            datasets: [
+                { label: 'SPY Close', data: chartData.spy_close, borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0 },
+                { label: 'SMA50', data: chartData.sma50, borderColor: '#22c55e', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0 },
+                { label: 'SMA200', data: chartData.sma200, borderColor: '#e879f9', borderWidth: 1.5, borderDash: [2, 4], pointRadius: 0 },
+                {
+                    type: 'scatter',
+                    label: 'Distribution Day',
+                    data: ddPoints,
+                    backgroundColor: 'red',
+                    pointStyle: 'triangle',
+                    rotation: 180,
+                    radius: 6,
+                },
+                {
+                    type: 'scatter',
+                    label: 'Follow-Through Day',
+                    data: ftdPoints,
+                    backgroundColor: 'lime',
+                    pointStyle: 'triangle',
+                    radius: 6,
+                }
+            ]
+        },
+        options: { /* ... standard chart options ... */ }
+    });
+}
+
+// In boot() function
+async function boot() {
+    // ...
+    loadMarketConditionData(); // Load the new data on boot
+    // ...
+}
+
+// In activateTab() function
+function activateTab(buttons, panels, key) {
+    // ...
+    if (key === 'marketCondition') {
+        loadMarketConditionData();
+    }
+    // ...
+}
+```
+
+### 4.3. `docs/styles.css` Changes
+
+-   Add basic styling for the new components.
+
+```css
+/* In docs/styles.css */
+
+#tabMarketCondition .summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+```
+
+This plan provides a comprehensive overview of the required changes to implement the "Market Condition" tab.
+
+## 5. Screener Result Tab
+
+This section outlines the design for the updated screener result tab, which will incorporate a dual-view layout to enhance data visualization and analysis.
+
+### 5.1. View Layouts
+
+The screener result tab will feature two distinct layouts:
+
+1.  **List View (Default):** A detailed, scrollable list of stocks matching the screener criteria. Each row will display comprehensive data for a single stock. This remains the default view.
+2.  **Chart View:** A compressed list showing only the stock symbol on the left. The right-hand side will be dominated by a large candle chart displaying the historical price data for the selected symbol.
+
+### 5.2. UI Components
+
+-   **View Switcher:** A set of buttons will be added to the top of the screener result tab to allow users to toggle between "List View" and "Chart View".
+-   **Chart Container:** A dedicated container will house the candle chart in the "Chart View".
+
+### 5.3. Candle Chart
+
+The candle chart will be a key feature of the "Chart View" and will reuse the existing TradingView-style implementation from the market condition tab to ensure consistency. It will display the main candlestick series and any selected moving averages as overlays. It will not include a separate line chart for "Adj Close".
+
+-   **Data:** The chart will be populated with 3 years of daily candle data for the selected stock.
+-   **Details Panel:** Above the chart, a panel will display key details for the selected symbol: Current Price, Stop Loss, Take Profit, ATR14, ROE, P/E, Revenue Growth QoQ, Revenue Growth YoY, Engine, and Score.
+-   **Indicator Controls:** A set of checkboxes will be available to toggle various technical indicators on the chart: SMA20, SMA50, SMA200, EMA9, EMA21, and Volume. The candlestick series is always visible and not toggleable.
+-   **Chart Legend:** Positioned below the indicator controls and above the chart, this component displays the name and color of each active, toggleable indicator (e.g., SMAs, EMAs). It will not include entries for the primary candlestick series or the volume bars.
+
+### 5.4. Mermaid Diagram: Chart View Layout
+
+The following diagram illustrates the layout of the "Chart View":
+
 ```mermaid
-flowchart LR
-  U[sp500 universe] --> L[Universe loader]
-  L --> N[Ticker normalization]
-  N --> D[Daily data fetch]
-  D --> I[Indicators]
-  I --> R[Regime detection on SPY]
-  R --> S[Select engine]
-  S --> BE[Bull engine]
-  S --> WE[Weak engine]
-  BE --> RK[Ranking]
-  WE --> RK
-  RK --> X[Export JSON and CSV]
-  X --> UI[Static dashboard]
+graph TD
+    subgraph Screener Result Tab
+        direction LR
+        
+        subgraph Viewport
+            direction TB
+
+            A[View Switcher: [List View] / [Chart View]]
+            
+            subgraph Chart View Layout
+                direction LR
+                B[Stock List]
+                C[Chart Area]
+            end
+            
+            A --> Chart View Layout
+        end
+    end
+
+    subgraph B [Stock List]
+        direction TB
+        B1[Symbol 1]
+        B2[Symbol 2]
+        B3[Symbol 3]
+    end
+
+    subgraph C [Chart Area]
+        direction TB
+        C1[Details Panel]
+        C2[Indicator Controls]
+        C2_5[Chart Legend]
+        subgraph Chart Panes
+            direction TB
+            C3[Main Chart (Candles + Overlays)]
+            C4[Volume Pane]
+        end
+    end
 ```
-
-## Outputs and File Contracts
-### JSON primary output
-Recommended top-level keys:
-- meta
-  - generated_at
-  - universe_name and universe_version
-  - data_source
-  - benchmark
-  - regime
-  - config hash or config snapshot
-- candidates
-  - array of objects with:
-    - ticker
-    - rank
-    - score breakdown
-    - key indicators
-    - liquidity metrics
-    - optional fundamentals
-- diagnostics
-  - missing data counts
-  - skipped tickers and reasons
-
-### CSV secondary outputs
-- candidates.csv with one row per ticker candidate, flattened fields.
-- optional diagnostics.csv listing skipped symbols and reasons.
-
-## Risks and Assumptions
-- yfinance data reliability and occasional missing fields.
-- Ticker normalization edge cases, especially class shares with dot notation.
-- Fundamentals coverage is incomplete and may vary across symbols.
-- GitHub Pages hosting requires outputs to be placed in a published folder and paths must be consistent.
-- Performance considerations: fetching full histories for many tickers can be slow.
-  - Mitigation: limited lookback windows and caching.
-
-## Implementation Phases
-1. Planning docs and repo conventions
-   - Produce planning docs and define output contract.
-2. Project scaffold and configuration
-   - Establish directories and config defaults.
-   - Universe loader with ticker normalization.
-3. Data acquisition layer
-   - yfinance fetch for SPY and tickers.
-   - caching and retry logic.
-4. Indicators and regime
-   - SMA200 regime detection.
-   - indicator computation utilities.
-5. Screening engines
-   - bull engine rules
-   - weak engine rules
-6. Ranking and exports
-   - scoring model
-   - JSON schema and CSV exports
-7. Static frontend dashboard
-   - read JSON
-   - render summary and ranked table
-8. QA and documentation
-   - validate outputs
-   - update documentation and ensure reproducible run steps
-9. Optional later
-   - expanded universe and metadata management
-   - enhanced UI or React TypeScript if complexity grows

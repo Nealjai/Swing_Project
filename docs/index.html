@@ -23,6 +23,7 @@
 
       <nav class="tabs" aria-label="Dashboard tabs">
         <button id="tabBtnScreener" class="tab-btn active" data-tab="screener" type="button">Screener Result</button>
+        <button id="tabBtnMarketCondition" class="tab-btn" data-tab="market-condition" type="button">Market Condition</button>
         <button id="tabBtnBackground" class="tab-btn" data-tab="background" type="button">Background</button>
         <button id="tabBtnHistory" class="tab-btn" data-tab="history" type="button">Backtesting</button>
       </nav>
@@ -47,44 +48,187 @@
           </div>
         </section>
 
-        <section class="split-layout">
-          <div class="left-pane card">
-            <h2>Ranked Candidates</h2>
-            <p class="muted">Sorted by score (highest first). Click a row to load details and chart.</p>
-            <div class="table-wrap">
-              <table id="candidatesTable">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Symbol</th>
-                    <th>Engine</th>
-                    <th>Score</th>
-                    <th>Close</th>
-                    <th>SL</th>
-                    <th>TP</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
+        <section class="view-switcher" aria-label="Screener result view switcher">
+          <button id="screenerListViewBtn" class="view-switch-btn active" type="button" aria-pressed="true">List View</button>
+          <button id="screenerChartViewBtn" class="view-switch-btn" type="button" aria-pressed="false">Chart View</button>
+        </section>
 
-          <div class="right-pane">
-            <section class="card" id="selectedCard">
-              <h2 id="selectedSymbolTitle">Selected stock details</h2>
-              <div id="selectedSymbolMeta" class="selected-meta"></div>
-              <div id="selectedFundamentals" class="fundamentals-grid"></div>
-            </section>
-
-            <section class="card">
-              <div class="chart-header">
-                <h2 id="priceChartTitle">Price & Indicators (1Y)</h2>
-                <div class="legend-toggles" id="chartToggles"></div>
+        <div id="screenerListView" class="screener-view screener-view-list">
+          <section class="split-layout">
+            <div class="left-pane card">
+              <h2>Ranked Candidates</h2>
+              <p class="muted">Sorted by score (highest first). Click a row to load details and chart.</p>
+              <div class="table-wrap">
+                <table id="candidatesTable">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Symbol</th>
+                      <th>Engine</th>
+                      <th>Score</th>
+                      <th>Close</th>
+                      <th>SL</th>
+                      <th>TP</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
               </div>
-              <canvas id="priceChart" height="140"></canvas>
+            </div>
+
+            <div class="right-pane">
+              <section class="card" id="selectedCard">
+                <h2 id="selectedSymbolTitle">Selected stock details</h2>
+                <div id="selectedSymbolMeta" class="selected-meta"></div>
+                <div id="selectedFundamentals" class="fundamentals-grid"></div>
+              </section>
+
+              <section class="card">
+                <div class="chart-header">
+                  <h2 id="priceChartTitle">Price & Indicators (1Y)</h2>
+                  <div class="legend-toggles" id="chartToggles"></div>
+                </div>
+                <canvas id="priceChart" height="140"></canvas>
+              </section>
+            </div>
+          </section>
+        </div>
+
+        <section id="screenerChartView" class="screener-view screener-view-chart" aria-label="Screener chart view">
+          <div class="screener-chart-layout">
+            <aside class="card compressed-list-pane">
+              <h2>Symbols</h2>
+              <p class="muted">Compressed symbol list for quick chart selection.</p>
+              <div class="table-wrap compressed-list-wrap">
+                <table class="compressed-symbol-table" aria-label="Compressed symbol list">
+                  <thead>
+                    <tr>
+                      <th>Symbol</th>
+                    </tr>
+                  </thead>
+                  <tbody id="compressedSymbolListBody"></tbody>
+                </table>
+              </div>
+            </aside>
+
+            <section class="card screener-chart-pane">
+              <div class="chart-header">
+                <h2>Price Chart (3Y)</h2>
+                <div class="legend-toggles" id="chartViewToggles"></div>
+              </div>
+
+              <section class="screener-details-panel" aria-label="Selected symbol details panel">
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Current Price</span>
+                    <strong class="detail-value" id="chartDetailCurrentPrice">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Stop Loss</span>
+                    <strong class="detail-value" id="chartDetailStopLoss">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Take Profit</span>
+                    <strong class="detail-value" id="chartDetailTakeProfit">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">ATR14</span>
+                    <strong class="detail-value" id="chartDetailAtr14">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">ROE</span>
+                    <strong class="detail-value" id="chartDetailRoe">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">P/E</span>
+                    <strong class="detail-value" id="chartDetailPe">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Revenue Growth QoQ</span>
+                    <strong class="detail-value" id="chartDetailRevGrowthQoq">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Revenue Growth YoY</span>
+                    <strong class="detail-value" id="chartDetailRevGrowthYoy">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Engine</span>
+                    <strong class="detail-value" id="chartDetailEngine">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Score</span>
+                    <strong class="detail-value" id="chartDetailScore">-</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="screener-indicator-controls" aria-label="Chart indicator controls">
+                <p class="indicator-controls-title">Indicator Controls</p>
+                <div class="indicator-controls-grid">
+                  <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="sma20" checked />
+                    <span>SMA20</span>
+                  </label>
+                  <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="sma50" checked />
+                    <span>SMA50</span>
+                  </label>
+                  <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="sma200" checked />
+                    <span>SMA200</span>
+                  </label>
+                  <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="ema9" checked />
+                    <span>EMA9</span>
+                  </label>
+                  <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="ema21" checked />
+                    <span>EMA21</span>
+                  </label>
+                  <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="volume" checked />
+                    <span>Volume</span>
+                  </label>
+                </div>
+              </section>
+
+              <div id="screener-chart-legend"></div>
+              <div id="screenerChartContainer" class="screener-chart-container"></div>
             </section>
           </div>
         </section>
+      </section>
+
+      <section id="tabMarketCondition" class="tab-panel" aria-labelledby="tabBtnMarketCondition">
+        <div id="market-condition" class="tab-content">
+          <section class="summary-grid">
+            <div class="card">
+              <h3>Market Regime</h3>
+              <p id="marketConditionRegime">-</p>
+            </div>
+            <div class="card">
+              <h3>SPY Price</h3>
+              <p id="marketConditionSpyPrice">-</p>
+            </div>
+            <div class="card">
+              <h3>VIX Price</h3>
+              <p id="marketConditionVixPrice">-</p>
+            </div>
+            <div class="card">
+              <h3>Distribution Days</h3>
+              <p id="marketConditionDistributionDays">-</p>
+            </div>
+            <div class="card">
+              <h3>FTD Count</h3>
+              <p id="marketConditionFtdCount">-</p>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>SPY Market Condition Chart</h2>
+            <div id="marketConditionSpyChart"></div>
+          </section>
+        </div>
       </section>
 
       <section id="tabBackground" class="tab-panel" aria-labelledby="tabBtnBackground">
