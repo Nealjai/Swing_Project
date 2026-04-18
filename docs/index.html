@@ -46,6 +46,10 @@
             <h3>Candidates</h3>
             <p id="candidateCount">-</p>
           </div>
+          <div class="card">
+            <h3>Filter Funnel</h3>
+            <div id="filterFunnel" class="muted">Loading filter diagnostics...</div>
+          </div>
         </section>
 
         <section class="view-switcher" aria-label="Screener result view switcher">
@@ -245,6 +249,14 @@
 
         <section class="card">
           <h2>Dual-Engine Rules (Current Logic)</h2>
+          <p>
+            <strong>Bull engine (CWH/VCP scanner):</strong>
+            Prioritizes market leaders that pass relative-strength checks versus SPY, then validates constructive
+            Cup-with-Handle or Volatility Contraction Pattern bases, identifies pivot/resistance, and classifies
+            candidates by actionability (early-stage, near-pivot, breakout, post-breakout-watch, pullback-entry-ready).
+            Pullback-entry-ready signals require a constructive pullback toward support (typically SMA20), quieter
+            pullback volume, and rebound confirmation before flagging an entry marker.
+          </p>
           <div id="enginePlaybook" class="engine-grid"></div>
           <div id="activeEngineRules" class="active-rules"></div>
         </section>

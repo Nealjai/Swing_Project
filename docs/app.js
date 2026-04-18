@@ -156,6 +156,29 @@ function renderSummary(meta, diagnostics) {
   document.getElementById('candidateCount').textContent = `${fmtInt(rankedCount)} ranked / ${fmtInt(rawCount)} raw`;
 }
 
+function renderFilterFunnel(meta, rawDiagnostics) {
+  const host = document.getElementById('filterFunnel');
+  if (!host) return;
+
+  const diagnostics = toObject(rawDiagnostics);
+  const counts = toObject(diagnostics.counts);
+
+  const initialUniverse = counts.initial_universe ?? meta.universe_size ?? counts.rows_with_metrics ?? null;
+  const passedInitialFilters =
+    counts.initial_filter_passed ?? counts.rows_with_metrics ?? diagnostics.rows_with_metrics ?? null;
+  const passedRsFilter = counts.rs_filter_passed ?? null;
+  const passedPatternFilter = counts.pattern_filter_passed ?? null;
+  const finalCandidates = counts.ranked_candidates_count ?? counts.raw_candidates_count ?? meta.candidate_count ?? null;
+
+  host.innerHTML = `
+    <p>Initial Universe: <strong>${fmtInt(initialUniverse)}</strong></p>
+    <p>Passed Initial Filters: <strong>${fmtInt(passedInitialFilters)}</strong></p>
+    <p>Passed RS Filter: <strong>${fmtInt(passedRsFilter)}</strong></p>
+    <p>Passed Pattern Filter: <strong>${fmtInt(passedPatternFilter)}</strong></p>
+    <p>Final Candidates: <strong>${fmtInt(finalCandidates)}</strong></p>
+  `;
+}
+
 function tabKeyToPanelId(key) {
   const normalized = String(key || '')
     .split('-')
@@ -1941,6 +1964,7 @@ async function boot() {
 
     renderBanner(meta.regime, meta.engine);
     renderSummary(meta, payload.diagnostics || {});
+    renderFilterFunnel(meta, payload.diagnostics || {});
     renderStrategy(payload);
     renderCandidateTable(payload.candidates || []);
     renderDiagnostics(payload.diagnostics || {});
