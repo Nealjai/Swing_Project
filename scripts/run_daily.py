@@ -275,6 +275,7 @@ def main() -> int:
             min_market_cap=settings.min_market_cap,
             min_beta_1y=settings.min_beta_1y,
             min_volume=settings.min_volume,
+            min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
         )
         engine_name = "bull"
     else:
@@ -285,6 +286,7 @@ def main() -> int:
             min_beta_1y=settings.min_beta_1y,
             min_volume=settings.min_volume,
             weak_rsi_threshold=settings.weak_rsi_threshold,
+            min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
         )
         engine_name = "weak"
 

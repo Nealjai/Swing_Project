@@ -98,6 +98,7 @@ def _simulate_symbol(
         & (signal_close_px > float(settings.min_price))
         & (volume >= float(settings.min_volume))
         & np.isfinite(avg_dv)
+        & (avg_dv >= float(settings.min_avg_dollar_volume_20d))
         & (market_cap > float(settings.min_market_cap))
         & (beta_1y > float(settings.min_beta_1y))
     )
@@ -280,6 +281,7 @@ def _generate_symbol_candidates(
         & (signal_close_px > float(settings.min_price))
         & (volume >= float(settings.min_volume))
         & np.isfinite(avg_dv)
+        & (avg_dv >= float(settings.min_avg_dollar_volume_20d))
         & (market_cap > float(settings.min_market_cap))
         & (beta_1y > float(settings.min_beta_1y))
     )
@@ -518,6 +520,7 @@ def run_backtest(
             "end_date": config.end_date,
             "engine": config.engine,
             "warmup_bars": config.warmup_bars,
+            "min_avg_dollar_volume_20d": float(settings.min_avg_dollar_volume_20d),
         },
     }
 

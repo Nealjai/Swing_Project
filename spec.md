@@ -1,6 +1,72 @@
 
 # Specification: Market Condition Tab
 
+## 0. Addendum (2026-04-18): Normalized dual-engine scoring refactor
+
+### Summary
+- Bull and weak engines were refactored from hard RS/pattern gates to a robust cross-sectional normalized scoring model.
+- Production ranking now uses a single normalized `score` field.
+- Legacy engine score logic is retained only under `debug_metrics.legacy_score` for comparison.
+- Added `setup_tag` output labels: `Both`, `Actionable Breakout`, `Leadership`, `Watchlist`.
+
+### Hard filters (kept)
+- `min_price`
+- `min_market_cap`
+- `min_beta_1y`
+- `min_volume`
+- `min_avg_dollar_volume_20d` (new)
+
+### Shared normalization layer
+Implemented in `src/screener/engines/scoring.py`:
+- `to_float(value)`
+- `clamp01(value)`
+- `sigmoid(value)`
+- `robust_unit_score(value, population, invert=False, neutral=0.5)`
+
+Normalization behavior:
+- Uses median + MAD for robust z-scoring.
+- Squashes to `[0,1]` via sigmoid.
+- Returns neutral score (`0.5`) when feature value is missing or population is too small.
+- Supports `invert=True` for lower-is-better factors.
+
+### Bull engine v2 model
+- Leadership axis:
+  - `rs_component` (RS strength/trend)
+  - `trend_component` (distance vs SMA200)
+  - `leadership_score = 0.6*rs + 0.4*trend`
+- Actionability axis:
+  - `breakout_component`
+  - `compression_component` (inverted ATR10/ATR50)
+  - `volume_component`
+  - `stage_component`
+  - `actionability_score = 0.4*breakout + 0.25*compression + 0.2*volume + 0.15*stage`
+- Final score:
+  - `score = 100 * (0.55*actionability + 0.45*leadership)`
+
+### Weak engine v2 model
+- Actionability axis:
+  - `reversal_component`
+  - `extension_component`
+  - `capitulation_component`
+  - `actionability_score = 0.45*reversal + 0.35*extension + 0.20*capitulation`
+- Leadership axis:
+  - `trend_component`
+  - `liquidity_component`
+  - `leadership_score = 0.70*trend + 0.30*liquidity`
+- Final score:
+  - `score = 100 * (0.60*actionability + 0.40*leadership)`
+
+### Runtime/export/backtest alignment
+- Daily runtime passes `min_avg_dollar_volume_20d` into both engines.
+- Exported scanner settings include `min_avg_dollar_volume_20d`.
+- Backtest common eligibility now enforces `avg_dollar_volume_20d >= min_avg_dollar_volume_20d`.
+
+### Validation
+- Added unit tests for robust normalization edge cases under `tests/test_scoring.py`.
+- Smoke backtest completed successfully using test universe via `scripts/run_backtest.py`.
+
+---
+
 ## 1. Architecture Overview
 
 This document outlines the plan to add a new "Market Condition" tab to the application. The new feature will introduce a dedicated backend module for market analysis and a corresponding frontend component for visualization.

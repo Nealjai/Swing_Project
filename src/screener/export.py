@@ -46,6 +46,7 @@ def export_outputs(
         "min_market_cap": settings_snapshot.get("min_market_cap"),
         "min_beta_1y": settings_snapshot.get("min_beta_1y"),
         "min_volume": settings_snapshot.get("min_volume"),
+        "min_avg_dollar_volume_20d": settings_snapshot.get("min_avg_dollar_volume_20d"),
         "sma_regime_length": settings_snapshot.get("sma_regime_length"),
         "breakout_lookback": settings_snapshot.get("breakout_lookback"),
         "rsi_length": settings_snapshot.get("rsi_length"),

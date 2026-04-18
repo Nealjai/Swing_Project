@@ -5,6 +5,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Sequence
 
+from .scoring import robust_unit_score
+
 import json
 import logging
 import math
@@ -708,6 +710,7 @@ def bull_candidates(
     min_market_cap: float,
     min_beta_1y: float,
     min_volume: float,
+    min_avg_dollar_volume_20d: float = 0.0,
 ) -> List[Dict]:
     candidates: List[Dict] = []
     logger = logging.getLogger("screener")
@@ -718,14 +721,14 @@ def bull_candidates(
         "reject_static_thresholds": 0,
         "reject_missing_history": 0,
         "reject_short_history": 0,
-        "reject_rs": 0,
         "prior_uptrend_pass": 0,
         "prior_uptrend_fail": 0,
         "cwh_candidate_count": 0,
         "vcp_candidate_count": 0,
-        "reject_pattern": 0,
         "accepted": 0,
     }
+
+    prepared: List[Dict] = []
 
     for row in rows:
         stats["total_rows"] += 1
@@ -733,11 +736,25 @@ def bull_candidates(
         volume_latest = _to_float(row.get("volume"))
         market_cap = _to_float(row.get("market_cap"))
         beta_1y = _to_float(row.get("beta_1y"))
+        avg_dv_latest = _to_float(row.get("avg_dollar_volume_20d"))
 
-        if close_latest is None or volume_latest is None or market_cap is None or beta_1y is None:
+        if (
+            close_latest is None
+            or volume_latest is None
+            or market_cap is None
+            or beta_1y is None
+            or avg_dv_latest is None
+        ):
             stats["reject_missing_snapshot_fields"] += 1
             continue
-        if close_latest <= min_price or market_cap <= min_market_cap or beta_1y <= min_beta_1y or volume_latest < min_volume:
+
+        if (
+            close_latest <= min_price
+            or market_cap <= min_market_cap
+            or beta_1y <= min_beta_1y
+            or volume_latest < min_volume
+            or avg_dv_latest < min_avg_dollar_volume_20d
+        ):
             stats["reject_static_thresholds"] += 1
             continue
 
@@ -753,13 +770,10 @@ def bull_candidates(
             stats["reject_missing_history"] += 1
             continue
         if len(close) < 70:
-            # Scanner requires sufficient OHLCV history for CWH/VCP approximation.
             stats["reject_short_history"] += 1
             continue
 
-        # Keep SMA200 on the same price basis as pattern detection (history close series).
         sma200 = (sum(close[-200:]) / 200.0) if len(close) >= 200 else _to_float(row.get("sma200"))
-
         prior_uptrend_exists = bool(sma200 is not None and close[-1] > sma200)
         if prior_uptrend_exists:
             stats["prior_uptrend_pass"] += 1
@@ -767,10 +781,6 @@ def bull_candidates(
             stats["prior_uptrend_fail"] += 1
 
         rs = _compute_rs_block(close, spy_close, row)
-        if not rs["rs_pass"]:
-            stats["reject_rs"] += 1
-            continue
-
         cwh = _detect_cwh(high, low, close, sma200)
         vcp = _detect_vcp(high, low, close, volume, sma200)
 
@@ -779,15 +789,7 @@ def bull_candidates(
         if vcp.is_candidate:
             stats["vcp_candidate_count"] += 1
 
-        if cwh.is_candidate and vcp.is_candidate:
-            chosen = cwh if cwh.pattern_quality_score >= vcp.pattern_quality_score else vcp
-        elif cwh.is_candidate:
-            chosen = cwh
-        elif vcp.is_candidate:
-            chosen = vcp
-        else:
-            stats["reject_pattern"] += 1
-            continue
+        chosen = cwh if cwh.pattern_quality_score >= vcp.pattern_quality_score else vcp
 
         pivot = _pivot_analysis(high, close, chosen.pivot_price)
         breakout = _breakout_state(close, high, low, volume, _to_float(pivot.get("pivot_price")))
@@ -825,22 +827,36 @@ def bull_candidates(
         )
 
         stage_bonus = float(max(0, 5 - _stage_sort_rank(pattern_stage)) * 10)
-        score = stage_bonus + (pattern_quality_score * 5.0) + float(rs["rs_score"] * 3.0)
+        legacy_score = stage_bonus + (pattern_quality_score * 5.0) + float(rs["rs_score"] * 3.0)
 
-        reasons = [
-            f"RS passed: rs20={rs['rs_return_20d']}, rs60={rs['rs_return_60d']}, rs_trending_up={rs['rs_trending_up']}",
-            f"Pattern detected: {chosen.pattern_type.upper()} quality={chosen.pattern_quality_score:.2f}",
-            f"Stage: {pattern_stage}, breakout_state={breakout_state}, pullback_state={pullback_entry_state}",
-            f"Pivot: pivot_price={pivot.get('pivot_price')}, distance={pivot.get('pivot_distance_pct')}",
-        ]
+        rs20 = _to_float(rs.get("rs_return_20d"))
+        rs60 = _to_float(rs.get("rs_return_60d"))
+        rs90 = _to_float(rs.get("rs_return_90d"))
+        rs_returns = [x for x in [rs20, rs60, rs90] if x is not None]
+        rs_returns_mean = (sum(rs_returns) / float(len(rs_returns))) if rs_returns else 0.0
 
-        stats["accepted"] += 1
+        high_20d = _to_float(row.get("high_20d"))
+        breakout_proximity_raw = (close_latest / high_20d) if high_20d is not None and high_20d > 0 else None
 
-        candidates.append(
+        atr10 = _compute_atr(high, low, close, 10)
+        atr50 = _compute_atr(high, low, close, 50)
+        volatility_contraction_raw = (atr10 / atr50) if atr10 is not None and atr50 not in (None, 0.0) else None
+
+        stage_score_raw = {
+            "pullback-entry-ready": 1.0,
+            "post-breakout-watch": 0.8,
+            "breakout": 0.7,
+            "near-pivot": 0.55,
+            "early-stage": 0.35,
+        }.get(pattern_stage, 0.35)
+
+        trend_raw = ((close_latest / sma200) - 1.0) if sma200 not in (None, 0.0) else None
+        rs_strength_raw = rs_returns_mean + (0.05 if bool(rs.get("rs_trending_up")) else -0.05)
+
+        prepared.append(
             {
-                **row,
-                "engine": "bull",
-                "score": float(score),
+                "row": row,
+                "legacy_score": float(legacy_score),
                 "pattern_type": chosen.pattern_type,
                 "pattern_quality_score": float(pattern_quality_score),
                 "pattern_stage": pattern_stage,
@@ -857,17 +873,6 @@ def bull_candidates(
                 "entry_triangle_flag": pullback.get("entry_triangle_flag"),
                 "entry_triangle_price": pullback.get("entry_triangle_price"),
                 "entry_triangle_date": pullback.get("entry_triangle_date"),
-                "score_breakdown": {
-                    "stage_bonus": stage_bonus,
-                    "pattern_quality_score": float(pattern_quality_score),
-                    "rs_score": float(rs["rs_score"]),
-                    "cwh_score": float(chosen.cwh_score),
-                    "vcp_score": float(chosen.vcp_score),
-                    "contraction_sequence_score": float(chosen.contraction_sequence_score),
-                    "volume_quality_score": float(volume_block["volume_quality_score"]),
-                    "base_depth_score": float(base_depth["base_depth_score"]),
-                    "pivot_quality_score": float(pivot["pivot_quality_score"]),
-                },
                 "debug_metrics": {
                     "rs_return_20d": rs["rs_return_20d"],
                     "rs_return_60d": rs["rs_return_60d"],
@@ -886,36 +891,176 @@ def bull_candidates(
                     "distance_to_sma20_pct": pullback["distance_to_sma20_pct"],
                     "pullback_volume_ratio": pullback["pullback_volume_ratio"],
                     "support_rebound_flag": pullback["support_rebound_flag"],
+                    "legacy_score": float(legacy_score),
                 },
+                "raw_features": {
+                    "rs_strength": rs_strength_raw,
+                    "trend": trend_raw,
+                    "breakout_proximity": breakout_proximity_raw,
+                    "volatility_contraction": volatility_contraction_raw,
+                    "volume_quality": float(volume_block["volume_quality_score"]),
+                    "stage": stage_score_raw,
+                },
+            }
+        )
+
+    rs_pop = [x["raw_features"]["rs_strength"] for x in prepared]
+    trend_pop = [x["raw_features"]["trend"] for x in prepared]
+    breakout_pop = [x["raw_features"]["breakout_proximity"] for x in prepared]
+    contraction_pop = [x["raw_features"]["volatility_contraction"] for x in prepared]
+    volume_quality_pop = [x["raw_features"]["volume_quality"] for x in prepared]
+    stage_pop = [x["raw_features"]["stage"] for x in prepared]
+
+    for item in prepared:
+        raw_features = item["raw_features"]
+
+        rs_component = robust_unit_score(raw_features["rs_strength"], rs_pop)
+        trend_component = robust_unit_score(raw_features["trend"], trend_pop)
+        leadership_score = (0.6 * rs_component) + (0.4 * trend_component)
+
+        breakout_component = robust_unit_score(raw_features["breakout_proximity"], breakout_pop)
+        compression_component = robust_unit_score(raw_features["volatility_contraction"], contraction_pop, invert=True)
+        volume_component = robust_unit_score(raw_features["volume_quality"], volume_quality_pop)
+        stage_component = robust_unit_score(raw_features["stage"], stage_pop)
+
+        actionability_score = (
+            (0.4 * breakout_component)
+            + (0.25 * compression_component)
+            + (0.2 * volume_component)
+            + (0.15 * stage_component)
+        )
+
+        score = 100.0 * ((0.55 * actionability_score) + (0.45 * leadership_score))
+
+        if leadership_score >= 0.70 and actionability_score >= 0.70:
+            setup_tag = "Both"
+        elif actionability_score >= 0.70:
+            setup_tag = "Actionable Breakout"
+        elif leadership_score >= 0.70:
+            setup_tag = "Leadership"
+        else:
+            setup_tag = "Watchlist"
+
+        reasons = [
+            f"Setup tag: {setup_tag}",
+            f"Actionability={actionability_score:.3f} (breakout={breakout_component:.3f}, compression={compression_component:.3f}, volume={volume_component:.3f}, stage={stage_component:.3f})",
+            f"Leadership={leadership_score:.3f} (RS={rs_component:.3f}, trend={trend_component:.3f})",
+            f"Legacy score={item['legacy_score']:.2f} kept in debug for comparison",
+        ]
+
+        funnel = {
+            "stages": [
+                {
+                    "name": "hard_filters",
+                    "passed": True,
+                    "checks": {
+                        "min_price": True,
+                        "min_market_cap": True,
+                        "min_beta_1y": True,
+                        "min_volume": True,
+                        "min_avg_dollar_volume_20d": True,
+                        "history_available": True,
+                    },
+                },
+                {
+                    "name": "pattern_context",
+                    "passed": True,
+                    "checks": {
+                        "pattern_type": item["pattern_type"],
+                        "pattern_stage": item["pattern_stage"],
+                        "breakout_state": item["breakout_state"],
+                        "pullback_entry_state": item["pullback_entry_state"],
+                    },
+                },
+                {
+                    "name": "normalized_scoring",
+                    "passed": True,
+                    "checks": {
+                        "leadership_score": float(leadership_score),
+                        "actionability_score": float(actionability_score),
+                        "score": float(score),
+                        "setup_tag": setup_tag,
+                    },
+                },
+            ],
+            "snapshots": {
+                "raw_features": {
+                    "rs_strength": raw_features["rs_strength"],
+                    "trend": raw_features["trend"],
+                    "breakout_proximity": raw_features["breakout_proximity"],
+                    "volatility_contraction": raw_features["volatility_contraction"],
+                    "volume_quality": raw_features["volume_quality"],
+                    "stage": raw_features["stage"],
+                },
+                "normalized_components": {
+                    "rs_component": float(rs_component),
+                    "trend_component": float(trend_component),
+                    "breakout_component": float(breakout_component),
+                    "compression_component": float(compression_component),
+                    "volume_component": float(volume_component),
+                    "stage_component": float(stage_component),
+                },
+            },
+            "reasons": reasons,
+        }
+
+        stats["accepted"] += 1
+
+        candidates.append(
+            {
+                **item["row"],
+                "engine": "bull",
+                "score": float(score),
+                "setup_tag": setup_tag,
+                "leadership_score": float(leadership_score),
+                "actionability_score": float(actionability_score),
+                "pattern_type": item["pattern_type"],
+                "pattern_quality_score": float(item["pattern_quality_score"]),
+                "pattern_stage": item["pattern_stage"],
+                "rs_score": float(item["rs_score"]),
+                "contraction_score": float(item["contraction_score"]),
+                "volume_quality_score": float(item["volume_quality_score"]),
+                "base_depth_score": float(item["base_depth_score"]),
+                "pivot_quality_score": float(item["pivot_quality_score"]),
+                "breakout_state": item["breakout_state"],
+                "pivot_price": item["pivot_price"],
+                "pivot_distance_pct": item["pivot_distance_pct"],
+                "breakout_strength_pct": item["breakout_strength_pct"],
+                "pullback_entry_state": item["pullback_entry_state"],
+                "entry_triangle_flag": item["entry_triangle_flag"],
+                "entry_triangle_price": item["entry_triangle_price"],
+                "entry_triangle_date": item["entry_triangle_date"],
+                "score_breakdown": {
+                    "leadership_score": float(leadership_score),
+                    "actionability_score": float(actionability_score),
+                    "rs_component": float(rs_component),
+                    "trend_component": float(trend_component),
+                    "breakout_component": float(breakout_component),
+                    "compression_component": float(compression_component),
+                    "volume_component": float(volume_component),
+                    "stage_component": float(stage_component),
+                },
+                "debug_metrics": item["debug_metrics"],
+                "funnel": funnel,
                 "reasons": reasons,
                 "signals": reasons,
             }
         )
 
     logger.info(
-        "Bull engine filter diagnostics: total=%s missing_snapshot=%s static_threshold=%s missing_history=%s short_history=%s rs_fail=%s prior_uptrend_pass=%s prior_uptrend_fail=%s cwh_true=%s vcp_true=%s pattern_fail=%s accepted=%s",
+        "Bull engine diagnostics (v2): total=%s missing_snapshot=%s static_threshold=%s missing_history=%s short_history=%s uptrend_pass=%s uptrend_fail=%s cwh_true=%s vcp_true=%s accepted=%s",
         stats["total_rows"],
         stats["reject_missing_snapshot_fields"],
         stats["reject_static_thresholds"],
         stats["reject_missing_history"],
         stats["reject_short_history"],
-        stats["reject_rs"],
         stats["prior_uptrend_pass"],
         stats["prior_uptrend_fail"],
         stats["cwh_candidate_count"],
         stats["vcp_candidate_count"],
-        stats["reject_pattern"],
         stats["accepted"],
     )
 
-    candidates.sort(
-        key=lambda x: (
-            _stage_sort_rank(str(x.get("pattern_stage", "early-stage"))),
-            -float(_to_float(x.get("pattern_quality_score")) or 0.0),
-            -float(_to_float(x.get("rs_score")) or 0.0),
-            -float(_to_float(x.get("volume_quality_score")) or 0.0),
-            -float(_to_float(x.get("score")) or 0.0),
-        )
-    )
+    candidates.sort(key=lambda x: -float(_to_float(x.get("score")) or 0.0))
 
     return candidates

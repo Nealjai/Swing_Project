@@ -1,5 +1,33 @@
 # Project Report
 
+## 2026-04-18
+
+### Normalized scoring refactor for bull/weak engines
+- Added shared robust normalization utilities in [`robust_unit_score()`](src/screener/engines/scoring.py:37) with median/MAD + sigmoid mapping to `[0,1]`, including neutral fallback behavior for missing values/small populations.
+- Refactored [`bull_candidates()`](src/screener/engines/bull.py:707) to remove RS/pattern hard gates and move to dual-axis soft scoring:
+  - `leadership_score` (RS + trend)
+  - `actionability_score` (breakout proximity + compression + volume + stage)
+  - final normalized `score` as the production ranking field.
+- Refactored [`weak_candidates()`](src/screener/engines/weak.py:8) into the same model family with reversal/extension/capitulation actionability and trend/liquidity leadership.
+- Implemented user-facing setup labels (`Both`, `Actionable Breakout`, `Leadership`, `Watchlist`) as `setup_tag` in both engines.
+- Preserved old score formulas only in debug payload (`debug_metrics.legacy_score`) to support side-by-side validation.
+
+### Liquidity gate + pipeline alignment
+- Added `min_avg_dollar_volume_20d` setting in [`Settings`](src/screener/config.py:9) and passed it in runtime engine calls from [`main()`](scripts/run_daily.py:203).
+- Added scanner export propagation in [`export_outputs()`](src/screener/export.py:30) so `scanner_settings` now includes `min_avg_dollar_volume_20d`.
+- Updated backtest eligibility in both [`_simulate_symbol()`](src/screener/backtest/engine.py:60) and [`_generate_symbol_candidates()`](src/screener/backtest/engine.py:236) to enforce `avg_dollar_volume_20d >= min_avg_dollar_volume_20d`.
+
+### Validation completed
+- Added unit tests in [`tests/test_scoring.py`](tests/test_scoring.py:1) for:
+  - missing value fallback
+  - small population fallback
+  - NaN/Inf handling in population
+  - zero-MAD edge behavior
+  - invert direction correctness
+  - output bound checks
+- Verified syntax compilation across modified modules via `python3 -m py_compile`.
+- Ran smoke backtest via [`scripts/run_backtest.py`](scripts/run_backtest.py:141) for `--engine both --symbol-mode test --start-date 2023-01-01 --end-date 2024-12-31` (completed successfully).
+
 ## 2026-04-06
 
 ### Portfolio simulator (Option C) integrated into backtesting
