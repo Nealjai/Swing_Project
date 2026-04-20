@@ -529,6 +529,197 @@ td:nth-child(3) {
   margin-bottom: 4px;
 }
 
+.how-it-works-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.how-it-works-hero {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0.08));
+  border-color: rgba(59, 130, 246, 0.55);
+}
+
+.how-it-works-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.regime-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.9em;
+  font-weight: 800;
+  vertical-align: baseline;
+}
+
+.regime-badge.bull {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
+}
+
+.regime-badge.weak {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+
+.regime-badge.neutral {
+  background: rgba(148, 163, 184, 0.18);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #cbd5e1;
+}
+
+.how-it-works-diagram {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.how-it-works-node {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.08);
+  font-weight: 700;
+}
+
+.how-it-works-arrow {
+  color: #93c5fd;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.how-it-works-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.how-it-works-branch {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-weight: 700;
+}
+
+.how-it-works-branch.bull {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #86efac;
+}
+
+.how-it-works-branch.weak {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+}
+
+.how-it-works-engine-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.how-it-works-engine-card {
+  position: relative;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.how-it-works-engine-card.active {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.45) inset;
+}
+
+.how-it-works-engine-card.bull {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.how-it-works-engine-card.weak {
+  border-color: rgba(249, 115, 22, 0.55);
+}
+
+.how-it-works-engine-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.how-it-works-engine-tagline {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.how-it-works-engine-purpose {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  color: #dbeafe;
+}
+
+.how-it-works-checklist {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.how-it-works-checklist li {
+  margin-bottom: 4px;
+}
+
+.how-it-works-active-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.65);
+  background: rgba(59, 130, 246, 0.22);
+  color: #bfdbfe;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.how-it-works-workflow-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.how-it-works-workflow-list li {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.08);
+}
+
 .muted {
   color: #cbd5e1;
   margin-top: 8px;
@@ -829,8 +1020,13 @@ pre {
   .fundamentals-grid,
   .settings-grid,
   .engine-grid,
+  .how-it-works-engine-grid,
   .backtest-engine-grid,
   .backtest-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .how-it-works-split {
     grid-template-columns: 1fr;
   }
 

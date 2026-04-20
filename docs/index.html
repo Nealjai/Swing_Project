@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>US Regime Screener V1</title>
-    <link rel="stylesheet" href="styles.css?v=20260406c" />
+    <link rel="stylesheet" href="styles.css?v=20260420a" />
   </head>
   <body>
     <main class="container">
@@ -24,7 +24,7 @@
       <nav class="tabs" aria-label="Dashboard tabs">
         <button id="tabBtnScreener" class="tab-btn active" data-tab="screener" type="button">Screener Result</button>
         <button id="tabBtnMarketCondition" class="tab-btn" data-tab="market-condition" type="button">Market Condition</button>
-        <button id="tabBtnBackground" class="tab-btn" data-tab="background" type="button">Background</button>
+        <button id="tabBtnBackground" class="tab-btn" data-tab="background" type="button">How It Works</button>
         <button id="tabBtnHistory" class="tab-btn" data-tab="history" type="button">Backtesting</button>
       </nav>
 
@@ -260,45 +260,66 @@
       </section>
 
       <section id="tabBackground" class="tab-panel" aria-labelledby="tabBtnBackground">
-        <section class="card">
-          <h2 id="strategyName">Strategy</h2>
-          <p id="strategySummary">-</p>
-        </section>
+        <div id="howItWorksContent" class="how-it-works-content">
+          <section id="howItWorksHero" class="card how-it-works-hero" aria-label="Current scanner state">
+            <p class="how-it-works-kicker">How the scanner operates today</p>
+            <h2 id="howItWorksHeroHeadline">
+              The market is currently in a <span id="howItWorksHeroRegime" class="regime-badge neutral">-</span> regime.
+            </h2>
+            <p id="howItWorksHeroSubheadline" class="muted">
+              The <strong id="howItWorksHeroEngine">-</strong> engine is active. Here’s what that means.
+            </p>
+          </section>
 
-        <section class="card">
-          <h2>Market Regime Summary (SPY vs SMA200)</h2>
-          <div id="benchmarkStats"></div>
-          <div id="marketRegimeSummary" class="muted"></div>
-        </section>
+          <section id="howItWorksRegime" class="card" aria-labelledby="howItWorksRegimeTitle">
+            <h2 id="howItWorksRegimeTitle">How We Classify the Market</h2>
+            <p class="muted">
+              The scanner’s first job is to determine the overall market health. We do this by comparing SPY’s close
+              with its 200-day simple moving average.
+            </p>
+            <div class="how-it-works-diagram" role="img" aria-label="Regime decision flow">
+              <div class="how-it-works-node">SPY Price</div>
+              <div class="how-it-works-arrow">→</div>
+              <div class="how-it-works-node">Compare with 200-Day Average</div>
+              <div class="how-it-works-arrow">→</div>
+              <div class="how-it-works-split">
+                <div class="how-it-works-branch bull">If SPY > SMA200 → Bull Regime</div>
+                <div class="how-it-works-branch weak">If SPY ≤ SMA200 → Weak Regime</div>
+              </div>
+            </div>
+          </section>
 
-        <section class="card">
-          <h2>Dual-Engine Rules (Current Logic)</h2>
-          <p>
-            <strong>Bull engine (CWH/VCP scanner):</strong>
-            Prioritizes market leaders that pass relative-strength checks versus SPY, then validates constructive
-            Cup-with-Handle or Volatility Contraction Pattern bases, identifies pivot/resistance, and classifies
-            candidates by actionability (early-stage, near-pivot, breakout, post-breakout-watch, pullback-entry-ready).
-            Pullback-entry-ready signals require a constructive pullback toward support (typically SMA20), quieter
-            pullback volume, and rebound confirmation before flagging an entry marker.
-          </p>
-          <div id="enginePlaybook" class="engine-grid"></div>
-          <div id="activeEngineRules" class="active-rules"></div>
-        </section>
+          <section id="howItWorksEngineActivation" class="card" aria-labelledby="howItWorksEngineActivationTitle">
+            <h2 id="howItWorksEngineActivationTitle">One Regime, One Engine</h2>
+            <p class="muted">
+              Based on regime, the scanner activates exactly one engine designed for that environment.
+            </p>
+            <div class="how-it-works-diagram" role="img" aria-label="Engine activation flow">
+              <div class="how-it-works-node">Market Regime</div>
+              <div class="how-it-works-arrow">→</div>
+              <div class="how-it-works-split">
+                <div class="how-it-works-branch bull">Bull Regime → Activate Bull Engine</div>
+                <div class="how-it-works-branch weak">Weak Regime → Activate Weak Engine</div>
+              </div>
+            </div>
+          </section>
 
-        <section class="card">
-          <h2>Scanner Settings</h2>
-          <div id="scannerSettings" class="settings-grid"></div>
-        </section>
+          <section id="howItWorksEngines" class="card" aria-labelledby="howItWorksEnginesTitle">
+            <h2 id="howItWorksEnginesTitle">Engine Strategies</h2>
+            <p class="muted">Each engine has a distinct purpose and checklist. Cards are generated dynamically.</p>
+            <div id="howItWorksEngineCards" class="how-it-works-engine-grid"></div>
+          </section>
 
-        <section class="card">
-          <h2>SPY 1Y Chart</h2>
-          <canvas id="benchmarkChart" height="110"></canvas>
-        </section>
+          <section id="howItWorksWorkflow" class="card" aria-labelledby="howItWorksWorkflowTitle">
+            <h2 id="howItWorksWorkflowTitle">The Full Scanner Workflow</h2>
+            <ol id="howItWorksWorkflowSteps" class="how-it-works-workflow-list"></ol>
+          </section>
 
-        <section class="card">
-          <h2>Risk Notice</h2>
-          <p id="riskNotice" class="risk-note"></p>
-        </section>
+          <section id="howItWorksInterpretation" class="card" aria-labelledby="howItWorksInterpretationTitle">
+            <h2 id="howItWorksInterpretationTitle">What Does a Result Mean?</h2>
+            <p id="howItWorksInterpretationText" class="muted"></p>
+          </section>
+        </div>
       </section>
 
       <section id="tabHistory" class="tab-panel" aria-labelledby="tabBtnHistory">
@@ -371,6 +392,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=20260406c"></script>
+    <script src="app.js?v=20260420a"></script>
   </body>
 </html>

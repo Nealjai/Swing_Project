@@ -268,93 +268,140 @@ function renderTabs() {
   activateTab(buttons, panels, initialTab);
 }
 
-function renderStrategy(payload) {
-  const strategy = toObject(payload.strategy);
-  const benchmark = toObject(payload.benchmark);
-  const meta = toObject(payload.meta);
+function normalizeRegimeKey(rawRegime, spyClose = null, sma200 = null) {
+  const regime = String(rawRegime || '')
+    .trim()
+    .toLowerCase();
 
-  const strategyName = strategy.name || 'US Market Regime Dual-Engine Screener';
-  const strategySummary = strategy.summary || 'Daily static scanner for US-listed stocks using SPY 200MA regime switching.';
-  document.getElementById('strategyName').textContent = strategyName;
-  document.getElementById('strategySummary').textContent = strategySummary;
+  if (regime === 'bull' || regime === 'risk-on' || regime === 'uptrend') return 'bull';
+  if (regime === 'weak' || regime === 'bear' || regime === 'risk-off' || regime === 'downtrend') return 'weak';
 
-  const benchmarkEl = document.getElementById('benchmarkStats');
-  benchmarkEl.innerHTML = `
-    <p>Symbol: <strong>${esc(benchmark.symbol)}</strong></p>
-    <p>Close: <strong>${fmtNumber(benchmark.close)}</strong></p>
-    <p>SMA200: <strong>${fmtNumber(benchmark.sma200)}</strong></p>
-    <p>Above SMA200: <strong>${esc(benchmark.above_sma200)}</strong></p>
-  `;
+  const close = Number(spyClose);
+  const sma = Number(sma200);
+  if (Number.isFinite(close) && Number.isFinite(sma)) {
+    return close > sma ? 'bull' : 'weak';
+  }
 
-  const regimeText = String(meta.regime || '').toLowerCase() === 'bull'
-    ? 'SPY is above SMA200, so the market is treated as bull/trend-friendly. The Bull engine is active.'
-    : 'SPY is below SMA200, so the market is treated as weak/risk-off. The Weak engine is active.';
-  document.getElementById('marketRegimeSummary').textContent = regimeText;
+  return 'weak';
+}
 
-  const engines = toObject(strategy.engines);
-  const activeEngine = String(meta.engine || '').toLowerCase();
-  const enginePlaybook = document.getElementById('enginePlaybook');
-
-  const engineRows = [
+function getHowItWorksEngineCards() {
+  return [
     {
       key: 'bull',
-      title: engines.bull?.title || 'Bull: Breakout Momentum Engine',
-      rules: toArray(engines.bull?.rules),
-      tp: engines.bull?.take_profit || 'Take profit: resistance_level + 1x ATR14 (fallback close + 3x ATR14)',
-      sl: engines.bull?.stop_loss || 'Stop loss: bb_lower - 1x ATR14',
+      title: 'Bull Engine',
+      tagline: 'Finding Breakout Leaders',
+      purpose:
+        'This engine looks for stocks in strong uptrends that are consolidating and getting ready for their next major price move.',
+      checks: [
+        'Strong Uptrend: Stock is already outperforming the market.',
+        'Price Consolidation: Looks for classic Cup with Handle or Volatility Contraction patterns.',
+        'Breakout Readiness: Scores proximity to pivot with volume confirmation.',
+      ],
     },
     {
       key: 'weak',
-      title: engines.weak?.title || 'Weak: Oversold Rebound Engine',
-      rules: toArray(engines.weak?.rules),
-      tp: engines.weak?.take_profit || 'Take profit: resistance_level + 1x ATR14 (fallback close + 3x ATR14)',
-      sl: engines.weak?.stop_loss || 'Stop loss: bb_lower - 1x ATR14',
+      title: 'Weak Engine',
+      tagline: 'Spotting Potential Rebounds',
+      purpose:
+        'This engine looks for fundamentally sound stocks that have been sold off too aggressively and may be ready for a short-term bounce.',
+      checks: [
+        'Oversold Condition: RSI(14) below 30.',
+        'Price Extension: Trading below the lower Bollinger Band region.',
+        'Seller Exhaustion: Volume spike suggests capitulation may be near completion.',
+      ],
     },
   ];
+}
 
-  enginePlaybook.innerHTML = engineRows
-    .map((item) => {
-      const isActive = item.key === activeEngine;
-      const ruleList = item.rules.length
-        ? `<ul class="reason-list">${item.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`
-        : '<p>-</p>';
+function renderHowItWorksEngineCards(cards, activeEngineKey) {
+  const host = document.getElementById('howItWorksEngineCards');
+  if (!host) return;
+
+  host.innerHTML = toArray(cards)
+    .map((card) => {
+      const key = String(card.key || '').toLowerCase();
+      const isActive = key === String(activeEngineKey || '').toLowerCase();
       return `
-        <div class="engine-card ${isActive ? 'active' : ''}">
-          <h3>${esc(item.title)}${isActive ? `<span class="tag ${esc(item.key)}">active</span>` : ''}</h3>
-          ${ruleList}
-          <p>${esc(item.tp)} | ${esc(item.sl)}</p>
-        </div>
+        <article class="how-it-works-engine-card ${esc(key)} ${isActive ? 'active' : ''}">
+          <div class="how-it-works-engine-head">
+            <h3>${esc(card.title)}</h3>
+            <span class="how-it-works-engine-tagline">${esc(card.tagline)}</span>
+          </div>
+          <p class="how-it-works-engine-purpose">${esc(card.purpose)}</p>
+          <h4>What it looks for</h4>
+          <ul class="how-it-works-checklist">
+            ${toArray(card.checks)
+              .map((item) => `<li>${esc(item)}</li>`)
+              .join('')}
+          </ul>
+          ${isActive ? '<span class="how-it-works-active-badge">Active</span>' : ''}
+        </article>
       `;
     })
     .join('');
+}
 
-  const active = engineRows.find((row) => row.key === activeEngine) || engineRows[0];
-  document.getElementById('activeEngineRules').innerHTML = `
-    <strong>Now running: ${esc(active.title)}</strong>
-    <ul class="reason-list">${active.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
-  `;
+function renderHowItWorks(payload, marketPayload = null) {
+  const meta = toObject(payload?.meta);
+  const benchmark = toObject(payload?.benchmark);
+  const market = toObject(marketPayload);
 
-  const scannerSettings = toObject(payload.scanner_settings);
-  const settingsSource = Object.keys(scannerSettings).length ? scannerSettings : toObject(meta.settings);
-  const settingsEl = document.getElementById('scannerSettings');
+  const regimeFromMarket = market.regime_label || market.regime;
+  const derivedRegimeKey = normalizeRegimeKey(
+    regimeFromMarket || meta.regime,
+    market.spy_close ?? benchmark.close,
+    market.spy_sma200 ?? benchmark.sma200,
+  );
 
-  const settingsRows = Object.entries(settingsSource);
-  settingsEl.innerHTML = settingsRows.length
-    ? settingsRows
-        .map(
-          ([k, v]) => `
-          <div class="setting-item">
-            <div class="label">${esc(k)}</div>
-            <div>${esc(v)}</div>
-          </div>
-        `,
-        )
-        .join('')
-    : '<p>No settings data found.</p>';
+  const regimeLabel = derivedRegimeKey === 'bull' ? 'Bull' : 'Weak';
+  const engineFromMarket = String(market.engine || '')
+    .trim()
+    .toLowerCase();
+  const engineFromMeta = String(meta.engine || '')
+    .trim()
+    .toLowerCase();
+  const resolvedEngine = engineFromMarket || engineFromMeta || derivedRegimeKey;
+  const activeEngine = resolvedEngine === 'bull' || resolvedEngine === 'weak' ? resolvedEngine : derivedRegimeKey;
+  const engineLabel = activeEngine === 'bull' ? 'Bull Engine' : 'Weak Engine';
 
-  document.getElementById('riskNotice').textContent =
-    strategy.risk_notice ||
-    'Risk guidance and signals are for research only. They are not investment advice. Always size positions and respect stop loss.';
+  const heroRegime = document.getElementById('howItWorksHeroRegime');
+  const heroEngine = document.getElementById('howItWorksHeroEngine');
+  if (heroRegime) {
+    heroRegime.textContent = `${regimeLabel} Regime`;
+    heroRegime.className = `regime-badge ${derivedRegimeKey}`;
+  }
+  if (heroEngine) heroEngine.textContent = engineLabel;
+
+  const heroSubheadline = document.getElementById('howItWorksHeroSubheadline');
+  if (heroSubheadline) {
+    heroSubheadline.innerHTML = `The <strong>${esc(engineLabel)}</strong> engine is active. Here’s what that means.`;
+  }
+
+  renderHowItWorksEngineCards(getHowItWorksEngineCards(), activeEngine);
+
+  const workflowEl = document.getElementById('howItWorksWorkflowSteps');
+  if (workflowEl) {
+    const steps = [
+      'Check SPY close versus 200-day SMA.',
+      'Classify market regime as Bull or Weak.',
+      'Activate the matching scanning engine.',
+      'Filter and scan the stock universe.',
+      'Score candidates for leadership and actionability.',
+      'Rank and display top results for review.',
+    ];
+    workflowEl.innerHTML = steps.map((step) => `<li>${esc(step)}</li>`).join('');
+  }
+
+  const interpretationEl = document.getElementById('howItWorksInterpretationText');
+  if (interpretationEl) {
+    interpretationEl.innerHTML =
+      'A scanner result is <strong>not</strong> a buy signal. It is a filtered, high-potential idea that passed the active engine’s checks. Use it to focus your due diligence and risk planning.';
+  }
+}
+
+function renderStrategy(payload) {
+  renderHowItWorks(payload, state.marketCondition.data);
 }
 
 function renderDiagnostics(rawDiagnostics) {
@@ -865,7 +912,7 @@ function renderBenchmarkChart() {
   const ctx = document.getElementById('benchmarkChart');
   destroyChart(state.benchmarkChart);
 
-  if (!labels.length) {
+  if (!ctx || !labels.length) {
     state.benchmarkChart = null;
     return;
   }
@@ -1899,6 +1946,7 @@ async function renderMarketCondition() {
     );
     document.getElementById('marketConditionFtdCount').textContent = fmtInt(ftdCount);
     updateMarketConditionIndicatorStyles(data);
+    renderHowItWorks(state.payload, data);
 
     const container = getMarketConditionChartContainer();
     if (!container) {
