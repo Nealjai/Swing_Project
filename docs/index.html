@@ -70,6 +70,7 @@
                       <th>Symbol</th>
                       <th>Engine</th>
                       <th>Score</th>
+                      <th>Tag</th>
                       <th>Close</th>
                       <th>SL</th>
                       <th>TP</th>
@@ -89,10 +90,37 @@
 
               <section class="card">
                 <div class="chart-header">
-                  <h2 id="priceChartTitle">Price & Indicators (1Y)</h2>
-                  <div class="legend-toggles" id="chartToggles"></div>
+                  <h2 id="priceChartTitle">Price Chart (3Y)</h2>
                 </div>
-                <canvas id="priceChart" height="140"></canvas>
+
+                <section id="listViewIndicatorControls" class="screener-indicator-controls" aria-label="List view chart indicator controls">
+                  <p class="indicator-controls-title">Indicator Controls</p>
+                  <div class="indicator-controls-grid">
+                    <label class="indicator-control">
+                      <input type="checkbox" name="listChartIndicator" value="sma20" checked />
+                      <span>SMA20</span>
+                    </label>
+                    <label class="indicator-control">
+                      <input type="checkbox" name="listChartIndicator" value="sma50" checked />
+                      <span>SMA50</span>
+                    </label>
+                    <label class="indicator-control">
+                      <input type="checkbox" name="listChartIndicator" value="sma100" checked />
+                      <span>SMA100</span>
+                    </label>
+                    <label class="indicator-control">
+                      <input type="checkbox" name="listChartIndicator" value="sma200" checked />
+                      <span>SMA200</span>
+                    </label>
+                    <label class="indicator-control">
+                      <input type="checkbox" name="listChartIndicator" value="volume" />
+                      <span>Volume</span>
+                    </label>
+                  </div>
+                </section>
+
+                <div id="listViewChartLegend"></div>
+                <div id="listViewChartContainer" class="screener-chart-container"></div>
               </section>
             </div>
           </section>
@@ -166,7 +194,7 @@
                 </div>
               </section>
 
-              <section class="screener-indicator-controls" aria-label="Chart indicator controls">
+              <section id="chartViewIndicatorControls" class="screener-indicator-controls" aria-label="Chart indicator controls">
                 <p class="indicator-controls-title">Indicator Controls</p>
                 <div class="indicator-controls-grid">
                   <label class="indicator-control">
@@ -178,19 +206,15 @@
                     <span>SMA50</span>
                   </label>
                   <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="sma100" checked />
+                    <span>SMA100</span>
+                  </label>
+                  <label class="indicator-control">
                     <input type="checkbox" name="chartIndicator" value="sma200" checked />
                     <span>SMA200</span>
                   </label>
                   <label class="indicator-control">
-                    <input type="checkbox" name="chartIndicator" value="ema9" checked />
-                    <span>EMA9</span>
-                  </label>
-                  <label class="indicator-control">
-                    <input type="checkbox" name="chartIndicator" value="ema21" checked />
-                    <span>EMA21</span>
-                  </label>
-                  <label class="indicator-control">
-                    <input type="checkbox" name="chartIndicator" value="volume" checked />
+                    <input type="checkbox" name="chartIndicator" value="volume" />
                     <span>Volume</span>
                   </label>
                 </div>

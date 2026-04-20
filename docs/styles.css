@@ -295,13 +295,14 @@ h3 {
 
 .split-layout {
   display: grid;
-  grid-template-columns: minmax(460px, 1fr) minmax(480px, 1fr);
+  grid-template-columns: minmax(360px, 0.85fr) minmax(620px, 1.15fr);
   gap: 14px;
   align-items: start;
 }
 
 .left-pane {
   min-height: 620px;
+  min-width: 0;
 }
 
 .right-pane {
@@ -309,7 +310,14 @@ h3 {
 }
 
 .table-wrap {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+}
+
+#candidatesTable {
+  min-width: 820px;
 }
 
 table {
@@ -331,6 +339,28 @@ td:nth-child(2),
 th:nth-child(3),
 td:nth-child(3) {
   text-align: left;
+}
+
+.candidate-tag-cell {
+  text-align: left;
+}
+
+.candidate-tag-icons {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 18px;
+}
+
+.candidate-tag-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.candidate-tag-none {
+  color: var(--muted);
+  font-weight: 600;
 }
 
 #candidatesTable tbody tr {
@@ -745,7 +775,8 @@ pre {
   display: inline-block;
 }
 
-#screener-chart-legend {
+#screener-chart-legend,
+#listViewChartLegend {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -753,7 +784,8 @@ pre {
   margin-bottom: 8px;
 }
 
-#screener-chart-legend .legend-item {
+#screener-chart-legend .legend-item,
+#listViewChartLegend .legend-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -761,7 +793,8 @@ pre {
   color: #cbd5e1;
 }
 
-#screener-chart-legend .legend-color {
+#screener-chart-legend .legend-color,
+#listViewChartLegend .legend-color {
   width: 10px;
   height: 10px;
   border-radius: 2px;
@@ -769,7 +802,8 @@ pre {
   display: inline-block;
 }
 
-#screener-chart-legend .legend-label {
+#screener-chart-legend .legend-label,
+#listViewChartLegend .legend-label {
   line-height: 1.1;
 }
 

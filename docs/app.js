@@ -42,6 +42,30 @@ function toFiniteNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function buildCandidateTagCell(candidate) {
+  const c = toObject(candidate);
+  const leaderScore = toFiniteNumber(c.leadership_score);
+  const actionabilityScore = toFiniteNumber(c.actionability_score);
+
+  const icons = [];
+
+  if (leaderScore !== null && leaderScore >= 0.9) {
+    icons.push('<span class="candidate-tag-icon" title="Leader (leadership_score ≥ 0.90)" aria-label="Leader">🏆</span>');
+  }
+
+  if (actionabilityScore !== null && actionabilityScore >= 0.58) {
+    icons.push('<span class="candidate-tag-icon" title="Actionable (actionability_score ≥ 0.58)" aria-label="Actionable">⚡</span>');
+  } else if (actionabilityScore !== null && actionabilityScore >= 0.5) {
+    icons.push('<span class="candidate-tag-icon" title="Watch (0.50 ≤ actionability_score < 0.58)" aria-label="Watch">👀</span>');
+  }
+
+  if (!icons.length) {
+    return '<span class="candidate-tag-none" aria-label="No tag">-</span>';
+  }
+
+  return `<span class="candidate-tag-icons">${icons.join(' ')}</span>`;
+}
+
 function computeSmaSeries(values, period) {
   const src = toArray(values).map(toFiniteNumber);
   const out = new Array(src.length).fill(null);
@@ -103,6 +127,7 @@ let state = {
   selectedSymbol: null,
   selectedYfSymbol: null,
   priceChart: null,
+  listViewChart: null,
   benchmarkChart: null,
   backtestChart: null,
   marketConditionChart: null,
@@ -128,6 +153,7 @@ let state = {
     close: true,
     sma20: true,
     sma50: true,
+    sma100: true,
     sma200: true,
     ema9: false,
     ema21: false,
@@ -378,7 +404,7 @@ function renderCandidateTable(candidates) {
   const safeCandidates = toArray(candidates);
   if (!safeCandidates.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="7">No candidates produced in this run.</td>';
+    tr.innerHTML = '<td colspan="8">No candidates produced in this run.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -391,6 +417,7 @@ function renderCandidateTable(candidates) {
       <td>${esc(c.symbol)}</td>
       <td>${esc(c.engine)}</td>
       <td>${fmtNumber(c.score, 4)}</td>
+      <td class="candidate-tag-cell">${buildCandidateTagCell(c)}</td>
       <td>${fmtNumber(c.close)}</td>
       <td>${fmtNumber(c.risk?.stop_loss)}</td>
       <td>${fmtNumber(c.risk?.take_profit)}</td>
@@ -401,7 +428,7 @@ function renderCandidateTable(candidates) {
       state.selectedYfSymbol = String(c.yf_symbol || '');
       highlightSelectedRow();
       renderSelectedDetails(c);
-      renderSymbolChart(c);
+      void renderListViewChartForSymbol(c.yf_symbol || c.symbol);
       updateScreenerDetailsPanel(state.selectedSymbol || state.selectedYfSymbol);
       if (state.screenerViewMode === 'chart') {
         void renderScreenerChartForSymbol(state.selectedYfSymbol);
@@ -524,7 +551,7 @@ function renderCompressedSymbolList(candidates) {
       const selected = getCandidateByYfSymbol(yfSymbol);
       if (selected) {
         renderSelectedDetails(selected);
-        renderSymbolChart(selected);
+        void renderListViewChartForSymbol(selected.yf_symbol || selected.symbol);
       }
       updateScreenerDetailsPanel(state.selectedSymbol || state.selectedYfSymbol);
       void renderScreenerChartForSymbol(yfSymbol);
@@ -623,193 +650,210 @@ function updateScreenerDetailsPanel(symbol) {
   setScreenerDetailField('chartDetailScore', fmtNumber(c.score, 4));
 }
 
-function getChartConfigForSymbol(symbolOrYfSymbol) {
-  const charts = toObject(state.payload?.charts);
-  const symbols = toObject(charts.symbols);
-  return toObject(symbols[symbolOrYfSymbol]);
+function getListViewChartContainer() {
+  return document.getElementById('listViewChartContainer');
 }
 
-function createToggle(id, label, checked) {
-  const wrapper = document.createElement('label');
-  wrapper.innerHTML = `<input type="checkbox" data-indicator="${esc(id)}" ${checked ? 'checked' : ''} /> ${esc(label)}`;
-  return wrapper;
+function getListViewIndicatorControlsRoot() {
+  return document.getElementById('listViewIndicatorControls');
 }
 
-function renderIndicatorToggles() {
-  const host = document.getElementById('chartToggles');
-  host.innerHTML = '';
+function getChartViewIndicatorControlsRoot() {
+  return document.getElementById('chartViewIndicatorControls');
+}
 
-  const defs = [
-    ['close', 'Close'],
-    ['sma20', 'SMA20'],
-    ['sma50', 'SMA50'],
-    ['sma200', 'SMA200'],
-    ['ema9', 'EMA9'],
-    ['ema21', 'EMA21'],
-    ['bb_lower', 'BB Lower'],
-    ['volume', 'Volume'],
-  ];
+function syncIndicatorControlState(root, inputName) {
+  if (!root) return;
 
-  for (const [key, label] of defs) {
-    host.appendChild(createToggle(key, label, !!state.indicatorVisibility[key]));
+  const boxes = Array.from(root.querySelectorAll(`input[type="checkbox"][name="${inputName}"]`));
+  for (const box of boxes) {
+    const key = normalizeScreenerIndicatorKey(box.value);
+    box.checked = !!state.indicatorVisibility[key];
+  }
+}
+
+function bindIndicatorControls(root, inputName, onVisibilityChange) {
+  if (!root) return;
+
+  const boundAttr = `data-bound-${inputName}`;
+  if (!root.getAttribute(boundAttr)) {
+    root.addEventListener('change', (evt) => {
+      const target = evt.target;
+      if (!target || target.tagName !== 'INPUT') return;
+
+      const key = normalizeScreenerIndicatorKey(target.value);
+      if (!key) return;
+
+      state.indicatorVisibility[key] = !!target.checked;
+      onVisibilityChange?.(key, !!target.checked);
+
+      syncListViewIndicatorControlState();
+      syncScreenerIndicatorControlState();
+    });
+
+    root.setAttribute(boundAttr, '1');
   }
 
-  host.addEventListener('change', (evt) => {
-    const target = evt.target;
-    if (!target || target.tagName !== 'INPUT') return;
-    const key = target.getAttribute('data-indicator');
-    if (!key) return;
-    state.indicatorVisibility[key] = target.checked;
-    const selected = getCandidateByYfSymbol(state.selectedYfSymbol);
-    if (selected) renderSymbolChart(selected);
+  syncIndicatorControlState(root, inputName);
+}
+
+function updateChartLegend(chart, legendId) {
+  const legend = document.getElementById(legendId);
+  if (!legend) return;
+
+  const legendItems = toArray(chart?.__legendItems);
+  const excludedSeriesIds = new Set(['candles', 'close']);
+  const excludedLabels = new Set(['candles', 'adj close']);
+
+  const visibleItems = legendItems.filter((item) => {
+    const entry = toObject(item);
+    const entryId = String(entry.id || '').toLowerCase();
+    const entryLabel = String(entry.label || '').toLowerCase();
+    const defaultVisible = entry.defaultVisible ?? true;
+
+    if (excludedSeriesIds.has(entryId) || excludedLabels.has(entryLabel)) {
+      return false;
+    }
+
+    return getSeriesVisible(entry.series, defaultVisible);
+  });
+
+  legend.innerHTML = visibleItems
+    .map((item) => {
+      const entry = toObject(item);
+      const color = String(entry.color || '#94a3b8');
+      return `<span class="legend-item"><span class="legend-color" style="background:${esc(color)}"></span><span class="legend-label">${esc(entry.label || '-')}</span></span>`;
+    })
+    .join('');
+}
+
+function updateListViewChartLegend(chart) {
+  updateChartLegend(chart, 'listViewChartLegend');
+}
+
+function destroyListViewChart() {
+  if (state.listViewChart) {
+    state.listViewChart.remove();
+    state.listViewChart = null;
+  }
+  updateListViewChartLegend(null);
+}
+
+function syncListViewIndicatorControlState() {
+  syncIndicatorControlState(getListViewIndicatorControlsRoot(), 'listChartIndicator');
+}
+
+function bindListViewIndicatorControls() {
+  bindIndicatorControls(getListViewIndicatorControlsRoot(), 'listChartIndicator', (key, visible) => {
+    const series = toObject(state.listViewChart?.__seriesMap)[key];
+    if (series && typeof series.applyOptions === 'function') {
+      series.applyOptions({ visible });
+      updateListViewChartLegend(state.listViewChart);
+    }
+
+    const chartSeries = toObject(state.screenerChart?.__seriesMap || state.screenerChartSeries)[key];
+    if (chartSeries && typeof chartSeries.applyOptions === 'function') {
+      chartSeries.applyOptions({ visible });
+      updateScreenerChartLegend(state.screenerChart);
+    }
   });
 }
 
-function destroyChart(chartRef) {
-  if (chartRef) chartRef.destroy();
-}
+async function renderListViewChartForSymbol(symbolOrYfSymbol) {
+  const selected = getCandidateByYfSymbol(symbolOrYfSymbol) || getCandidateBySymbol(symbolOrYfSymbol);
+  if (!selected) return;
 
-function renderSymbolChart(candidate) {
-  const chartCfg = getChartConfigForSymbol(String(candidate.yf_symbol || ''));
-  const labels = toArray(chartCfg.dates);
+  const container = getListViewChartContainer();
+  if (!container) return;
 
-  const ctx = document.getElementById('priceChart');
-  destroyChart(state.priceChart);
+  state.selectedYfSymbol = String(selected.yf_symbol || selected.symbol || '');
+  state.selectedSymbol = String(selected.symbol || selected.yf_symbol || '');
 
-  if (!labels.length) {
-    document.getElementById('priceChartTitle').textContent = `${String(candidate.symbol || '-')} | 1Y chart unavailable`;
-    state.priceChart = null;
+  const titleEl = document.getElementById('priceChartTitle');
+  if (titleEl) {
+    titleEl.textContent = `${state.selectedSymbol || '-'} Price Chart (3Y)`;
+  }
+
+  bindListViewIndicatorControls();
+
+  await loadLightweightChartsIfNeeded();
+
+  const raw = await fetch3YDailyData(state.selectedYfSymbol);
+  const history = normalizeOhlcvHistoryRows(raw);
+
+  destroyListViewChart();
+  container.innerHTML = '';
+
+  if (!history.length) {
+    container.innerHTML = `<p class="muted">No 3Y daily candle data available for ${esc(state.selectedSymbol || '-')}.</p>`;
     return;
   }
 
-  document.getElementById('priceChartTitle').textContent = `${String(candidate.symbol || '-')} | Price & Indicators (1Y)`;
-
-  const datasets = [
-    {
-      type: 'line',
-      label: 'Adj Close',
-      data: toArray(chartCfg.adj_close),
-      borderColor: '#3b82f6',
-      borderWidth: 2,
-      pointRadius: 0,
-      hidden: !state.indicatorVisibility.close,
-      yAxisID: 'y',
-    },
-    {
-      type: 'line',
-      label: 'SMA20',
-      data: toArray(chartCfg.sma20),
-      borderColor: '#f59e0b',
-      borderWidth: 1.8,
-      borderDash: [8, 4],
-      pointRadius: 0,
-      hidden: !state.indicatorVisibility.sma20,
-      yAxisID: 'y',
-    },
-    {
-      type: 'line',
-      label: 'SMA50',
-      data: toArray(chartCfg.sma50),
-      borderColor: '#22c55e',
-      borderWidth: 1.8,
-      borderDash: [4, 4],
-      pointRadius: 0,
-      hidden: !state.indicatorVisibility.sma50,
-      yAxisID: 'y',
-    },
-    {
-      type: 'line',
-      label: 'SMA200',
-      data: toArray(chartCfg.sma200),
-      borderColor: '#e879f9',
-      borderWidth: 1.8,
-      borderDash: [2, 4],
-      pointRadius: 0,
-      hidden: !state.indicatorVisibility.sma200,
-      yAxisID: 'y',
-    },
-    {
-      type: 'line',
-      label: 'EMA9',
-      data: toArray(chartCfg.ema9),
-      borderColor: '#06b6d4',
-      borderWidth: 1.7,
-      pointRadius: 0,
-      hidden: !state.indicatorVisibility.ema9,
-      yAxisID: 'y',
-    },
-    {
-      type: 'line',
-      label: 'EMA21',
-      data: toArray(chartCfg.ema21),
-      borderColor: '#84cc16',
-      borderWidth: 1.7,
-      pointRadius: 0,
-      hidden: !state.indicatorVisibility.ema21,
-      yAxisID: 'y',
-    },
-    {
-      type: 'line',
-      label: 'BB Lower',
-      data: toArray(chartCfg.bb_lower),
-      borderColor: '#ef4444',
-      borderWidth: 1.6,
-      borderDash: [2, 2],
-      pointRadius: 0,
-      hidden: !state.indicatorVisibility.bb_lower,
-      yAxisID: 'y',
-    },
-    {
-      type: 'bar',
-      label: 'Volume',
-      data: toArray(chartCfg.volume),
-      backgroundColor: 'rgba(148, 163, 184, 0.35)',
-      borderColor: 'rgba(148, 163, 184, 0.6)',
-      borderWidth: 0.4,
-      hidden: !state.indicatorVisibility.volume,
-      yAxisID: 'yVol',
-    },
-  ];
-
-  state.priceChart = new Chart(ctx, {
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      interaction: {
-        mode: 'index',
-        intersect: false,
+  state.listViewChart = renderLightweightCandleChart({
+    container,
+    historyRows: history,
+    lineSeries: [
+      {
+        id: 'sma20',
+        key: 'sma20',
+        color: '#f59e0b',
+        lineWidth: 1.8,
+        label: 'SMA20',
+        visible: !!state.indicatorVisibility.sma20,
       },
-      scales: {
-        x: {
-          ticks: { color: '#cbd5e1', maxTicksLimit: 10 },
-          grid: { color: 'rgba(148, 163, 184, 0.12)' },
-        },
-        y: {
-          type: 'linear',
-          position: 'left',
-          stack: 'chartStack',
-          stackWeight: 3,
-          ticks: { color: '#cbd5e1' },
-          grid: { color: 'rgba(148, 163, 184, 0.12)' },
-        },
-        yVol: {
-          type: 'linear',
-          position: 'right',
-          stack: 'chartStack',
-          stackWeight: 1,
-          beginAtZero: true,
-          ticks: { color: '#94a3b8', maxTicksLimit: 3 },
-          grid: { drawOnChartArea: false },
-        },
+      {
+        id: 'sma50',
+        key: 'sma50',
+        color: '#22c55e',
+        lineWidth: 1.8,
+        label: 'SMA50',
+        visible: !!state.indicatorVisibility.sma50,
       },
-      plugins: {
-        legend: {
-          labels: { color: '#e2e8f0' },
-        },
+      {
+        id: 'sma100',
+        key: 'sma100',
+        color: '#8b5cf6',
+        lineWidth: 1.8,
+        label: 'SMA100',
+        visible: !!state.indicatorVisibility.sma100,
       },
-    },
+      {
+        id: 'sma200',
+        key: 'sma200',
+        color: '#e879f9',
+        lineWidth: 1.8,
+        label: 'SMA200',
+        visible: !!state.indicatorVisibility.sma200,
+      },
+      {
+        id: 'volume',
+        key: 'volume',
+        type: 'histogram',
+        color: 'rgba(148, 163, 184, 0.35)',
+        label: 'Volume',
+        visible: !!state.indicatorVisibility.volume,
+        pane: 1,
+      },
+    ],
   });
+
+  updateListViewChartLegend(state.listViewChart);
+
+  if (!container.dataset.listViewChartResizeBound) {
+    window.addEventListener('resize', () => {
+      if (!state.listViewChart) return;
+      const listContainer = getListViewChartContainer();
+      if (!listContainer) return;
+      state.listViewChart.applyOptions({ width: Math.max(listContainer.clientWidth || 0, 640) });
+    });
+    container.dataset.listViewChartResizeBound = '1';
+  }
+}
+
+function destroyChart(chartRef) {
+  if (chartRef && typeof chartRef.destroy === 'function') {
+    chartRef.destroy();
+  }
 }
 
 function renderBenchmarkChart() {
@@ -876,7 +920,17 @@ function initSelection() {
   state.indicatorVisibility = {
     ...state.indicatorVisibility,
     ...defaults,
+    sma20: true,
+    sma50: true,
+    sma100: true,
+    sma200: true,
+    ema9: false,
+    ema21: false,
+    bb_lower: false,
+    volume: false,
   };
+  syncListViewIndicatorControlState();
+  bindListViewIndicatorControls();
   syncScreenerIndicatorControlState();
   bindScreenerIndicatorControls();
 
@@ -885,8 +939,7 @@ function initSelection() {
   state.selectedYfSymbol = String(first.yf_symbol || '');
   highlightSelectedRow();
   renderSelectedDetails(first);
-  renderIndicatorToggles();
-  renderSymbolChart(first);
+  void renderListViewChartForSymbol(first.yf_symbol || first.symbol);
   renderCompressedSymbolList(candidates);
   updateScreenerDetailsPanel(state.selectedSymbol || state.selectedYfSymbol);
 }
@@ -1306,6 +1359,7 @@ function normalizeOhlcvHistoryRows(rawHistory) {
   const volume = toArray(history.volume?.length ? history.volume : history.Volume);
   const rawSma20 = toArray(history.sma20?.length ? history.sma20 : history.SMA20);
   const rawSma50 = toArray(history.sma50?.length ? history.sma50 : history.SMA50);
+  const rawSma100 = toArray(history.sma100?.length ? history.sma100 : history.SMA100);
   const rawSma200 = toArray(history.sma200?.length ? history.sma200 : history.SMA200);
   const rawEma9 = toArray(history.ema9?.length ? history.ema9 : history.EMA9);
   const rawEma21 = toArray(history.ema21?.length ? history.ema21 : history.EMA21);
@@ -1313,6 +1367,7 @@ function normalizeOhlcvHistoryRows(rawHistory) {
 
   const sma20 = rawSma20.length ? rawSma20 : computeSmaSeries(close, 20);
   const sma50 = rawSma50.length ? rawSma50 : computeSmaSeries(close, 50);
+  const sma100 = rawSma100.length ? rawSma100 : computeSmaSeries(close, 100);
   const sma200 = rawSma200.length ? rawSma200 : computeSmaSeries(close, 200);
   const ema9 = rawEma9.length ? rawEma9 : computeEmaSeries(close, 9);
   const ema21 = rawEma21.length ? rawEma21 : computeEmaSeries(close, 21);
@@ -1330,6 +1385,7 @@ function normalizeOhlcvHistoryRows(rawHistory) {
       volume: volume[i],
       sma20: sma20[i],
       sma50: sma50[i],
+      sma100: sma100[i],
       sma200: sma200[i],
       ema9: ema9[i],
       ema21: ema21[i],
@@ -1594,33 +1650,7 @@ function getSeriesVisible(series, fallbackVisible = true) {
 }
 
 function updateScreenerChartLegend(chart) {
-  const legend = document.getElementById('screener-chart-legend');
-  if (!legend) return;
-
-  const legendItems = toArray(chart?.__legendItems);
-  const excludedSeriesIds = new Set(['candles', 'close']);
-  const excludedLabels = new Set(['candles', 'adj close']);
-
-  const visibleItems = legendItems.filter((item) => {
-    const entry = toObject(item);
-    const entryId = String(entry.id || '').toLowerCase();
-    const entryLabel = String(entry.label || '').toLowerCase();
-    const defaultVisible = entry.defaultVisible ?? true;
-
-    if (excludedSeriesIds.has(entryId) || excludedLabels.has(entryLabel)) {
-      return false;
-    }
-
-    return getSeriesVisible(entry.series, defaultVisible);
-  });
-
-  legend.innerHTML = visibleItems
-    .map((item) => {
-      const entry = toObject(item);
-      const color = String(entry.color || '#94a3b8');
-      return `<span class="legend-item"><span class="legend-color" style="background:${esc(color)}"></span><span class="legend-label">${esc(entry.label || '-')}</span></span>`;
-    })
-    .join('');
+  updateChartLegend(chart, 'screener-chart-legend');
 }
 
 function destroyScreenerChart() {
@@ -1640,45 +1670,27 @@ function normalizeScreenerIndicatorKey(rawKey) {
 }
 
 function getScreenerIndicatorControlsRoot() {
-  return document.getElementById('screener-indicator-controls') || document.querySelector('.screener-indicator-controls');
+  return getChartViewIndicatorControlsRoot();
 }
 
 function syncScreenerIndicatorControlState() {
-  const root = getScreenerIndicatorControlsRoot();
-  if (!root) return;
-
-  const boxes = Array.from(root.querySelectorAll('input[type="checkbox"][name="chartIndicator"]'));
-  for (const box of boxes) {
-    const key = normalizeScreenerIndicatorKey(box.value);
-    box.checked = !!state.indicatorVisibility[key];
-  }
+  syncIndicatorControlState(getScreenerIndicatorControlsRoot(), 'chartIndicator');
 }
 
 function bindScreenerIndicatorControls() {
-  const root = getScreenerIndicatorControlsRoot();
-  if (!root || root.dataset.boundIndicatorControls) {
-    syncScreenerIndicatorControlState();
-    return;
-  }
-
-  root.addEventListener('change', (evt) => {
-    const target = evt.target;
-    if (!target || target.tagName !== 'INPUT') return;
-
-    const key = normalizeScreenerIndicatorKey(target.value);
-    if (!key) return;
-
-    state.indicatorVisibility[key] = !!target.checked;
-
+  bindIndicatorControls(getScreenerIndicatorControlsRoot(), 'chartIndicator', (key, visible) => {
     const series = toObject(state.screenerChart?.__seriesMap || state.screenerChartSeries)[key];
     if (series && typeof series.applyOptions === 'function') {
-      series.applyOptions({ visible: !!target.checked });
+      series.applyOptions({ visible });
       updateScreenerChartLegend(state.screenerChart);
     }
-  });
 
-  root.dataset.boundIndicatorControls = '1';
-  syncScreenerIndicatorControlState();
+    const listSeries = toObject(state.listViewChart?.__seriesMap)[key];
+    if (listSeries && typeof listSeries.applyOptions === 'function') {
+      listSeries.applyOptions({ visible });
+      updateListViewChartLegend(state.listViewChart);
+    }
+  });
 }
 
 function getCandidateBySymbol(symbol) {
@@ -1774,36 +1786,20 @@ async function renderScreenerChartForSymbol(symbolOrYfSymbol) {
         visible: !!state.indicatorVisibility.sma50,
       },
       {
+        id: 'sma100',
+        key: 'sma100',
+        color: '#8b5cf6',
+        lineWidth: 1.8,
+        label: 'SMA100',
+        visible: !!state.indicatorVisibility.sma100,
+      },
+      {
         id: 'sma200',
         key: 'sma200',
         color: '#e879f9',
         lineWidth: 1.8,
         label: 'SMA200',
         visible: !!state.indicatorVisibility.sma200,
-      },
-      {
-        id: 'ema9',
-        key: 'ema9',
-        color: '#06b6d4',
-        lineWidth: 1.7,
-        label: 'EMA9',
-        visible: !!state.indicatorVisibility.ema9,
-      },
-      {
-        id: 'ema21',
-        key: 'ema21',
-        color: '#84cc16',
-        lineWidth: 1.7,
-        label: 'EMA21',
-        visible: !!state.indicatorVisibility.ema21,
-      },
-      {
-        id: 'bb_lower',
-        key: 'bb_lower',
-        color: '#ef4444',
-        lineWidth: 1.6,
-        label: 'BB Lower',
-        visible: !!state.indicatorVisibility.bb_lower,
       },
       {
         id: 'volume',
