@@ -12,14 +12,65 @@ A V1 stock screening and research dashboard for U.S. equities. A Python pipeline
 - Cadence: automated daily GitHub Actions run + manual trigger + local manual run
 - Scope: screening and research only, no execution
 
-## How it works
-1. Load universe.
-2. Fetch daily EOD price data.
-3. Compute indicators.
-4. Detect regime.
-5. Screen and rank candidates.
-6. Export JSON and CSV.
-7. Static dashboard loads JSON and displays results.
+## How It Works: The Dual-Engine System
+
+The screener's core logic is built around a dual-engine system that adapts to the current market environment. It first determines the market's health (the "regime") and then deploys the appropriate engine to find high-potential trading candidates.
+
+### 1. Market Regime Determination
+
+The screener's first and most crucial step is to classify the overall market regime. This determines which scanning engine will be used.
+
+*   **Criteria**: The regime is determined by comparing the closing price of the **SPY (S&P 500 ETF)** to its **200-day Simple Moving Average (SMA)**.
+    *   If `SPY Close > 200-day SMA`, the regime is **"Bull"**.
+    *   If `SPY Close <= 200-day SMA`, the regime is **"Weak"**.
+
+This simple but effective rule ensures that the screener is always aligned with the market's primary trend.
+
+### 2. The Scanning Engines
+
+Based on the detected regime, one of two specialized engines is activated.
+
+#### a. The Bull Engine: Finding Market Leaders
+
+*   **Objective**: To identify stocks in strong uptrends that are consolidating and poised for a breakout.
+*   **Core Logic**:
+    1.  **Uptrend Confirmation**: The stock must be trading above its own 200-day SMA.
+    2.  **Pattern Recognition**: It looks for classic bullish patterns like the "Cup with Handle" (CWH) or "Volatility Contraction Pattern" (VCP).
+    3.  **Scoring**:
+        *   **Leadership Score**: Measures the stock's Relative Strength (RS) against the SPY. A high score means the stock is already outperforming the market.
+        *   **Actionability Score**: Measures the quality of the setup. It rewards stocks that are close to a breakout point ("pivot"), show tight price consolidation, and have supportive volume patterns.
+
+#### b. The Weak Engine: Spotting Rebound Opportunities
+
+*   **Objective**: To identify fundamentally sound but oversold stocks that are due for a potential short-term rebound.
+*   **Core Logic**:
+    1.  **Oversold Condition**: The primary filter is a 14-day Relative Strength Index (RSI) below 30, indicating the stock is potentially oversold.
+    2.  **Scoring**:
+        *   **Leadership Score**: Even in a weak market, this score prioritizes stocks with better long-term trends and liquidity.
+        *   **Actionability Score**: Measures the quality of the oversold setup by rewarding:
+            *   **Extreme RSI**: Lower RSI values get a higher score.
+            *   **Price Extension**: How far the stock has fallen below its recent trading range (Lower Bollinger Band).
+            *   **Capitulation Volume**: A spike in volume that suggests seller exhaustion.
+
+### 3. Scoring Formulas (High-Level)
+
+The final score for each stock is a weighted average of its Leadership and Actionability scores.
+
+*   **Final Score** = (Leadership Score * Leadership Weight) + (Actionability Score * Actionability Weight)
+
+#### Bull Engine Formulas:
+
+*   **Leadership Score** = `f(Relative Strength, Trend Strength)`
+*   **Actionability Score** = `f(Proximity to Pivot, Price Volatility, Volume Contraction)`
+
+#### Weak Engine Formulas:
+
+*   **Leadership Score** = `f(Long-Term Trend, Liquidity)`
+*   **Actionability Score** = `f(RSI Level, Price Extension from Bollinger Band, Volume Spike)`
+
+### 4. The Result: A Filtered, Actionable Idea
+
+A stock that appears in the screener results is not a "buy" signal. It is a high-potential, filtered idea that has passed a rigorous, data-driven set of rules based on the current market regime. The next step is for you to perform your own due diligence on the candidates that interest you.
 
 ## Local install and run
 
