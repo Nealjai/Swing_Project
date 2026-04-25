@@ -384,6 +384,23 @@
             <p id="btChartNote" class="muted"></p>
           </section>
 
+          <section class="backtest-chart-card">
+            <h3>Normalized Performance vs SPY (selected run range)</h3>
+            <div id="btBenchmarkGrid" class="backtest-benchmark-grid" aria-live="polite">
+              <article class="backtest-metric-card"><span>Strategy total return</span><strong id="btBenchStrategyTotalReturn">-</strong></article>
+              <article class="backtest-metric-card"><span>SPY total return</span><strong id="btBenchSpyTotalReturn">-</strong></article>
+              <article class="backtest-metric-card"><span>Excess return vs SPY</span><strong id="btBenchExcessReturn">-</strong></article>
+              <article class="backtest-metric-card"><span>Strategy CAGR</span><strong id="btBenchStrategyCagr">-</strong></article>
+              <article class="backtest-metric-card"><span>SPY CAGR</span><strong id="btBenchSpyCagr">-</strong></article>
+              <article class="backtest-metric-card"><span>Strategy max drawdown</span><strong id="btBenchStrategyMaxDd">-</strong></article>
+              <article class="backtest-metric-card"><span>SPY max drawdown</span><strong id="btBenchSpyMaxDd">-</strong></article>
+            </div>
+            <div class="backtest-chart-wrap">
+              <canvas id="btBenchmarkChart" height="120"></canvas>
+            </div>
+            <p id="btBenchmarkNote" class="muted"></p>
+          </section>
+
           <section class="backtest-breakdown-grid">
             <article class="backtest-breakdown-card">
               <h3>Monthly Returns (visible window)</h3>

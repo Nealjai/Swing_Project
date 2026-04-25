@@ -142,6 +142,7 @@ let state = {
   listViewChart: null,
   benchmarkChart: null,
   backtestChart: null,
+  backtestBenchmarkChart: null,
   marketConditionChart: null,
   screenerChart: null,
   screenerChartSeries: {},
@@ -176,6 +177,10 @@ let state = {
       '10k': false,
       '30k': false,
     },
+    spyDataLoaded: false,
+    spyDataLoading: false,
+    spyDataError: null,
+    spyAdjCloseByDate: {},
   },
   indicatorVisibility: {
     close: true,
@@ -1539,6 +1544,15 @@ function getBacktestActiveElements() {
     kpiAvgPositionsEl: document.getElementById('btKpiAvgPositions'),
     equityChartEl: document.getElementById('btEquityChart'),
     chartNoteEl: document.getElementById('btChartNote'),
+    benchmarkChartEl: document.getElementById('btBenchmarkChart'),
+    benchmarkNoteEl: document.getElementById('btBenchmarkNote'),
+    benchStrategyTotalReturnEl: document.getElementById('btBenchStrategyTotalReturn'),
+    benchSpyTotalReturnEl: document.getElementById('btBenchSpyTotalReturn'),
+    benchExcessReturnEl: document.getElementById('btBenchExcessReturn'),
+    benchStrategyCagrEl: document.getElementById('btBenchStrategyCagr'),
+    benchSpyCagrEl: document.getElementById('btBenchSpyCagr'),
+    benchStrategyMaxDdEl: document.getElementById('btBenchStrategyMaxDd'),
+    benchSpyMaxDdEl: document.getElementById('btBenchSpyMaxDd'),
     monthlyTbodyEl: document.getElementById('btMonthlyTbody'),
     annualTbodyEl: document.getElementById('btAnnualTbody'),
     methodologyEl: document.getElementById('btMethodology'),
@@ -1655,6 +1669,163 @@ function filterBacktestToVisibleWindow(payload) {
   };
 }
 
+function computeNormalizedMaxDrawdownPct(normalizedSeries) {
+  let peak = null;
+  let maxDd = 0;
+
+  for (const raw of toArray(normalizedSeries)) {
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value <= 0) continue;
+    if (peak === null || value > peak) peak = value;
+    if (peak === null || peak <= 0) continue;
+    const dd = ((peak - value) / peak) * 100;
+    if (dd > maxDd) maxDd = dd;
+  }
+
+  return maxDd;
+}
+
+function computeAnnualizedReturnPct(startValue, endValue, startDate, endDate) {
+  const s = Number(startValue);
+  const e = Number(endValue);
+  if (!Number.isFinite(s) || !Number.isFinite(e) || s <= 0 || e <= 0) return null;
+
+  const startTs = new Date(`${String(startDate || '').slice(0, 10)}T00:00:00Z`).getTime();
+  const endTs = new Date(`${String(endDate || '').slice(0, 10)}T00:00:00Z`).getTime();
+  if (!Number.isFinite(startTs) || !Number.isFinite(endTs) || endTs <= startTs) return null;
+
+  const years = (endTs - startTs) / (365.25 * 24 * 60 * 60 * 1000);
+  if (!Number.isFinite(years) || years <= 0) return null;
+
+  return (Math.pow(e / s, 1 / years) - 1) * 100;
+}
+
+function buildDateAdjCloseMap(spyPayload) {
+  const p = toObject(spyPayload);
+  const dates = toArray(p.Date?.length ? p.Date : p.dates);
+  const adjClose = toArray(
+    p['Adj Close']?.length
+      ? p['Adj Close']
+      : p.adj_close?.length
+        ? p.adj_close
+        : p.Close?.length
+          ? p.Close
+          : p.close,
+  );
+
+  const out = {};
+  const n = Math.min(dates.length, adjClose.length);
+  for (let i = 0; i < n; i += 1) {
+    const d = String(dates[i] || '').slice(0, 10);
+    const v = Number(adjClose[i]);
+    if (!d || !Number.isFinite(v) || v <= 0) continue;
+    out[d] = v;
+  }
+  return out;
+}
+
+function buildBacktestBenchmarkComparison(payload) {
+  const p = toObject(payload);
+  const meta = toObject(p.meta);
+  const portfolio = toObject(p.portfolio);
+  const curve = toObject(portfolio.curve);
+  const benchmark = toObject(p.benchmark);
+
+  const rawDates = toArray(curve.dates).map((d) => String(d || '').slice(0, 10));
+  const rawEquity = toArray(curve.equity).map((v) => Number(v));
+  const runStart = String(meta.start_date || benchmark.start_date_used || rawDates[0] || '').slice(0, 10);
+  const runEnd = String(meta.end_date || benchmark.end_date_used || rawDates[rawDates.length - 1] || '').slice(0, 10);
+
+  const spyMap = toObject(state.backtest.spyAdjCloseByDate);
+  const dates = [];
+  const strategyRaw = [];
+  const spyRaw = [];
+
+  for (let i = 0; i < rawDates.length; i += 1) {
+    const date = rawDates[i];
+    if (!date) continue;
+    if (runStart && date < runStart) continue;
+    if (runEnd && date > runEnd) continue;
+
+    const strategyValue = Number(rawEquity[i]);
+    const spyValue = Number(spyMap[date]);
+    if (!Number.isFinite(strategyValue) || strategyValue <= 0) continue;
+    if (!Number.isFinite(spyValue) || spyValue <= 0) continue;
+
+    dates.push(date);
+    strategyRaw.push(strategyValue);
+    spyRaw.push(spyValue);
+  }
+
+  if (dates.length < 2) {
+    return {
+      available: false,
+      reason: benchmark.reason || 'Unable to align strategy and SPY price history for the selected run range.',
+      symbol: String(benchmark.symbol || 'SPY'),
+      dates: [],
+      strategyNorm: [],
+      spyNorm: [],
+      startDate: null,
+      endDate: null,
+      strategyTotalReturnPct: null,
+      spyTotalReturnPct: null,
+      excessReturnPct: null,
+      strategyCagrPct: null,
+      spyCagrPct: null,
+      strategyMaxDrawdownPct: null,
+      spyMaxDrawdownPct: null,
+    };
+  }
+
+  const strategyBase = strategyRaw[0];
+  const spyBase = spyRaw[0];
+  const strategyNorm = strategyRaw.map((v) => v / strategyBase);
+  const spyNorm = spyRaw.map((v) => v / spyBase);
+  const strategyTotalReturnPct = (strategyNorm[strategyNorm.length - 1] - 1) * 100;
+  const spyTotalReturnPct = (spyNorm[spyNorm.length - 1] - 1) * 100;
+  const startDate = dates[0];
+  const endDate = dates[dates.length - 1];
+
+  return {
+    available: true,
+    reason: null,
+    symbol: String(benchmark.symbol || 'SPY'),
+    dates,
+    strategyNorm,
+    spyNorm,
+    startDate,
+    endDate,
+    strategyTotalReturnPct,
+    spyTotalReturnPct,
+    excessReturnPct: strategyTotalReturnPct - spyTotalReturnPct,
+    strategyCagrPct: computeAnnualizedReturnPct(strategyNorm[0], strategyNorm[strategyNorm.length - 1], startDate, endDate),
+    spyCagrPct: computeAnnualizedReturnPct(spyNorm[0], spyNorm[spyNorm.length - 1], startDate, endDate),
+    strategyMaxDrawdownPct: computeNormalizedMaxDrawdownPct(strategyNorm),
+    spyMaxDrawdownPct: computeNormalizedMaxDrawdownPct(spyNorm),
+  };
+}
+
+async function loadBacktestSpyDataIfNeeded() {
+  if (state.backtest.spyDataLoaded || state.backtest.spyDataLoading) return;
+
+  state.backtest.spyDataLoading = true;
+  state.backtest.spyDataError = null;
+  try {
+    const url = `data/daily/SPY.json?t=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const payload = await res.json();
+    state.backtest.spyAdjCloseByDate = buildDateAdjCloseMap(payload);
+    state.backtest.spyDataLoaded = true;
+  } catch (err) {
+    state.backtest.spyDataLoaded = true;
+    state.backtest.spyDataError = String(err?.message || err);
+    state.backtest.spyAdjCloseByDate = {};
+  } finally {
+    state.backtest.spyDataLoading = false;
+  }
+}
+
 async function loadBacktestActiveDataIfNeeded() {
   if (state.backtest.loaded || state.backtest.loading) return;
 
@@ -1765,10 +1936,20 @@ function renderBacktestActiveView() {
     if (elements.methodologyEl) elements.methodologyEl.innerHTML = '<p>No data available for selected scenario.</p>';
     if (elements.diagnosticsSummaryEl) elements.diagnosticsSummaryEl.innerHTML = '<p>No diagnostics available.</p>';
     if (elements.diagnosticsPreEl) elements.diagnosticsPreEl.textContent = '';
+    setElText(elements.benchStrategyTotalReturnEl, '-');
+    setElText(elements.benchSpyTotalReturnEl, '-');
+    setElText(elements.benchExcessReturnEl, '-');
+    setElText(elements.benchStrategyCagrEl, '-');
+    setElText(elements.benchSpyCagrEl, '-');
+    setElText(elements.benchStrategyMaxDdEl, '-');
+    setElText(elements.benchSpyMaxDdEl, '-');
 
     destroyChart(state.backtestChart);
     state.backtestChart = null;
+    destroyChart(state.backtestBenchmarkChart);
+    state.backtestBenchmarkChart = null;
     if (elements.chartNoteEl) elements.chartNoteEl.textContent = 'No chart data available.';
+    if (elements.benchmarkNoteEl) elements.benchmarkNoteEl.textContent = 'No benchmark data available.';
     return;
   }
 
@@ -1858,6 +2039,71 @@ function renderBacktestActiveView() {
     elements.chartNoteEl.textContent = `${intended}. ${actual}. Assumptions: initial ${fmtDollar(
       assumptions.initial_capital,
     )}, max positions ${fmtInt(assumptions.max_positions)}.`;
+  }
+
+  const benchmarkComparison = buildBacktestBenchmarkComparison(activePayload);
+
+  setElText(elements.benchStrategyTotalReturnEl, fmtPctPoints(benchmarkComparison.strategyTotalReturnPct));
+  setElText(elements.benchSpyTotalReturnEl, fmtPctPoints(benchmarkComparison.spyTotalReturnPct));
+  setElText(elements.benchExcessReturnEl, fmtPctPoints(benchmarkComparison.excessReturnPct));
+  setElText(elements.benchStrategyCagrEl, fmtPctPoints(benchmarkComparison.strategyCagrPct));
+  setElText(elements.benchSpyCagrEl, fmtPctPoints(benchmarkComparison.spyCagrPct));
+  setElText(elements.benchStrategyMaxDdEl, fmtPctPoints(benchmarkComparison.strategyMaxDrawdownPct));
+  setElText(elements.benchSpyMaxDdEl, fmtPctPoints(benchmarkComparison.spyMaxDrawdownPct));
+
+  destroyChart(state.backtestBenchmarkChart);
+  state.backtestBenchmarkChart = null;
+
+  if (elements.benchmarkChartEl && benchmarkComparison.available && benchmarkComparison.dates.length) {
+    state.backtestBenchmarkChart = new Chart(elements.benchmarkChartEl, {
+      type: 'line',
+      data: {
+        labels: benchmarkComparison.dates,
+        datasets: [
+          {
+            label: 'Strategy (normalized)',
+            data: benchmarkComparison.strategyNorm,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.12)',
+            borderWidth: 2,
+            tension: 0.15,
+            pointRadius: 0,
+          },
+          {
+            label: `${benchmarkComparison.symbol} (normalized)`,
+            data: benchmarkComparison.spyNorm,
+            borderColor: '#60a5fa',
+            backgroundColor: 'rgba(96, 165, 250, 0.1)',
+            borderWidth: 2,
+            tension: 0.15,
+            pointRadius: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#cbd5e1', maxTicksLimit: 10 }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
+          y: {
+            ticks: { color: '#cbd5e1', callback: (value) => `${Number(value).toFixed(2)}x` },
+            grid: { color: 'rgba(148, 163, 184, 0.12)' },
+          },
+        },
+        plugins: {
+          legend: { labels: { color: '#e2e8f0' } },
+        },
+      },
+    });
+  }
+
+  if (elements.benchmarkNoteEl) {
+    if (!benchmarkComparison.available) {
+      const reason = benchmarkComparison.reason || state.backtest.spyDataError || 'Benchmark comparison unavailable.';
+      elements.benchmarkNoteEl.textContent = reason;
+    } else {
+      elements.benchmarkNoteEl.textContent = `Selected run range: ${benchmarkComparison.startDate} → ${benchmarkComparison.endDate}. Normalized base = 1.00 at start (${benchmarkComparison.symbol}).`;
+    }
   }
 
   if (elements.monthlyTbodyEl) {
@@ -1960,6 +2206,7 @@ async function ensureBacktestActiveInitialized() {
   }
 
   await loadBacktestActiveDataIfNeeded();
+  await loadBacktestSpyDataIfNeeded();
   renderBacktestActiveView();
 }
 
