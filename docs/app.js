@@ -1611,6 +1611,16 @@ function formatMetricByType(value, type) {
   return fmtNumber(value);
 }
 
+function formatReasonLabel(reason) {
+  const raw = String(reason || '').trim();
+  if (!raw) return '-';
+  return raw
+    .split('_')
+    .filter(Boolean)
+    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
 function filterBacktestToVisibleWindow(payload) {
   const p = toObject(payload);
   const portfolio = toObject(p.portfolio);
@@ -2152,28 +2162,81 @@ function renderBacktestActiveView() {
   }
 
   if (elements.methodologyEl) {
+    const initialCapital = fmtDollar(assumptions.initial_capital);
+    const maxPositions = fmtInt(assumptions.max_positions);
+    const slippageEachSide = fmtPctPoints((Number(assumptions.slippage_pct_each_side) || 0) * 100, 3);
+    const commissionEachSide = fmtDollar(assumptions.commission_per_side);
+    const riskPerTradePct = fmtPctPoints(assumptions.monthly_risk_per_trade_pct);
+
     elements.methodologyEl.innerHTML = `
-      <p><strong>Data source:</strong> ${esc(BACKTEST_ACTIVE_PATHS[selectedKey])}</p>
-      <p><strong>Run:</strong> ${esc(meta.run_name || meta.run_id || '-')}</p>
-      <p><strong>Portfolio assumptions:</strong> initial ${fmtDollar(assumptions.initial_capital)}, max positions ${fmtInt(
-      assumptions.max_positions,
-    )}, slippage ${fmtPctPoints((Number(assumptions.slippage_pct_each_side) || 0) * 100, 3)} each side, commission ${fmtDollar(
-      assumptions.commission_per_side,
-    )} each side.</p>
-      <p><strong>Windowing rule:</strong> render latest 5 years when available; otherwise show actual available history only.</p>
-      <p><strong>Scenario independence:</strong> 10K and 30K are loaded from separate files and never scaled from each other.</p>
+      <div class="bt-info-grid">
+        <article class="bt-info-card">
+          <h4>Core Parameters</h4>
+          <p><span>Initial capital</span><strong>${initialCapital}</strong></p>
+          <p><span>Max positions</span><strong>${maxPositions}</strong></p>
+          <p><span>Slippage</span><strong>${slippageEachSide} each side</strong></p>
+          <p><span>Commission</span><strong>${commissionEachSide} each side</strong></p>
+          <p><span>Risk per trade</span><strong>${riskPerTradePct} of month-start equity</strong></p>
+        </article>
+        <article class="bt-info-card">
+          <h4>Entry Logic</h4>
+          <p><span>Position sizing</span><strong>Risk-based + cash-cap constrained</strong></p>
+          <p><span>Candidate ranking</span><strong>Composite score = (Reward/Risk) ÷ Risk%</strong></p>
+          <p><span>Entry timing</span><strong>Planned next-session entry</strong></p>
+          <p><span>Exit handling</span><strong>Gap-aware TP/SL + planned date close</strong></p>
+        </article>
+      </div>
+      <div class="bt-note-stack">
+        <p><strong>Data source:</strong> ${esc(BACKTEST_ACTIVE_PATHS[selectedKey])}</p>
+        <p><strong>Run:</strong> ${esc(meta.run_name || meta.run_id || '-')}</p>
+        <p><strong>Windowing rule:</strong> Render latest 5 years when available; otherwise show full available history.</p>
+        <p><strong>Scenario independence:</strong> 10K and 30K are loaded from separate files and never scaled from each other.</p>
+      </div>
     `;
   }
 
   if (elements.diagnosticsSummaryEl) {
     const counts = toObject(diagnostics.counts);
-    const executionSummary = toObject(toObject(diagnostics.portfolio_execution).summary);
+    const portfolioExecution = toObject(diagnostics.portfolio_execution);
+    const executionSummary = toObject(portfolioExecution.summary);
+    const topRejections = toArray(portfolioExecution.top_rejection_reasons);
+
+    const totalCandidates = getMetricValue(executionSummary, ['total_candidates']) ?? counts.candidates;
+    const executedTrades =
+      getMetricValue(executionSummary, ['trades_taken', 'executed_trades']) ?? getBacktestMetric(activePayload, 'executed_trades');
+    const rejectedEntries =
+      getMetricValue(executionSummary, ['rejected_entries']) ?? getBacktestMetric(activePayload, 'rejected_entries');
+    const acceptanceRate = getMetricValue(executionSummary, ['acceptance_rate_pct']);
+
+    const rejectionItems = topRejections.length
+      ? topRejections
+          .map((item) => {
+            const row = toObject(item);
+            return `<li><span>${esc(formatReasonLabel(row.reason))}</span><strong>${fmtInt(row.count)}</strong></li>`;
+          })
+          .join('')
+      : '<li><span>No rejection breakdown available</span><strong>-</strong></li>';
+
     elements.diagnosticsSummaryEl.innerHTML = `
-      <p>Run ID: <strong>${esc(meta.run_id || '-')}</strong></p>
-      <p>Rows with metrics: <strong>${fmtInt(counts.rows_with_metrics)}</strong></p>
-      <p>Executed trades: <strong>${fmtInt(getMetricValue(executionSummary, ['executed_trades']))}</strong> | Rejected entries: <strong>${fmtInt(
-      getMetricValue(executionSummary, ['rejected_entries']),
-    )}</strong></p>
+      <div class="bt-info-grid">
+        <article class="bt-info-card">
+          <h4>Run Health</h4>
+          <p><span>Run ID</span><strong>${esc(meta.run_id || '-')}</strong></p>
+          <p><span>Generated (UTC)</span><strong>${esc(meta.generated_at || '-')}</strong></p>
+          <p><span>Rows with metrics</span><strong>${fmtInt(counts.rows_with_metrics)}</strong></p>
+        </article>
+        <article class="bt-info-card">
+          <h4>Execution Funnel</h4>
+          <p><span>Signals considered</span><strong>${fmtInt(totalCandidates)}</strong></p>
+          <p><span>Executed trades</span><strong>${fmtInt(executedTrades)}</strong></p>
+          <p><span>Rejected entries</span><strong>${fmtInt(rejectedEntries)}</strong></p>
+          <p><span>Acceptance rate</span><strong>${fmtPctPoints(acceptanceRate, 3)}</strong></p>
+        </article>
+      </div>
+      <article class="bt-info-card bt-rejection-card">
+        <h4>Top Rejection Reasons</h4>
+        <ul class="bt-rejection-list">${rejectionItems}</ul>
+      </article>
     `;
   }
 
