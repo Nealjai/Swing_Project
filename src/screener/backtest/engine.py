@@ -57,6 +57,119 @@ def _regime_state_series(benchmark_df: pd.DataFrame) -> pd.Series:
     return pd.Series(state, index=valid.index)
 
 
+def _plan_two_phase_exit(
+    *,
+    idx: pd.Index,
+    open_px: np.ndarray,
+    low_px: np.ndarray,
+    raw_close_px: np.ndarray,
+    entry_i: int,
+    last_idx_in_range: int,
+    signal_close: float,
+    entry_price: float,
+    atr_val: float,
+) -> Dict[str, object] | None:
+    if not np.isfinite(signal_close) or signal_close <= 0:
+        return None
+    if not np.isfinite(entry_price) or entry_price <= 0:
+        return None
+    if not np.isfinite(atr_val) or atr_val <= 0:
+        return None
+
+    sl_level = signal_close - (2.0 * atr_val)
+    if not np.isfinite(sl_level) or sl_level <= 0:
+        return None
+
+    activation_level = entry_price + (2.0 * atr_val)
+    if not np.isfinite(activation_level) or activation_level <= 0:
+        return None
+
+    max_hold_days = 15
+    time_stop_i = min(last_idx_in_range, entry_i + (max_hold_days - 1))
+
+    activated = False
+    activation_i: int | None = None
+    activation_price: float | None = None
+    highest_close_since_entry = -np.inf
+
+    final_exit_i: int | None = None
+    final_exit_price: float | None = None
+    final_exit_reason: str | None = None
+
+    for j in range(entry_i, time_stop_i + 1):
+        day_open = float(open_px[j]) if np.isfinite(open_px[j]) else np.nan
+        day_low = float(low_px[j]) if np.isfinite(low_px[j]) else np.nan
+        day_close = float(raw_close_px[j]) if np.isfinite(raw_close_px[j]) else np.nan
+
+        if np.isfinite(day_close):
+            highest_close_since_entry = max(highest_close_since_entry, day_close)
+
+        if not activated:
+            if np.isfinite(day_open) and day_open <= sl_level:
+                final_exit_i = j
+                final_exit_price = day_open
+                final_exit_reason = "sl_gap_open"
+                break
+            if np.isfinite(day_low) and day_low <= sl_level:
+                final_exit_i = j
+                final_exit_price = float(sl_level)
+                final_exit_reason = "sl_intraday"
+                break
+
+            if np.isfinite(day_close) and day_close >= activation_level:
+                activated = True
+                activation_i = j
+                activation_price = day_close
+                continue
+        else:
+            if not np.isfinite(day_close):
+                continue
+
+            trailing_stop = highest_close_since_entry - (1.5 * atr_val)
+            if np.isfinite(trailing_stop) and day_close <= trailing_stop:
+                final_exit_i = j
+                final_exit_price = day_close
+                final_exit_reason = "trailing_stop_close"
+                break
+
+    if final_exit_i is None:
+        final_exit_i = time_stop_i
+        final_close = float(raw_close_px[final_exit_i]) if np.isfinite(raw_close_px[final_exit_i]) else np.nan
+        if np.isfinite(final_close) and final_close > 0:
+            final_exit_price = final_close
+            final_exit_reason = "time_stop_day_15_close"
+        else:
+            return None
+
+    if final_exit_price is None or final_exit_price <= 0:
+        return None
+
+    partial_exit_fraction = 0.5 if activated and activation_i is not None and activation_price is not None else 0.0
+    remaining_fraction = 1.0 - partial_exit_fraction
+    blended_exit_price = (partial_exit_fraction * float(activation_price or 0.0)) + (remaining_fraction * float(final_exit_price))
+
+    if not np.isfinite(blended_exit_price) or blended_exit_price <= 0:
+        return None
+
+    return {
+        "sl_level": float(sl_level),
+        "activation_level": float(activation_level),
+        "max_hold_days": int(max_hold_days),
+        "time_stop_i": int(time_stop_i),
+        "time_stop_date": idx[time_stop_i],
+        "activated": bool(activated),
+        "activation_i": int(activation_i) if activation_i is not None else None,
+        "activation_date": idx[activation_i] if activation_i is not None else None,
+        "activation_price": float(activation_price) if activation_price is not None else None,
+        "final_exit_i": int(final_exit_i),
+        "final_exit_date": idx[final_exit_i],
+        "final_exit_price": float(final_exit_price),
+        "final_exit_reason": str(final_exit_reason),
+        "exit_price": float(blended_exit_price),
+        "partial_exit_fraction": float(partial_exit_fraction),
+    }
+
+
 def _simulate_symbol(
     symbol: str,
     yf_symbol: str,
@@ -83,6 +196,7 @@ def _simulate_symbol(
     raw_close_px = frame["Close"].to_numpy(dtype=float)
     signal_close_px = frame["signal_close"].to_numpy(dtype=float)
     volume = frame["Volume"].to_numpy(dtype=float)
+    low_px = frame["Low"].to_numpy(dtype=float)
     high_20d = frame["high_20d"].to_numpy(dtype=float)
     rsi14 = frame["rsi14"].to_numpy(dtype=float)
     avg_dv = frame["avg_dollar_volume_20d"].to_numpy(dtype=float)
@@ -165,38 +279,31 @@ def _simulate_symbol(
             i += 1
             continue
 
-        tp_level = signal_close + (3.0 * atr_val)
-        sl_level = bb_lower_val - atr_val
+        sl_level = signal_close - (2.0 * atr_val)
+        activation_level = entry_price + (2.0 * atr_val)
 
         last_idx_in_range = int(np.searchsorted(idx.values, end_ts.to_datetime64(), side="right") - 1)
         if last_idx_in_range < entry_i:
             i += 1
             continue
 
-        exit_i: int | None = None
-        exit_reason: str | None = None
-        for j in range(entry_i, last_idx_in_range + 1):
-            px = float(raw_close_px[j])
-            if not np.isfinite(px):
-                continue
-            if px >= tp_level:
-                exit_i = j
-                exit_reason = "TP"
-                break
-            if px <= sl_level:
-                exit_i = j
-                exit_reason = "SL"
-                break
-
-        if exit_i is None:
-            exit_i = last_idx_in_range
-            exit_reason = "EOT"
-
-        exit_price = float(raw_close_px[exit_i])
-        if not np.isfinite(exit_price):
-            i = exit_i + 1
+        plan = _plan_two_phase_exit(
+            idx=idx,
+            open_px=open_px,
+            low_px=low_px,
+            raw_close_px=raw_close_px,
+            entry_i=entry_i,
+            last_idx_in_range=last_idx_in_range,
+            signal_close=signal_close,
+            entry_price=entry_price,
+            atr_val=atr_val,
+        )
+        if plan is None:
+            i += 1
             continue
 
+        exit_i = int(plan["final_exit_i"])
+        exit_price = float(plan["exit_price"])
         hold_days = max(1, int(exit_i - entry_i + 1))
         pnl_pct = ((exit_price / entry_price) - 1.0) * 100.0
 
@@ -207,9 +314,9 @@ def _simulate_symbol(
                 "signal_date": signal_date.strftime("%Y-%m-%d"),
                 "entry_date": entry_date.strftime("%Y-%m-%d"),
                 "entry_price": entry_price,
-                "exit_date": idx[exit_i].strftime("%Y-%m-%d"),
+                "exit_date": pd.Timestamp(plan["final_exit_date"]).strftime("%Y-%m-%d"),
                 "exit_price": exit_price,
-                "exit_reason": exit_reason,
+                "exit_reason": str(plan["final_exit_reason"]),
                 "hold_days": hold_days,
                 "pnl_pct": pnl_pct,
                 "regime_state": regime_state,
@@ -218,8 +325,15 @@ def _simulate_symbol(
                 "signal_raw_close": float(raw_close_px[i]) if np.isfinite(raw_close_px[i]) else None,
                 "signal_atr14": atr_val,
                 "signal_bb_lower": bb_lower_val,
-                "tp_level": float(tp_level),
+                "tp_level": None,
                 "sl_level": float(sl_level),
+                "activation_level": float(activation_level),
+                "time_stop_date": pd.Timestamp(plan["time_stop_date"]).strftime("%Y-%m-%d"),
+                "partial_exit_fraction": float(plan["partial_exit_fraction"]),
+                "activation_date": pd.Timestamp(plan["activation_date"]).strftime("%Y-%m-%d")
+                if plan.get("activation_date") is not None
+                else None,
+                "activation_price": plan.get("activation_price"),
                 "signal_rsi14": float(rsi14[i]) if np.isfinite(rsi14[i]) else None,
                 "signal_high_20d": float(high_20d[i]) if np.isfinite(high_20d[i]) else None,
                 "signal_avg_dollar_volume_20d": float(avg_dv[i]) if np.isfinite(avg_dv[i]) else None,
@@ -266,6 +380,7 @@ def _generate_symbol_candidates(
     raw_close_px = frame["Close"].to_numpy(dtype=float)
     signal_close_px = frame["signal_close"].to_numpy(dtype=float)
     volume = frame["Volume"].to_numpy(dtype=float)
+    low_px = frame["Low"].to_numpy(dtype=float)
     high_20d = frame["high_20d"].to_numpy(dtype=float)
     rsi14 = frame["rsi14"].to_numpy(dtype=float)
     avg_dv = frame["avg_dollar_volume_20d"].to_numpy(dtype=float)
@@ -342,36 +457,29 @@ def _generate_symbol_candidates(
         if not np.isfinite(atr_val) or not np.isfinite(bb_lower_val) or not np.isfinite(signal_close):
             continue
 
-        tp_level = signal_close + (3.0 * atr_val)
-        sl_level = bb_lower_val - atr_val
+        sl_level = signal_close - (2.0 * atr_val)
+        activation_level = entry_price + (2.0 * atr_val)
 
         last_idx_in_range = int(np.searchsorted(idx.values, end_ts.to_datetime64(), side="right") - 1)
         if last_idx_in_range < entry_i:
             continue
 
-        exit_i: int | None = None
-        exit_reason: str | None = None
-        for j in range(entry_i, last_idx_in_range + 1):
-            px = float(raw_close_px[j])
-            if not np.isfinite(px):
-                continue
-            if px >= tp_level:
-                exit_i = j
-                exit_reason = "TP"
-                break
-            if px <= sl_level:
-                exit_i = j
-                exit_reason = "SL"
-                break
-
-        if exit_i is None:
-            exit_i = last_idx_in_range
-            exit_reason = "EOT"
-
-        exit_price = float(raw_close_px[exit_i])
-        if not np.isfinite(exit_price):
+        plan = _plan_two_phase_exit(
+            idx=idx,
+            open_px=open_px,
+            low_px=low_px,
+            raw_close_px=raw_close_px,
+            entry_i=entry_i,
+            last_idx_in_range=last_idx_in_range,
+            signal_close=signal_close,
+            entry_price=entry_price,
+            atr_val=atr_val,
+        )
+        if plan is None:
             continue
 
+        exit_i = int(plan["final_exit_i"])
+        exit_price = float(plan["exit_price"])
         hold_days = max(1, int(exit_i - entry_i + 1))
         pnl_pct = ((exit_price / entry_price) - 1.0) * 100.0
 
@@ -382,9 +490,9 @@ def _generate_symbol_candidates(
                 "signal_date": signal_date.strftime("%Y-%m-%d"),
                 "entry_date": entry_date.strftime("%Y-%m-%d"),
                 "entry_price": entry_price,
-                "exit_date": idx[exit_i].strftime("%Y-%m-%d"),
+                "exit_date": pd.Timestamp(plan["final_exit_date"]).strftime("%Y-%m-%d"),
                 "exit_price": exit_price,
-                "exit_reason": exit_reason,
+                "exit_reason": str(plan["final_exit_reason"]),
                 "hold_days": hold_days,
                 "pnl_pct": pnl_pct,
                 "regime_state": regime_state,
@@ -393,8 +501,15 @@ def _generate_symbol_candidates(
                 "signal_raw_close": float(raw_close_px[i]) if np.isfinite(raw_close_px[i]) else None,
                 "signal_atr14": atr_val,
                 "signal_bb_lower": bb_lower_val,
-                "tp_level": float(tp_level),
+                "tp_level": None,
                 "sl_level": float(sl_level),
+                "activation_level": float(activation_level),
+                "time_stop_date": pd.Timestamp(plan["time_stop_date"]).strftime("%Y-%m-%d"),
+                "partial_exit_fraction": float(plan["partial_exit_fraction"]),
+                "activation_date": pd.Timestamp(plan["activation_date"]).strftime("%Y-%m-%d")
+                if plan.get("activation_date") is not None
+                else None,
+                "activation_price": plan.get("activation_price"),
                 "signal_rsi14": float(rsi14[i]) if np.isfinite(rsi14[i]) else None,
                 "signal_high_20d": float(high_20d[i]) if np.isfinite(high_20d[i]) else None,
                 "signal_avg_dollar_volume_20d": float(avg_dv[i]) if np.isfinite(avg_dv[i]) else None,

@@ -91,7 +91,7 @@ def parse_args() -> argparse.Namespace:
 
     # Portfolio simulator assumptions
     parser.add_argument("--initial-capital", type=float, default=10000.0)
-    parser.add_argument("--max-positions", type=int, default=5)
+    parser.add_argument("--max-positions", type=int, default=10)
     parser.add_argument("--slippage-pct", type=float, default=0.0005)
     parser.add_argument("--commission-per-side", type=float, default=0.32)
     parser.add_argument("--monthly-dd-limit-pct", type=float, default=6.0)

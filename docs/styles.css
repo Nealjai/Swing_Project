@@ -1369,6 +1369,95 @@ pre {
   padding: 12px 14px;
 }
 
+.bt-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.bt-info-card {
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  border-radius: 10px;
+  background: #0b1324;
+  padding: 10px 12px;
+}
+
+.bt-info-card h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.bt-info-card p {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-top: 1px dashed rgba(148, 163, 184, 0.2);
+}
+
+.bt-info-card p:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.bt-info-card p span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bt-info-card p strong {
+  text-align: right;
+  font-size: 13px;
+}
+
+.bt-note-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.bt-note-stack p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.bt-rejection-card {
+  margin-top: 4px;
+}
+
+.bt-rejection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.bt-rejection-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  border-top: 1px dashed rgba(148, 163, 184, 0.2);
+  padding-top: 6px;
+}
+
+.bt-rejection-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.bt-rejection-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bt-rejection-list strong {
+  font-size: 13px;
+}
+
 @media (max-width: 1100px) {
   .backtest-context-grid,
   .backtest-kpi-grid,
