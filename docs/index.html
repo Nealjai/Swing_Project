@@ -26,6 +26,7 @@
         <button id="tabBtnMarketCondition" class="tab-btn" data-tab="market-condition" type="button">Market Condition</button>
         <button id="tabBtnBackground" class="tab-btn" data-tab="background" type="button">How It Works</button>
         <button id="tabBtnHistory" class="tab-btn" data-tab="history" type="button">Backtesting</button>
+        <button id="tabBtnTracker" class="tab-btn" data-tab="tracker" type="button">Tracker</button>
       </nav>
 
       <section id="tabScreener" class="tab-panel active" aria-labelledby="tabBtnScreener">
@@ -446,6 +447,48 @@
             <div id="btDiagnosticsSummary"></div>
             <pre id="btDiagnosticsPre"></pre>
           </details>
+        </section>
+      </section>
+
+      <section id="tabTracker" class="tab-panel" aria-labelledby="tabBtnTracker">
+        <section class="card tracker-summary-grid" aria-label="Tracker summary">
+          <article class="tracker-summary-item">
+            <span>Active</span>
+            <strong id="trackerActiveCount">-</strong>
+          </article>
+          <article class="tracker-summary-item">
+            <span>Dropped</span>
+            <strong id="trackerDroppedCount">-</strong>
+          </article>
+          <article class="tracker-summary-item">
+            <span>Last Updated (UTC)</span>
+            <strong id="trackerGeneratedAt">-</strong>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>2-Week Discovery Tracker (Bull Top-10 🏆⚡)</h2>
+          <p class="muted">Tracks bull-engine candidates that have both tags (🏆 and ⚡) while ranked top 10. Each position is tracked for 10 trading days and then dropped.</p>
+          <div id="trackerStatus" class="muted">Loading tracker...</div>
+          <div class="table-wrap">
+            <table id="trackerTable">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Captured Date</th>
+                  <th>Days Tracked</th>
+                  <th>Return Since Capture</th>
+                  <th>Price at Capture</th>
+                  <th>Current Price</th>
+                  <th>Distance from SMA20</th>
+                  <th>Volume Buzz</th>
+                  <th>RSI14</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </section>
       </section>
     </main>

@@ -182,6 +182,12 @@ let state = {
     spyDataError: null,
     spyAdjCloseByDate: {},
   },
+  tracker: {
+    loaded: false,
+    loading: false,
+    data: null,
+    error: null,
+  },
   indicatorVisibility: {
     close: true,
     sma20: true,
@@ -268,6 +274,10 @@ function activateTab(buttons, panels, key) {
 
   if (key === 'market-condition') {
     void renderMarketCondition();
+  }
+
+  if (key === 'tracker') {
+    void renderTracker();
   }
 }
 
@@ -2830,6 +2840,96 @@ async function renderMarketCondition() {
     }
   } finally {
     state.marketCondition.loading = false;
+  }
+}
+
+function getTrackerElements() {
+  return {
+    statusEl: document.getElementById('trackerStatus'),
+    tableBody: document.querySelector('#trackerTable tbody'),
+    activeCountEl: document.getElementById('trackerActiveCount'),
+    droppedCountEl: document.getElementById('trackerDroppedCount'),
+    generatedAtEl: document.getElementById('trackerGeneratedAt'),
+  };
+}
+
+function trackerStatusClass(status) {
+  return String(status || '').toLowerCase() === 'dropped' ? 'tracker-status dropped' : 'tracker-status active';
+}
+
+function renderTrackerTable(items) {
+  const { tableBody } = getTrackerElements();
+  if (!tableBody) return;
+
+  const rows = toArray(items);
+  if (!rows.length) {
+    tableBody.innerHTML = '<tr><td colspan="10">No tracked symbols yet.</td></tr>';
+    return;
+  }
+
+  tableBody.innerHTML = rows
+    .map((row) => {
+      const r = toObject(row);
+      const ret = toFiniteNumber(r.return_since_capture_pct);
+      const retClass = ret === null ? '' : ret >= 0 ? 'tracker-positive' : 'tracker-negative';
+      const volumeBuzz = toFiniteNumber(r.volume_buzz_ratio);
+
+      return `
+        <tr>
+          <td>${esc(r.symbol || '-')}</td>
+          <td>${esc(r.capture_date_utc || '-')}</td>
+          <td>${fmtInt(r.days_tracked_trading)}</td>
+          <td class="${retClass}">${fmtPct(r.return_since_capture_pct)}</td>
+          <td>${fmtNumber(r.capture_close)}</td>
+          <td>${fmtNumber(r.current_close)}</td>
+          <td>${fmtPct(r.distance_to_sma20_pct)}</td>
+          <td>${volumeBuzz === null ? '-' : `${fmtNumber(volumeBuzz, 2)}x`}</td>
+          <td>${fmtNumber(r.rsi14, 1)}</td>
+          <td><span class="${trackerStatusClass(r.status)}">${esc(r.status || '-')}</span></td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
+async function renderTracker() {
+  const { statusEl, activeCountEl, droppedCountEl, generatedAtEl } = getTrackerElements();
+  if (state.tracker.loading) return;
+
+  state.tracker.loading = true;
+  if (statusEl) statusEl.textContent = 'Loading tracker...';
+
+  try {
+    const url = `data/tracker.json?t=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+    const payload = await res.json();
+    state.tracker.data = payload;
+    state.tracker.error = null;
+    state.tracker.loaded = true;
+
+    const active = toArray(payload.active);
+    const dropped = toArray(payload.dropped);
+    const allItems = toArray(payload.items);
+
+    if (activeCountEl) activeCountEl.textContent = fmtInt(active.length);
+    if (droppedCountEl) droppedCountEl.textContent = fmtInt(dropped.length);
+    if (generatedAtEl) generatedAtEl.textContent = String(toObject(payload.meta).generated_at_utc || '-');
+
+    renderTrackerTable(allItems);
+    if (statusEl) {
+      statusEl.textContent = `Loaded ${fmtInt(allItems.length)} records (${fmtInt(active.length)} active / ${fmtInt(dropped.length)} dropped).`;
+    }
+  } catch (err) {
+    state.tracker.error = String(err?.message || err);
+    if (activeCountEl) activeCountEl.textContent = '-';
+    if (droppedCountEl) droppedCountEl.textContent = '-';
+    if (generatedAtEl) generatedAtEl.textContent = '-';
+    renderTrackerTable([]);
+    if (statusEl) statusEl.textContent = `Failed to load tracker: ${state.tracker.error}`;
+  } finally {
+    state.tracker.loading = false;
   }
 }
 
