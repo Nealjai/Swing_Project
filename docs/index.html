@@ -325,162 +325,110 @@
       <section id="tabHistory" class="tab-panel" aria-labelledby="tabBtnHistory">
         <p id="backtestError" class="error-text hidden"></p>
 
-        <!-- Part 1: Backtest Explorer -->
-        <section id="backtestExplorer" class="card">
-            <h2>Backtest Explorer</h2>
-            <p class="muted">Find and load a pre-computed backtest run. The filters below will update the table in real-time.</p>
-
-            <div class="backtest-filters">
-                <div class="filter-group">
-                    <label for="filterRunName">Run Name</label>
-                    <input type="text" id="filterRunName" placeholder="Filter by name...">
-                </div>
-                <div class="filter-group">
-                    <label for="filterStartDate">Start Date (from)</label>
-                    <input type="date" id="filterStartDate">
-                </div>
-                <div class="filter-group">
-                    <label for="filterEndDate">End Date (to)</label>
-                    <input type="date" id="filterEndDate">
-                </div>
-                <div class="filter-group">
-                    <button id="resetFiltersBtn" type="button">Reset Filters</button>
-                </div>
+        <section id="backtestActivePanel" class="card backtest-active-panel">
+          <header class="backtest-active-header">
+            <div>
+              <h2>Backtesting</h2>
+              <p class="muted">Fixed active runs only: 10K and 30K are loaded independently from separate files.</p>
             </div>
+            <div id="btScenarioToggle" class="backtest-scenario-toggle" role="group" aria-label="Capital scenario toggle">
+              <button id="btSelect10k" type="button" class="scenario-btn active" data-capital="10k" aria-pressed="true">10K</button>
+              <button id="btSelect30k" type="button" class="scenario-btn" data-capital="30k" aria-pressed="false">30K</button>
+            </div>
+          </header>
 
-            <div class="table-wrap">
-                <table id="backtestRunsTable">
-                    <thead>
-                        <tr>
-                            <th>Run Name</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Capital</th>
-                            <th>Max Positions</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="backtestRunsBody">
-                        <!-- Rows will be populated by app.js -->
-                    </tbody>
+          <section class="backtest-context-grid" aria-label="Backtest context summary">
+            <article class="backtest-context-item">
+              <span>Visible period</span>
+              <strong id="btVisibleRange">-</strong>
+            </article>
+            <article class="backtest-context-item">
+              <span>Active run</span>
+              <strong id="btRunName">-</strong>
+            </article>
+            <article class="backtest-context-item">
+              <span>Scenario</span>
+              <strong id="btScenario">-</strong>
+            </article>
+            <article class="backtest-context-item">
+              <span>Availability</span>
+              <strong id="btDataStatus">-</strong>
+            </article>
+          </section>
+
+          <section>
+            <h3>Quick Compare (10K vs 30K)</h3>
+            <div id="btCompareStrip" class="backtest-compare-strip" aria-live="polite"></div>
+            <p id="btCompareStatus" class="muted"></p>
+          </section>
+
+          <section>
+            <h3>Performance & Risk Summary</h3>
+            <div id="btKpiGrid" class="backtest-kpi-grid">
+              <article class="backtest-metric-card"><span>Total return</span><strong id="btKpiTotalReturn">-</strong></article>
+              <article class="backtest-metric-card"><span>CAGR</span><strong id="btKpiCagr">-</strong></article>
+              <article class="backtest-metric-card"><span>Max drawdown</span><strong id="btKpiMaxDrawdown">-</strong></article>
+              <article class="backtest-metric-card"><span>Sharpe</span><strong id="btKpiSharpe">-</strong></article>
+              <article class="backtest-metric-card"><span>Sortino</span><strong id="btKpiSortino">-</strong></article>
+              <article class="backtest-metric-card"><span>Executed trades</span><strong id="btKpiExecutedTrades">-</strong></article>
+              <article class="backtest-metric-card"><span>Rejected entries</span><strong id="btKpiRejectedEntries">-</strong></article>
+              <article class="backtest-metric-card"><span>Avg positions</span><strong id="btKpiAvgPositions">-</strong></article>
+            </div>
+          </section>
+
+          <section class="backtest-chart-card">
+            <h3>Portfolio Equity & Drawdown</h3>
+            <div class="backtest-chart-wrap">
+              <canvas id="btEquityChart" height="120"></canvas>
+            </div>
+            <p id="btChartNote" class="muted"></p>
+          </section>
+
+          <section class="backtest-breakdown-grid">
+            <article class="backtest-breakdown-card">
+              <h3>Monthly Returns (visible window)</h3>
+              <div class="table-wrap">
+                <table id="btMonthlyTable">
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th>Return %</th>
+                    </tr>
+                  </thead>
+                  <tbody id="btMonthlyTbody"></tbody>
                 </table>
-            </div>
-            <p id="backtestExplorerStatus" class="muted">Loading runs...</p>
-        </section>
+              </div>
+            </article>
 
-        <!-- Part 2: Backtest Report (hidden by default) -->
-        <section id="backtestReport" class="hidden">
-            <header class="report-header">
-                <h2 id="reportTitle">Backtest Report</h2>
-                <button id="closeReportBtn" type="button" aria-label="Close report and return to explorer">&times;</button>
-            </header>
+            <article class="backtest-breakdown-card">
+              <h3>Annual Engine Breakdown (visible window)</h3>
+              <div class="table-wrap">
+                <table id="btAnnualTable">
+                  <thead>
+                    <tr>
+                      <th>Year</th>
+                      <th>Bull Win Rate</th>
+                      <th>Bull Avg Return/Trade</th>
+                      <th>Weak Win Rate</th>
+                      <th>Weak Avg Return/Trade</th>
+                    </tr>
+                  </thead>
+                  <tbody id="btAnnualTbody"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
 
-            <div class="accordion">
-                <!-- Accordion Item 1: Run Parameters -->
-                <div class="accordion-item">
-                    <button class="accordion-header" aria-expanded="true">
-                        Run Parameters
-                        <span class="accordion-icon"></span>
-                    </button>
-                    <div class="accordion-content">
-                        <div id="reportRunMeta" class="methodology"></div>
-                    </div>
-                </div>
+          <details id="btMethodologyDetails" class="backtest-collapsible">
+            <summary>Methodology & Assumptions</summary>
+            <div id="btMethodology" class="methodology"></div>
+          </details>
 
-                <!-- Accordion Item 2: Performance Summary -->
-                <div class="accordion-item">
-                    <button class="accordion-header" aria-expanded="true">
-                        Performance Summary
-                        <span class="accordion-icon"></span>
-                    </button>
-                    <div class="accordion-content">
-                        <div id="reportPortfolioStats" class="backtest-portfolio-grid"></div>
-                    </div>
-                </div>
-
-                <!-- Accordion Item 3: Equity Curve -->
-                <div class="accordion-item">
-                    <button class="accordion-header" aria-expanded="false">
-                        Portfolio Equity Curve
-                        <span class="accordion-icon"></span>
-                    </button>
-                    <div class="accordion-content">
-                        <canvas id="reportEquityChart" height="120"></canvas>
-                        <p id="reportChartNote" class="muted"></p>
-                    </div>
-                </div>
-
-                <!-- Accordion Item 4: Performance Breakdown -->
-                <div class="accordion-item">
-                    <button class="accordion-header" aria-expanded="false">
-                        Performance Breakdown
-                        <span class="accordion-icon"></span>
-                    </button>
-                    <div class="accordion-content">
-                        <h3>Monthly Returns</h3>
-                        <div class="table-wrap">
-                            <table id="reportMonthlyTable">
-                                <thead>
-                                    <tr>
-                                        <th>Month</th>
-                                        <th>Return %</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <h3 class="spaced">Annual Breakdown</h3>
-                        <div class="table-wrap">
-                            <table id="reportAnnualTable">
-                                <thead>
-                                    <tr>
-                                        <th>Year</th>
-                                        <th>Bull Win Rate</th>
-                                        <th>Bull Avg Return/Trade</th>
-                                        <th>Weak Win Rate</th>
-                                        <th>Weak Avg Return/Trade</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Accordion Item 5: Engine Trade Metrics -->
-                <div class="accordion-item">
-                    <button class="accordion-header" aria-expanded="false">
-                        Engine Trade Metrics
-                        <span class="accordion-icon"></span>
-                    </button>
-                    <div class="accordion-content">
-                        <div id="reportEngineStats" class="backtest-engine-grid"></div>
-                    </div>
-                </div>
-
-                <!-- Accordion Item 6: Methodology -->
-                <div class="accordion-item">
-                    <button class="accordion-header" aria-expanded="false">
-                        Methodology
-                        <span class="accordion-icon"></span>
-                    </button>
-                    <div class="accordion-content">
-                        <div id="reportMethodology" class="methodology"></div>
-                    </div>
-                </div>
-
-                <!-- Accordion Item 7: Diagnostics -->
-                <div class="accordion-item">
-                    <button class="accordion-header" aria-expanded="false">
-                        Diagnostics
-                        <span class="accordion-icon"></span>
-                    </button>
-                    <div class="accordion-content">
-                        <div id="reportDiagnosticsSummary"></div>
-                        <pre id="reportDiagnostics"></pre>
-                    </div>
-                </div>
-            </div>
+          <details id="btDiagnosticsDetails" class="backtest-collapsible">
+            <summary>Diagnostics (advanced)</summary>
+            <div id="btDiagnosticsSummary"></div>
+            <pre id="btDiagnosticsPre"></pre>
+          </details>
         </section>
       </section>
     </main>

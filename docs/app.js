@@ -156,16 +156,26 @@ let state = {
     rendered: false,
   },
   backtest: {
-    loaded: false, // True if any report has been loaded
-    loading: false, // True when loading a report
-    data: null, // The data for the currently loaded report
+    loaded: false,
+    loading: false,
+    data: null,
     error: null,
     runsIndexLoaded: false,
     runsIndexLoading: false,
     runsIndexError: null,
-    runs: [], // All available runs from index.json
-    activeRun: null, // The data for the currently displayed report
-    view: 'explorer', // 'explorer' or 'report'
+    runs: [],
+    activeRun: null,
+    view: 'explorer',
+    initialized: false,
+    selectedCapital: '10k',
+    datasets: {
+      '10k': null,
+      '30k': null,
+    },
+    availability: {
+      '10k': false,
+      '30k': false,
+    },
   },
   indicatorVisibility: {
     close: true,
@@ -248,9 +258,7 @@ function activateTab(buttons, panels, key) {
   for (const p of panels) p.classList.toggle('active', p.id === targetPanelId);
 
   if (key === 'history') {
-    setBacktestView('explorer');
-    void loadBacktestRunsIndexIfNeeded();
-    initBacktestExplorer();
+    void ensureBacktestActiveInitialized();
   }
 
   if (key === 'market-condition') {
@@ -1495,6 +1503,466 @@ function renderReportDiagnostics(payload) {
     diagnosticsEl.textContent = JSON.stringify({ meta: payload.meta, config: diagnostics.config }, null, 2);
 }
 
+const BACKTEST_ACTIVE_PATHS = {
+  '10k': 'data/backtest_active_10k.json',
+  '30k': 'data/backtest_active_30k.json',
+};
+
+const BACKTEST_COMPARE_METRICS = [
+  { key: 'total_return_pct', label: 'Total Return', type: 'pct' },
+  { key: 'max_drawdown_pct', label: 'Max Drawdown', type: 'pct' },
+  { key: 'executed_trades', label: 'Executed Trades', type: 'int' },
+  { key: 'rejected_entries', label: 'Rejected Entries', type: 'int' },
+  { key: 'avg_positions', label: 'Avg Positions', type: 'num' },
+];
+
+function getBacktestActiveElements() {
+  return {
+    errorEl: document.getElementById('backtestError'),
+    panel: document.getElementById('backtestActivePanel'),
+    toggle: document.getElementById('btScenarioToggle'),
+    btn10k: document.getElementById('btSelect10k'),
+    btn30k: document.getElementById('btSelect30k'),
+    visibleRangeEl: document.getElementById('btVisibleRange'),
+    runNameEl: document.getElementById('btRunName'),
+    scenarioEl: document.getElementById('btScenario'),
+    dataStatusEl: document.getElementById('btDataStatus'),
+    compareStripEl: document.getElementById('btCompareStrip'),
+    compareStatusEl: document.getElementById('btCompareStatus'),
+    kpiTotalReturnEl: document.getElementById('btKpiTotalReturn'),
+    kpiCagrEl: document.getElementById('btKpiCagr'),
+    kpiMaxDrawdownEl: document.getElementById('btKpiMaxDrawdown'),
+    kpiSharpeEl: document.getElementById('btKpiSharpe'),
+    kpiSortinoEl: document.getElementById('btKpiSortino'),
+    kpiExecutedTradesEl: document.getElementById('btKpiExecutedTrades'),
+    kpiRejectedEntriesEl: document.getElementById('btKpiRejectedEntries'),
+    kpiAvgPositionsEl: document.getElementById('btKpiAvgPositions'),
+    equityChartEl: document.getElementById('btEquityChart'),
+    chartNoteEl: document.getElementById('btChartNote'),
+    monthlyTbodyEl: document.getElementById('btMonthlyTbody'),
+    annualTbodyEl: document.getElementById('btAnnualTbody'),
+    methodologyEl: document.getElementById('btMethodology'),
+    diagnosticsSummaryEl: document.getElementById('btDiagnosticsSummary'),
+    diagnosticsPreEl: document.getElementById('btDiagnosticsPre'),
+  };
+}
+
+function getBacktestScenarioLabel(capitalKey) {
+  return capitalKey === '30k' ? '30K Starting Capital' : '10K Starting Capital';
+}
+
+function setBacktestActiveError(message) {
+  const { errorEl } = getBacktestActiveElements();
+  if (!errorEl) return;
+  errorEl.textContent = message || '';
+  errorEl.classList.toggle('hidden', !message);
+}
+
+function setElText(el, value) {
+  if (!el) return;
+  el.textContent = value;
+}
+
+function getBacktestMetric(payload, metricKey) {
+  const p = toObject(payload);
+  const portfolio = toObject(p.portfolio);
+  const metrics = toObject(portfolio.metrics);
+  const diagnostics = toObject(p.diagnostics);
+  const execution = toObject(diagnostics.portfolio_execution);
+  const executionSummary = toObject(execution.summary);
+
+  if (metricKey === 'executed_trades') {
+    return getMetricValue(metrics, ['executed_trades']) ?? getMetricValue(executionSummary, ['executed_trades']);
+  }
+  if (metricKey === 'rejected_entries') {
+    return getMetricValue(metrics, ['rejected_entries']) ?? getMetricValue(executionSummary, ['rejected_entries']);
+  }
+
+  return getMetricValue(metrics, [metricKey]);
+}
+
+function formatMetricByType(value, type) {
+  if (type === 'pct') return fmtPctPoints(value);
+  if (type === 'int') return fmtInt(value);
+  return fmtNumber(value);
+}
+
+function filterBacktestToVisibleWindow(payload) {
+  const p = toObject(payload);
+  const portfolio = toObject(p.portfolio);
+  const curve = toObject(portfolio.curve);
+  const rawDates = toArray(curve.dates).map((d) => String(d || '').slice(0, 10));
+  const rawEquity = toArray(curve.equity).map((v) => (Number.isFinite(Number(v)) ? Number(v) : null));
+  const rawDrawdown = toArray(curve.drawdown_pct).map((v) => (Number.isFinite(Number(v)) ? Number(v) : null));
+
+  if (!rawDates.length) {
+    return {
+      dates: [],
+      equity: [],
+      drawdown: [],
+      visibleStart: null,
+      visibleEnd: null,
+      monthly: [],
+      annualRows: [],
+    };
+  }
+
+  const parsedDates = rawDates.map((d) => new Date(`${d}T00:00:00Z`));
+  const endDate = parsedDates[parsedDates.length - 1];
+  const startDate = new Date(endDate.getTime());
+  startDate.setUTCFullYear(startDate.getUTCFullYear() - 5);
+
+  const visibleIdx = [];
+  for (let i = 0; i < parsedDates.length; i += 1) {
+    if (parsedDates[i].getTime() >= startDate.getTime()) visibleIdx.push(i);
+  }
+
+  const dates = visibleIdx.map((i) => rawDates[i]);
+  const equity = visibleIdx.map((i) => rawEquity[i]);
+  const drawdown = visibleIdx.map((i) => rawDrawdown[i]);
+  const visibleStart = dates[0] || rawDates[0] || null;
+  const visibleEnd = dates[dates.length - 1] || rawDates[rawDates.length - 1] || null;
+
+  const monthly = toArray(portfolio.monthly_returns).filter((row) => {
+    const month = String(toObject(row).month || '');
+    if (!month) return false;
+    const monthDate = new Date(`${month}-01T00:00:00Z`);
+    return monthDate.getTime() >= startDate.getTime();
+  });
+
+  const byYearEngine = toObject(toObject(p.stats).by_year_engine ?? toObject(p.stats).by_year_by_engine);
+  const minYear = Number(visibleStart?.slice(0, 4));
+  const maxYear = Number(visibleEnd?.slice(0, 4));
+  const annualRows = Object.keys(byYearEngine)
+    .filter((year) => {
+      const y = Number(year);
+      if (!Number.isFinite(y)) return false;
+      if (Number.isFinite(minYear) && y < minYear) return false;
+      if (Number.isFinite(maxYear) && y > maxYear) return false;
+      return true;
+    })
+    .sort((a, b) => String(a).localeCompare(String(b)))
+    .map((year) => ({ year, row: toObject(byYearEngine[year]) }));
+
+  return {
+    dates,
+    equity,
+    drawdown,
+    visibleStart,
+    visibleEnd,
+    monthly,
+    annualRows,
+  };
+}
+
+async function loadBacktestActiveDataIfNeeded() {
+  if (state.backtest.loaded || state.backtest.loading) return;
+
+  state.backtest.loading = true;
+  setBacktestActiveError('');
+
+  const scenarioKeys = ['10k', '30k'];
+  await Promise.all(
+    scenarioKeys.map(async (key) => {
+      const url = `${BACKTEST_ACTIVE_PATHS[key]}?t=${Date.now()}`;
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        const payload = await res.json();
+        state.backtest.datasets[key] = payload;
+        state.backtest.availability[key] = true;
+      } catch (_err) {
+        state.backtest.datasets[key] = null;
+        state.backtest.availability[key] = false;
+      }
+    }),
+  );
+
+  if (!state.backtest.availability['10k'] && state.backtest.availability['30k']) {
+    state.backtest.selectedCapital = '30k';
+  }
+
+  state.backtest.loaded = true;
+  state.backtest.loading = false;
+}
+
+function renderBacktestCompareStrip() {
+  const { compareStripEl, compareStatusEl } = getBacktestActiveElements();
+  if (!compareStripEl || !compareStatusEl) return;
+
+  const run10k = state.backtest.datasets['10k'];
+  const run30k = state.backtest.datasets['30k'];
+  const has10k = !!run10k;
+  const has30k = !!run30k;
+
+  if (!has10k && !has30k) {
+    compareStripEl.innerHTML = '';
+    compareStatusEl.textContent = 'No active backtest files found. Expected data/backtest_active_10k.json and data/backtest_active_30k.json.';
+    return;
+  }
+
+  compareStatusEl.textContent = [
+    has10k ? '10K available' : '10K unavailable',
+    has30k ? '30K available' : '30K unavailable',
+  ].join(' | ');
+
+  compareStripEl.innerHTML = BACKTEST_COMPARE_METRICS.map((metric) => {
+    const v10 = has10k ? getBacktestMetric(run10k, metric.key) : null;
+    const v30 = has30k ? getBacktestMetric(run30k, metric.key) : null;
+    const diff =
+      Number.isFinite(Number(v10)) && Number.isFinite(Number(v30))
+        ? Number(v30) - Number(v10)
+        : null;
+
+    return `
+      <article class="backtest-compare-card">
+        <h4>${esc(metric.label)}</h4>
+        <p><span>10K:</span> <strong>${has10k ? formatMetricByType(v10, metric.type) : 'Unavailable'}</strong></p>
+        <p><span>30K:</span> <strong>${has30k ? formatMetricByType(v30, metric.type) : 'Unavailable'}</strong></p>
+        <p><span>Δ (30K−10K):</span> <strong>${diff === null ? 'Unavailable' : formatMetricByType(diff, metric.type)}</strong></p>
+      </article>
+    `;
+  }).join('');
+}
+
+function renderBacktestActiveView() {
+  const elements = getBacktestActiveElements();
+  if (!elements.panel) return;
+
+  const selectedKey = state.backtest.selectedCapital === '30k' ? '30k' : '10k';
+  const activePayload = state.backtest.datasets[selectedKey];
+  const has10k = !!state.backtest.datasets['10k'];
+  const has30k = !!state.backtest.datasets['30k'];
+
+  elements.btn10k?.classList.toggle('active', selectedKey === '10k');
+  elements.btn30k?.classList.toggle('active', selectedKey === '30k');
+  elements.btn10k?.setAttribute('aria-pressed', String(selectedKey === '10k'));
+  elements.btn30k?.setAttribute('aria-pressed', String(selectedKey === '30k'));
+  if (elements.btn10k) elements.btn10k.disabled = !has10k;
+  if (elements.btn30k) elements.btn30k.disabled = !has30k;
+
+  renderBacktestCompareStrip();
+
+  setElText(elements.scenarioEl, getBacktestScenarioLabel(selectedKey));
+  setElText(elements.dataStatusEl, `${has10k ? '10K ✓' : '10K ✕'} | ${has30k ? '30K ✓' : '30K ✕'}`);
+
+  if (!activePayload) {
+    setBacktestActiveError(
+      `Selected scenario (${selectedKey.toUpperCase()}) is unavailable. Backtesting tab uses fixed files only: data/backtest_active_10k.json and data/backtest_active_30k.json.`,
+    );
+    setElText(elements.visibleRangeEl, '-');
+    setElText(elements.runNameEl, 'Unavailable');
+    setElText(elements.kpiTotalReturnEl, '-');
+    setElText(elements.kpiCagrEl, '-');
+    setElText(elements.kpiMaxDrawdownEl, '-');
+    setElText(elements.kpiSharpeEl, '-');
+    setElText(elements.kpiSortinoEl, '-');
+    setElText(elements.kpiExecutedTradesEl, '-');
+    setElText(elements.kpiRejectedEntriesEl, '-');
+    setElText(elements.kpiAvgPositionsEl, '-');
+    if (elements.monthlyTbodyEl) elements.monthlyTbodyEl.innerHTML = '<tr><td colspan="2">Unavailable</td></tr>';
+    if (elements.annualTbodyEl) elements.annualTbodyEl.innerHTML = '<tr><td colspan="5">Unavailable</td></tr>';
+    if (elements.methodologyEl) elements.methodologyEl.innerHTML = '<p>No data available for selected scenario.</p>';
+    if (elements.diagnosticsSummaryEl) elements.diagnosticsSummaryEl.innerHTML = '<p>No diagnostics available.</p>';
+    if (elements.diagnosticsPreEl) elements.diagnosticsPreEl.textContent = '';
+
+    destroyChart(state.backtestChart);
+    state.backtestChart = null;
+    if (elements.chartNoteEl) elements.chartNoteEl.textContent = 'No chart data available.';
+    return;
+  }
+
+  setBacktestActiveError('');
+
+  const meta = toObject(activePayload.meta);
+  const portfolio = toObject(activePayload.portfolio);
+  const assumptions = toObject(portfolio.assumptions);
+  const diagnostics = toObject(activePayload.diagnostics);
+  const windowed = filterBacktestToVisibleWindow(activePayload);
+
+  setElText(elements.runNameEl, String(meta.run_name || meta.run_id || 'Unnamed Active Run'));
+  setElText(
+    elements.visibleRangeEl,
+    windowed.visibleStart && windowed.visibleEnd ? `${windowed.visibleStart} → ${windowed.visibleEnd}` : 'No date range available',
+  );
+
+  setElText(elements.kpiTotalReturnEl, fmtPctPoints(getBacktestMetric(activePayload, 'total_return_pct')));
+  setElText(elements.kpiCagrEl, fmtPctPoints(getBacktestMetric(activePayload, 'cagr_pct')));
+  setElText(elements.kpiMaxDrawdownEl, fmtPctPoints(getBacktestMetric(activePayload, 'max_drawdown_pct')));
+  setElText(elements.kpiSharpeEl, fmtNumber(getBacktestMetric(activePayload, 'sharpe'), 3));
+  setElText(elements.kpiSortinoEl, fmtNumber(getBacktestMetric(activePayload, 'sortino'), 3));
+  setElText(elements.kpiExecutedTradesEl, fmtInt(getBacktestMetric(activePayload, 'executed_trades')));
+  setElText(elements.kpiRejectedEntriesEl, fmtInt(getBacktestMetric(activePayload, 'rejected_entries')));
+  setElText(elements.kpiAvgPositionsEl, fmtNumber(getBacktestMetric(activePayload, 'avg_positions'), 2));
+
+  destroyChart(state.backtestChart);
+  state.backtestChart = null;
+
+  if (elements.equityChartEl && windowed.dates.length) {
+    const drawdownNegative = windowed.drawdown.map((v) => (Number.isFinite(Number(v)) ? -Math.abs(Number(v)) : null));
+    state.backtestChart = new Chart(elements.equityChartEl, {
+      type: 'line',
+      data: {
+        labels: windowed.dates,
+        datasets: [
+          {
+            label: 'Equity ($)',
+            data: windowed.equity,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.14)',
+            borderWidth: 2,
+            tension: 0.15,
+            pointRadius: 0,
+            yAxisID: 'yEquity',
+          },
+          {
+            label: 'Drawdown %',
+            data: drawdownNegative,
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249, 115, 22, 0.12)',
+            borderWidth: 1.5,
+            tension: 0.1,
+            pointRadius: 0,
+            yAxisID: 'yDD',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#cbd5e1', maxTicksLimit: 10 }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
+          yEquity: {
+            type: 'linear',
+            position: 'left',
+            ticks: { color: '#cbd5e1', callback: (value) => `$${Number(value).toLocaleString()}` },
+            grid: { color: 'rgba(148, 163, 184, 0.12)' },
+          },
+          yDD: {
+            type: 'linear',
+            position: 'right',
+            ticks: { color: '#fbbf24', callback: (value) => `${value}%` },
+            grid: { drawOnChartArea: false },
+          },
+        },
+        plugins: {
+          legend: { labels: { color: '#e2e8f0' } },
+        },
+      },
+    });
+  }
+
+  if (elements.chartNoteEl) {
+    const intended = 'Intended window: latest 5 years';
+    const actual = windowed.visibleStart && windowed.visibleEnd ? `Visible: ${windowed.visibleStart} → ${windowed.visibleEnd}` : 'Visible: unavailable';
+    elements.chartNoteEl.textContent = `${intended}. ${actual}. Assumptions: initial ${fmtDollar(
+      assumptions.initial_capital,
+    )}, max positions ${fmtInt(assumptions.max_positions)}.`;
+  }
+
+  if (elements.monthlyTbodyEl) {
+    if (!windowed.monthly.length) {
+      elements.monthlyTbodyEl.innerHTML = '<tr><td colspan="2">No monthly returns for visible window.</td></tr>';
+    } else {
+      elements.monthlyTbodyEl.innerHTML = windowed.monthly
+        .map((row) => {
+          const item = toObject(row);
+          return `<tr><td>${esc(item.month || '-')}</td><td>${fmtPctPoints(item.return_pct)}</td></tr>`;
+        })
+        .join('');
+    }
+  }
+
+  if (elements.annualTbodyEl) {
+    if (!windowed.annualRows.length) {
+      elements.annualTbodyEl.innerHTML = '<tr><td colspan="5">No annual breakdown for visible window.</td></tr>';
+    } else {
+      elements.annualTbodyEl.innerHTML = windowed.annualRows
+        .map(({ year, row }) => {
+          const bull = getEngineStats(row, 'Bull');
+          const weak = getEngineStats(row, 'Weak');
+          return `
+            <tr>
+              <td>${esc(year)}</td>
+              <td>${fmtPctPoints(getMetricValue(bull, ['win_rate']))}</td>
+              <td>${fmtPctPoints(getMetricValue(bull, ['expectancy_pct', 'expectancy']))}</td>
+              <td>${fmtPctPoints(getMetricValue(weak, ['win_rate']))}</td>
+              <td>${fmtPctPoints(getMetricValue(weak, ['expectancy_pct', 'expectancy']))}</td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+  }
+
+  if (elements.methodologyEl) {
+    elements.methodologyEl.innerHTML = `
+      <p><strong>Data source:</strong> ${esc(BACKTEST_ACTIVE_PATHS[selectedKey])}</p>
+      <p><strong>Run:</strong> ${esc(meta.run_name || meta.run_id || '-')}</p>
+      <p><strong>Portfolio assumptions:</strong> initial ${fmtDollar(assumptions.initial_capital)}, max positions ${fmtInt(
+      assumptions.max_positions,
+    )}, slippage ${fmtPctPoints((Number(assumptions.slippage_pct_each_side) || 0) * 100, 3)} each side, commission ${fmtDollar(
+      assumptions.commission_per_side,
+    )} each side.</p>
+      <p><strong>Windowing rule:</strong> render latest 5 years when available; otherwise show actual available history only.</p>
+      <p><strong>Scenario independence:</strong> 10K and 30K are loaded from separate files and never scaled from each other.</p>
+    `;
+  }
+
+  if (elements.diagnosticsSummaryEl) {
+    const counts = toObject(diagnostics.counts);
+    const executionSummary = toObject(toObject(diagnostics.portfolio_execution).summary);
+    elements.diagnosticsSummaryEl.innerHTML = `
+      <p>Run ID: <strong>${esc(meta.run_id || '-')}</strong></p>
+      <p>Rows with metrics: <strong>${fmtInt(counts.rows_with_metrics)}</strong></p>
+      <p>Executed trades: <strong>${fmtInt(getMetricValue(executionSummary, ['executed_trades']))}</strong> | Rejected entries: <strong>${fmtInt(
+      getMetricValue(executionSummary, ['rejected_entries']),
+    )}</strong></p>
+    `;
+  }
+
+  if (elements.diagnosticsPreEl) {
+    elements.diagnosticsPreEl.textContent = JSON.stringify(
+      {
+        meta: activePayload.meta,
+        diagnostics: {
+          counts: diagnostics.counts,
+          config: diagnostics.config,
+          portfolio_execution: diagnostics.portfolio_execution,
+        },
+      },
+      null,
+      2,
+    );
+  }
+}
+
+function bindBacktestScenarioControls() {
+  const { toggle } = getBacktestActiveElements();
+  if (!toggle || toggle.dataset.bound) return;
+
+  toggle.addEventListener('click', (evt) => {
+    const btn = evt.target?.closest?.('.scenario-btn');
+    if (!btn) return;
+    const next = String(btn.dataset.capital || '').toLowerCase();
+    if (next !== '10k' && next !== '30k') return;
+    state.backtest.selectedCapital = next;
+    renderBacktestActiveView();
+  });
+
+  toggle.dataset.bound = '1';
+}
+
+async function ensureBacktestActiveInitialized() {
+  if (!state.backtest.initialized) {
+    bindBacktestScenarioControls();
+    state.backtest.initialized = true;
+  }
+
+  await loadBacktestActiveDataIfNeeded();
+  renderBacktestActiveView();
+}
+
 function getMarketConditionChartContainer() {
   return document.getElementById('spy-chart-container') || document.getElementById('marketConditionSpyChart');
 }
@@ -2144,7 +2612,7 @@ async function boot() {
   try {
     renderTabs();
     initScreenerViewSwitching();
-    await loadBacktestRunsIndexIfNeeded();
+    await ensureBacktestActiveInitialized();
 
     const payload = await loadPayload();
     state.payload = payload;
@@ -2161,9 +2629,6 @@ async function boot() {
     renderBenchmarkChart();
     initSelection();
 
-    // Keep this aligned with the screener tab behavior: always load data on boot.
-    // Backtesting tab still renders only when opened, but data is guaranteed available.
-    void loadBacktestSummaryIfNeeded();
     void renderMarketCondition();
   } catch (err) {
     showLoadError(String(err?.message || err), String(err?.stack || ''));
