@@ -1,5 +1,24 @@
 # Project Report
 
+## 2026-04-25
+
+### Tracker tab + 10-trading-day post-discovery tracker (additive, deployment-safe)
+- Added dedicated tracker pipeline in [`update_tracker_file()`](src/screener/tracker.py:288) with persistent storage at [`docs/data/tracker.json`](docs/data/tracker.json).
+- Tracker inclusion rule implemented exactly as approved:
+  - bull engine only
+  - top 10 rank only
+  - both tags required (🏆 via `leadership_score >= 0.90`, ⚡ via `actionability_score >= 0.58`)
+  - auto-drop after 10 trading days
+  - symbol can be re-added after drop on a new qualified discovery
+- Tracker schema implemented in persisted records includes approved fields:
+  - `symbol`, `capture_date_utc`, `capture_close`, `current_close`, `return_since_capture_pct`, `days_tracked_trading`, `expiry_date_utc`, `status`, `rank_at_capture`, `score_at_capture`, `distance_to_sma20_pct`, `rsi14`, `volume_buzz_ratio`, `last_updated_utc`.
+- Integrated tracker update into daily runtime via [`main()`](scripts/run_daily.py:203), without changing existing screener artifact contract ([`docs/data/latest.json`](docs/data/latest.json:1) remains unchanged).
+- Added a new Tracker UI tab in [`docs/index.html`](docs/index.html:29) and rendering logic in [`renderTracker()`](docs/app.js:2891), with table/summary cards and status chips.
+- Added tracker-specific styling in [`docs/styles.css`](docs/styles.css:379).
+- Validation:
+  - Python syntax compile for modified backend modules
+  - Daily run generated tracker artifact with expected rule metadata and counts.
+
 ## 2026-04-18
 
 ### Normalized scoring refactor for bull/weak engines

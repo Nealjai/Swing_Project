@@ -1,6 +1,61 @@
 
 # Specification: Market Condition Tab
 
+## 0. Addendum (2026-04-25): Tracker tab + 10-trading-day post-discovery tracking
+
+### Goal
+Add a separate Tracker feature that measures how qualified bull-engine discoveries perform after they are first detected, without changing existing screener output contracts or deployment behavior.
+
+### Approved inclusion + lifecycle rules
+- Include only symbols that satisfy all conditions on the run day:
+  - engine is `bull`
+  - rank is top 10 (`rank <= 10`)
+  - has both tags by score thresholds:
+    - 🏆: `leadership_score >= 0.90`
+    - ⚡: `actionability_score >= 0.58`
+- Persist original `capture_date_utc` while symbol remains active.
+- Track for `10` trading days (`days_tracked_trading`).
+- Auto-drop after the 10-trading-day window.
+- If rediscovered after being dropped, create a new active record (new capture cycle).
+
+### Data contract
+New additive artifact only: [`docs/data/tracker.json`](docs/data/tracker.json:1)
+
+Top-level structure:
+- `meta` (generated timestamp, tracker rules, counts)
+- `active` (active tracked records)
+- `dropped` (recent dropped records)
+- `items` (combined list for easy frontend rendering)
+
+Approved record fields:
+- `symbol`
+- `capture_date_utc`
+- `capture_close`
+- `current_close`
+- `return_since_capture_pct`
+- `days_tracked_trading`
+- `expiry_date_utc`
+- `status` (`active` | `dropped`)
+- `rank_at_capture`
+- `score_at_capture`
+- `distance_to_sma20_pct`
+- `rsi14`
+- `volume_buzz_ratio` (`today_volume / avg_50d_volume`)
+- `last_updated_utc`
+
+### Architecture changes (additive only)
+- Backend tracker module: [`update_tracker_file()`](src/screener/tracker.py:288)
+- Runtime integration in daily job: [`main()`](scripts/run_daily.py:203)
+- New frontend tab and table rendering:
+  - markup: [`docs/index.html`](docs/index.html:29)
+  - logic: [`renderTracker()`](docs/app.js:2891)
+  - style: [`docs/styles.css`](docs/styles.css:379)
+
+### Non-goals
+- No changes to ranking model behavior.
+- No changes to existing screener output file contract in [`docs/data/latest.json`](docs/data/latest.json:1).
+- No changes to backtest data contract.
+
 ## 0. Addendum (2026-04-18): Normalized dual-engine scoring refactor
 
 ### Summary

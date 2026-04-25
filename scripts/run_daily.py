@@ -22,6 +22,7 @@ from screener.indicators import add_indicators, latest_metrics
 from screener.ranking import rank_candidates
 from screener.regime import detect_regime
 from screener.market_condition import get_market_condition
+from screener.tracker import update_tracker_file
 from screener.universe import UniverseItem, load_universe
 
 
@@ -363,6 +364,12 @@ def main() -> int:
         chart_data=chart_data,
     )
 
+    tracker_payload = update_tracker_file(
+        ranked_candidates=ranked,
+        rows_with_metrics=rows,
+        enriched_by_yf_symbol=enriched,
+    )
+
     print("Generating market condition data...")
     market_condition = get_market_condition()
 
@@ -373,11 +380,13 @@ def main() -> int:
     market_condition_path.write_text(json.dumps(market_condition, indent=2), encoding="utf-8")
 
     logger.info(
-        "Finished run: regime=%s engine=%s candidates=%s universe=%s",
+        "Finished run: regime=%s engine=%s candidates=%s universe=%s tracker_active=%s tracker_dropped=%s",
         regime.regime,
         engine_name,
         len(ranked),
         len(universe),
+        len(tracker_payload.get("active", [])),
+        len(tracker_payload.get("dropped", [])),
     )
     return 0
 
