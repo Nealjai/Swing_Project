@@ -1,0 +1,58 @@
+{
+  "run_name": "SP500 full universe smoke",
+  "run_description": "Smoke validation run using full SP500 universe with explicit metadata and user controls",
+  "engine": "both",
+  "date_range": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "warmup_bars": 200,
+    "lookback_calendar_days": 1105
+  },
+  "universe": {
+    "symbol_mode": "full",
+    "symbol_count": 503,
+    "universe_file": "sp500.txt",
+    "benchmark_symbol": "SPY"
+  },
+  "portfolio": {
+    "initial_capital": 10000.0,
+    "max_positions": 5,
+    "slippage_pct_each_side": 0.0005,
+    "commission_per_side": 0.32,
+    "monthly_drawdown_limit_pct": 6.0,
+    "monthly_risk_per_trade_pct": 1.0,
+    "risk_free_rate_annual": 0.0,
+    "trading_days_per_year": 252,
+    "share_rounding": "floor",
+    "entry_priority": "avg_dollar_volume_20d_desc",
+    "monthly_drawdown_rule": "halt_new_entries_if_equity_below_month_start_equity_threshold"
+  },
+  "data_refresh": {
+    "force_refresh": false,
+    "market_aware_refresh": true
+  },
+  "user_inputs": {
+    "engine": "both",
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "symbol_mode": "full",
+    "universe_file": "sp500.txt",
+    "benchmark_symbol": "SPY",
+    "initial_capital": 10000.0,
+    "max_positions": 5,
+    "slippage_pct": 0.0005,
+    "commission_per_side": 0.32,
+    "monthly_dd_limit_pct": 6.0,
+    "monthly_risk_per_trade_pct": 1.0,
+    "risk_free_rate_annual": 0.0,
+    "trading_days_per_year": 252,
+    "force_refresh": false,
+    "market_aware_refresh": true,
+    "run_name": "SP500 full universe smoke",
+    "run_description": "Smoke validation run using full SP500 universe with explicit metadata and user controls"
+  },
+  "scenario": {
+    "candidates_source": "generated",
+    "reuse_candidates_csv": null
+  }
+}

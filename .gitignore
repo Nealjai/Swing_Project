@@ -3,3 +3,4 @@ reference/
 docs/data/latest.json
 docs/data/latest.csv
 data/backtests/
+.venv/

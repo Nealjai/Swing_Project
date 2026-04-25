@@ -43,6 +43,8 @@ def _summary_for_subset(df: pd.DataFrame) -> Dict[str, float | int | None]:
             "win_rate": None,
             "avg_win_pct": None,
             "avg_loss_pct": None,
+            "max_win_pct": None,
+            "max_loss_pct": None,
             "profit_factor": None,
             "expectancy_pct": None,
             "max_consecutive_losses": 0,
@@ -65,11 +67,16 @@ def _summary_for_subset(df: pd.DataFrame) -> Dict[str, float | int | None]:
     max_consec_losses = _max_consecutive_losses(pnl)
     avg_hold_days = float(df["hold_days"].astype(float).mean()) if "hold_days" in df.columns else None
 
+    max_win = float(wins.max()) if len(wins) > 0 else None
+    max_loss = float(losses.min()) if len(losses) > 0 else None
+
     return {
         "total_trades": total_trades,
         "win_rate": _round(win_rate, 2),
         "avg_win_pct": _round(avg_win, 4) if avg_win is not None else None,
         "avg_loss_pct": _round(avg_loss, 4) if avg_loss is not None else None,
+        "max_win_pct": _round(max_win, 4) if max_win is not None else None,
+        "max_loss_pct": _round(max_loss, 4) if max_loss is not None else None,
         "profit_factor": _round(profit_factor, 4) if profit_factor is not None else None,
         "expectancy_pct": _round(expectancy, 4),
         "max_consecutive_losses": int(max_consec_losses),
