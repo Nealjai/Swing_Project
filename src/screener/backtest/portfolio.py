@@ -69,21 +69,24 @@ def _prepare_calendar(
     return dates[(dates >= start_ts) & (dates <= end_ts)]
 
 
-def _build_close_map(
+def _build_price_map(
     prices_by_symbol: Dict[str, pd.DataFrame],
     symbols: List[str],
     calendar: pd.DatetimeIndex,
+    column: str,
 ) -> Dict[str, pd.Series]:
-    close_map: Dict[str, pd.Series] = {}
+    out: Dict[str, pd.Series] = {}
     for symbol in symbols:
         df = prices_by_symbol.get(symbol)
-        if df is None or df.empty or "Close" not in df.columns:
-            close_map[symbol] = pd.Series(index=calendar, dtype=float)
+        if df is None or df.empty or column not in df.columns:
+            out[symbol] = pd.Series(index=calendar, dtype=float)
             continue
-        close_series = pd.to_numeric(df["Close"], errors="coerce")
-        close_series = close_series.reindex(calendar).ffill()
-        close_map[symbol] = close_series
-    return close_map
+        series = pd.to_numeric(df[column], errors="coerce")
+        series = series.reindex(calendar)
+        if column in {"Close", "Adj Close"}:
+            series = series.ffill()
+        out[symbol] = series
+    return out
 
 
 def _annualized_cagr(equity_curve: pd.DataFrame, initial_capital: float) -> float | None:
@@ -232,7 +235,10 @@ def simulate_portfolio(
     cands = cands.sort_values(["entry_date", "signal_avg_dollar_volume_20d", "symbol"], ascending=[True, False, True]).reset_index(drop=True)
 
     symbols = sorted({str(s) for s in cands["yf_symbol"].dropna().astype(str).unique().tolist()})
-    close_map = _build_close_map(prices_by_symbol=prices_by_symbol, symbols=symbols, calendar=calendar)
+    open_map = _build_price_map(prices_by_symbol=prices_by_symbol, symbols=symbols, calendar=calendar, column="Open")
+    high_map = _build_price_map(prices_by_symbol=prices_by_symbol, symbols=symbols, calendar=calendar, column="High")
+    low_map = _build_price_map(prices_by_symbol=prices_by_symbol, symbols=symbols, calendar=calendar, column="Low")
+    close_map = _build_price_map(prices_by_symbol=prices_by_symbol, symbols=symbols, calendar=calendar, column="Close")
 
     by_entry_date: Dict[pd.Timestamp, pd.DataFrame] = {
         d: g.copy() for d, g in cands.groupby("entry_date", sort=True)
@@ -434,11 +440,58 @@ def simulate_portfolio(
                         }
                     )
 
-        # Exit at close for positions scheduled today.
-        to_close = [sym for sym, pos in open_positions.items() if pd.Timestamp(pos["planned_exit_date"]) == day]
-        for sym in to_close:
-            pos = open_positions[sym]
-            exit_raw = float(pos["planned_exit_raw"])
+        # Exit logic: intraday TP/SL using daily High/Low, with gap-aware open handling.
+        to_close: List[tuple[str, Dict[str, object], float, str]] = []
+        for sym, pos in open_positions.items():
+            open_series = open_map.get(sym)
+            high_series = high_map.get(sym)
+            low_series = low_map.get(sym)
+            close_series = close_map.get(sym)
+
+            open_px = None if open_series is None else _safe_float(open_series.loc[day])
+            high_px = None if high_series is None else _safe_float(high_series.loc[day])
+            low_px = None if low_series is None else _safe_float(low_series.loc[day])
+            close_px = None if close_series is None else _safe_float(close_series.loc[day])
+
+            sl_level = _safe_float(pos.get("sl_level"))
+            tp_level = _safe_float(pos.get("tp_level"))
+            planned_exit_date = pd.Timestamp(pos.get("planned_exit_date"))
+            planned_exit_raw = _safe_float(pos.get("planned_exit_raw"))
+
+            exit_raw: float | None = None
+            exit_reason = ""
+
+            if sl_level is not None and open_px is not None and open_px <= sl_level:
+                exit_raw = open_px
+                exit_reason = "sl_gap_open"
+            elif tp_level is not None and open_px is not None and open_px >= tp_level:
+                exit_raw = open_px
+                exit_reason = "tp_gap_open"
+            else:
+                hit_sl = sl_level is not None and low_px is not None and low_px <= sl_level
+                hit_tp = tp_level is not None and high_px is not None and high_px >= tp_level
+
+                if hit_sl and hit_tp:
+                    exit_raw = float(sl_level)
+                    exit_reason = "sl_tp_same_day_stop_priority"
+                elif hit_sl:
+                    exit_raw = float(sl_level)
+                    exit_reason = "sl_intraday"
+                elif hit_tp:
+                    exit_raw = float(tp_level)
+                    exit_reason = "tp_intraday"
+                elif day >= planned_exit_date:
+                    if close_px is not None:
+                        exit_raw = float(close_px)
+                        exit_reason = "planned_exit_date_close"
+                    elif planned_exit_raw is not None and planned_exit_raw > 0:
+                        exit_raw = float(planned_exit_raw)
+                        exit_reason = "planned_exit_raw_fallback"
+
+            if exit_raw is not None and exit_raw > 0:
+                to_close.append((sym, pos, float(exit_raw), exit_reason))
+
+        for sym, pos, exit_raw, exit_reason in to_close:
             exit_fill = exit_raw * (1.0 - float(config.slippage_pct_each_side))
             proceeds = (float(pos["shares"]) * exit_fill) - float(config.commission_per_side)
             cash += proceeds
@@ -464,7 +517,7 @@ def simulate_portfolio(
                     "exit_proceeds": float(proceeds),
                     "pnl_dollar": float(pnl_dollar),
                     "pnl_pct": pnl_pct,
-                    "exit_reason": pos.get("exit_reason"),
+                    "exit_reason": exit_reason or pos.get("exit_reason"),
                     "sl_level": pos.get("sl_level"),
                     "tp_level": pos.get("tp_level"),
                     "signal_avg_dollar_volume_20d": pos.get("signal_avg_dollar_volume_20d"),

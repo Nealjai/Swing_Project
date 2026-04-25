@@ -1097,3 +1097,174 @@ pre {
     padding: 6px;
   }
 }
+
+/* Backtest Explorer & Report */
+.backtest-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 180px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.filter-group input,
+.filter-group button {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.filter-group button {
+  cursor: pointer;
+  font-weight: 700;
+  background: rgba(148, 163, 184, 0.15);
+  align-self: flex-end;
+  height: 100%;
+}
+
+.filter-group button:hover {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+#backtestRunsTable th,
+#backtestRunsTable td {
+  text-align: left;
+  white-space: nowrap;
+}
+
+#backtestRunsTable td:nth-child(4),
+#backtestRunsTable td:nth-child(5) {
+  text-align: right;
+}
+
+#backtestRunsTable .load-run-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: #dbeafe;
+}
+
+#backtestRunsTable .load-run-btn:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+#closeReportBtn {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+#closeReportBtn:hover {
+  color: var(--text);
+}
+
+.accordion {
+  display: grid;
+  gap: 10px;
+}
+
+.accordion-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.accordion-header {
+  width: 100%;
+  background: var(--panel-soft);
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accordion-item:first-child .accordion-header {
+  border-top: 0;
+}
+
+.accordion-header:hover {
+  background: #0b1324;
+}
+
+.accordion-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease-in-out;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: contain;
+}
+
+.accordion-header[aria-expanded="true"] .accordion-icon {
+  transform: rotate(180deg);
+}
+
+.accordion-content {
+  padding: 14px;
+  display: grid; /* Changed from display: none */
+  gap: 14px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+}
+
+.accordion-header[aria-expanded="true"] + .accordion-content {
+  max-height: 2000px; /* Adjust as needed */
+  transition: max-height 0.5s ease-in, padding 0.5s ease-in;
+}
+
+.accordion-content h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.accordion-content h3.spaced {
+    margin-top: 12px;
+}
+
+#reportPortfolioStats {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}

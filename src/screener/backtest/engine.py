@@ -412,12 +412,21 @@ def run_backtest(
     settings: Settings,
     config: BacktestConfig,
     logger: logging.Logger,
+    *,
+    force_refresh: bool = False,
+    market_aware_refresh: bool = True,
 ) -> BacktestResult:
     unique_symbols = sorted({str(s).strip().upper() for s in symbols if str(s).strip()})
     if settings.benchmark_symbol not in unique_symbols:
         unique_symbols.append(settings.benchmark_symbol)
 
-    prices, data_diag = fetch_prices(yf_symbols=unique_symbols, settings=settings, logger=logger)
+    prices, data_diag = fetch_prices(
+        yf_symbols=unique_symbols,
+        settings=settings,
+        logger=logger,
+        force_refresh=force_refresh,
+        market_aware_refresh=market_aware_refresh,
+    )
     info_by_symbol = fetch_ticker_info(unique_symbols, logger)
 
     benchmark_df = prices.get(settings.benchmark_symbol)
@@ -521,6 +530,8 @@ def run_backtest(
             "engine": config.engine,
             "warmup_bars": config.warmup_bars,
             "min_avg_dollar_volume_20d": float(settings.min_avg_dollar_volume_20d),
+            "force_refresh": bool(force_refresh),
+            "market_aware_refresh": bool(market_aware_refresh),
         },
     }
 
