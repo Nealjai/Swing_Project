@@ -73,8 +73,8 @@
                       <th>Score</th>
                       <th>Tag</th>
                       <th>Close</th>
-                      <th>SL</th>
-                      <th>TP</th>
+                      <th>SL (2×ATR)</th>
+                      <th>Activation (2×ATR)</th>
                     </tr>
                   </thead>
                   <tbody></tbody>
@@ -157,11 +157,11 @@
                     <strong class="detail-value" id="chartDetailCurrentPrice">-</strong>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-label">Stop Loss</span>
+                    <span class="detail-label">Stop Loss (SL)</span>
                     <strong class="detail-value" id="chartDetailStopLoss">-</strong>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-label">Take Profit</span>
+                    <span class="detail-label">Activation (TP1)</span>
                     <strong class="detail-value" id="chartDetailTakeProfit">-</strong>
                   </div>
                   <div class="detail-item">
@@ -457,7 +457,7 @@
             <strong id="trackerActiveCount">-</strong>
           </article>
           <article class="tracker-summary-item">
-            <span>Dropped</span>
+            <span>Inactive</span>
             <strong id="trackerDroppedCount">-</strong>
           </article>
           <article class="tracker-summary-item">
@@ -468,7 +468,7 @@
 
         <section class="card">
           <h2>2-Week Discovery Tracker (Bull Top-10 🏆⚡)</h2>
-          <p class="muted">Tracks bull-engine candidates that have both tags (🏆 and ⚡) while ranked top 10. Each position is tracked for 10 trading days and then dropped.</p>
+          <p class="muted">Tracks bull-engine candidates that have both tags (🏆 and ⚡) while ranked top 10. Status follows backtest-style states: active, trail_stop activated, and inactive after stop/trailing/time-stop exit.</p>
           <div id="trackerStatus" class="muted">Loading tracker...</div>
           <div class="table-wrap">
             <table id="trackerTable">
@@ -476,14 +476,15 @@
                 <tr>
                   <th>Symbol</th>
                   <th>Captured Date</th>
-                  <th>Days Tracked</th>
-                  <th>Return Since Capture</th>
-                  <th>Price at Capture</th>
+                  <th>Entry Date</th>
+                  <th>Entry Price</th>
                   <th>Current Price</th>
-                  <th>Distance from SMA20</th>
-                  <th>Volume Buzz</th>
-                  <th>RSI14</th>
-                  <th>Status</th>
+                  <th>SL</th>
+                  <th>Activation</th>
+                  <th>Trail Stop</th>
+                  <th>State</th>
+                  <th>Tag</th>
+                  <th>Exit Reason</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -491,6 +492,54 @@
           </div>
         </section>
       </section>
+
+     <section class="card" id="tracker-explanation">
+       <h2>Understanding the Tracker</h2>
+       <div class="explanation-grid">
+         <div class="explanation-column">
+           <h3>Column Definitions</h3>
+           <dl class="explanation-list">
+             <dt>Symbol</dt>
+             <dd>The stock ticker symbol.</dd>
+             <dt>Captured Date</dt>
+             <dd>The date the stock first appeared in the screener results meeting the tracker criteria.</dd>
+             <dt>Entry Date</dt>
+             <dd>The date a hypothetical entry was triggered based on the backtest logic (usually the day after capture).</dd>
+             <dt>Entry Price</dt>
+             <dd>The price at which the hypothetical entry was made (usually the opening price on the entry date).</dd>
+             <dt>Current Price</dt>
+             <dd>The most recent closing price for the stock.</dd>
+             <dt>SL</dt>
+             <dd>The initial stop-loss price, calculated at the time of capture.</dd>
+             <dt>Activation</dt>
+             <dd>The price at which the trailing stop mechanism activates.</dd>
+             <dt>Trail Stop</dt>
+             <dd>The current trailing stop price. This value updates as the price moves favorably.</dd>
+             <dt>State</dt>
+             <dd>The current status of the tracked position (e.g., Active, Inactive).</dd>
+             <dt>Tag</dt>
+             <dd>The lifecycle tag indicating the position's current management state.</dd>
+             <dt>Exit Reason</dt>
+             <dd>If inactive, the reason for the exit (e.g., STOP_LOSS, TIME_STOP).</dd>
+           </dl>
+         </div>
+         <div class="explanation-column">
+           <h3>Tag Definitions</h3>
+           <dl class="explanation-list">
+             <dt><span class="tracker-tag entry-pending">ENTRY_PENDING</span></dt>
+             <dd>The system is waiting for the market to open on the next trading day to log the entry price.</dd>
+             <dt><span class="tracker-tag watching">WATCHING</span></dt>
+             <dd>An entry has been logged. The system is now monitoring the price relative to the Stop Loss and Activation price.</dd>
+             <dt><span class="tracker-tag trail-stop">TRAIL_STOP</span></dt>
+             <dd>The price has hit the 'Activation' level. The position is now managed by a trailing stop.</dd>
+             <dt><span class="tracker-tag stop-loss">STOP_LOSS</span></dt>
+             <dd>The position was exited because the price hit the stop-loss level.</dd>
+             <dt><span class="tracker-tag time-stop">TIME_STOP</span></dt>
+             <dd>The position was exited because it reached its maximum holding period without hitting a stop.</dd>
+           </dl>
+         </div>
+       </div>
+     </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>

@@ -515,7 +515,7 @@ function renderCandidateTable(candidates) {
       <td class="candidate-tag-cell">${buildCandidateTagCell(c)}</td>
       <td>${fmtNumber(c.close)}</td>
       <td>${fmtNumber(c.risk?.stop_loss)}</td>
-      <td>${fmtNumber(c.risk?.take_profit)}</td>
+      <td>${fmtNumber(c.risk?.activation_level ?? c.risk?.take_profit)}</td>
     `;
 
     tr.addEventListener('click', () => {
@@ -675,8 +675,8 @@ function renderSelectedDetails(candidate) {
       <div class="meta-value sl">${fmtNumber(risk.stop_loss)}</div>
     </div>
     <div class="meta-item">
-      <div class="meta-label">Take Profit</div>
-      <div class="meta-value tp">${fmtNumber(risk.take_profit)}</div>
+      <div class="meta-label">Activation (TP1)</div>
+      <div class="meta-value tp">${fmtNumber(risk.activation_level ?? risk.take_profit)}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">ATR14</div>
@@ -735,7 +735,7 @@ function updateScreenerDetailsPanel(symbol) {
 
   setScreenerDetailField('chartDetailCurrentPrice', fmtNumber(c.close));
   setScreenerDetailField('chartDetailStopLoss', fmtNumber(risk.stop_loss));
-  setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.take_profit));
+  setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.activation_level ?? risk.take_profit));
   setScreenerDetailField('chartDetailAtr14', fmtNumber(risk.atr14));
   setScreenerDetailField('chartDetailRoe', fmtPct(fundamentals.roe));
   setScreenerDetailField('chartDetailPe', fmtNumber(fundamentals.pe));
@@ -2911,13 +2911,23 @@ function getTrackerElements() {
     statusEl: document.getElementById('trackerStatus'),
     tableBody: document.querySelector('#trackerTable tbody'),
     activeCountEl: document.getElementById('trackerActiveCount'),
-    droppedCountEl: document.getElementById('trackerDroppedCount'),
+    inactiveCountEl: document.getElementById('trackerDroppedCount'),
     generatedAtEl: document.getElementById('trackerGeneratedAt'),
   };
 }
 
 function trackerStatusClass(status) {
-  return String(status || '').toLowerCase() === 'dropped' ? 'tracker-status dropped' : 'tracker-status active';
+  const normalized = String(status || '').toLowerCase();
+  return normalized === 'inactive' || normalized === 'dropped' ? 'tracker-status inactive' : 'tracker-status active';
+}
+
+function trackerTagClass(tag) {
+  const normalized = String(tag || '').toLowerCase();
+  if (normalized.includes('stop_loss')) return 'tracker-tag stop-loss';
+  if (normalized.includes('trail_stop')) return 'tracker-tag trail-stop';
+  if (normalized.includes('time_stop')) return 'tracker-tag time-stop';
+  if (normalized.includes('entry_pending')) return 'tracker-tag entry-pending';
+  return 'tracker-tag watching';
 }
 
 function renderTrackerTable(items) {
@@ -2926,29 +2936,30 @@ function renderTrackerTable(items) {
 
   const rows = toArray(items);
   if (!rows.length) {
-    tableBody.innerHTML = '<tr><td colspan="10">No tracked symbols yet.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="11">No tracked symbols yet.</td></tr>';
     return;
   }
 
   tableBody.innerHTML = rows
     .map((row) => {
       const r = toObject(row);
-      const ret = toFiniteNumber(r.return_since_capture_pct);
-      const retClass = ret === null ? '' : ret >= 0 ? 'tracker-positive' : 'tracker-negative';
-      const volumeBuzz = toFiniteNumber(r.volume_buzz_ratio);
+      const stateLabel = String(r.position_state || r.status || '-');
+      const primaryTag = String(r.status_tag || toArray(r.status_tags)[0] || 'watching');
+      const exitReason = r.exit_reason ? String(r.exit_reason) : '-';
 
       return `
         <tr>
           <td>${esc(r.symbol || '-')}</td>
           <td>${esc(r.capture_date_utc || '-')}</td>
-          <td>${fmtInt(r.days_tracked_trading)}</td>
-          <td class="${retClass}">${fmtPct(r.return_since_capture_pct)}</td>
-          <td>${fmtNumber(r.capture_close)}</td>
+          <td>${esc(r.entry_date_utc || '-')}</td>
+          <td>${fmtNumber(r.entry_price)}</td>
           <td>${fmtNumber(r.current_close)}</td>
-          <td>${fmtPct(r.distance_to_sma20_pct)}</td>
-          <td>${volumeBuzz === null ? '-' : `${fmtNumber(volumeBuzz, 2)}x`}</td>
-          <td>${fmtNumber(r.rsi14, 1)}</td>
-          <td><span class="${trackerStatusClass(r.status)}">${esc(r.status || '-')}</span></td>
+          <td>${fmtNumber(r.stop_loss)}</td>
+          <td>${fmtNumber(r.activation_level)}</td>
+          <td>${fmtNumber(r.trail_stop_price)}</td>
+          <td><span class="${trackerStatusClass(stateLabel)}">${esc(stateLabel)}</span></td>
+          <td><span class="${trackerTagClass(primaryTag)}">${esc(primaryTag)}</span></td>
+          <td>${esc(exitReason)}</td>
         </tr>
       `;
     })
@@ -2956,7 +2967,7 @@ function renderTrackerTable(items) {
 }
 
 async function renderTracker() {
-  const { statusEl, activeCountEl, droppedCountEl, generatedAtEl } = getTrackerElements();
+  const { statusEl, activeCountEl, inactiveCountEl, generatedAtEl } = getTrackerElements();
   if (state.tracker.loading) return;
 
   state.tracker.loading = true;
@@ -2973,21 +2984,21 @@ async function renderTracker() {
     state.tracker.loaded = true;
 
     const active = toArray(payload.active);
-    const dropped = toArray(payload.dropped);
-    const allItems = toArray(payload.items);
+    const inactive = toArray(payload.inactive?.length ? payload.inactive : payload.dropped);
+    const allItems = toArray(payload.items?.length ? payload.items : [...active, ...inactive]);
 
     if (activeCountEl) activeCountEl.textContent = fmtInt(active.length);
-    if (droppedCountEl) droppedCountEl.textContent = fmtInt(dropped.length);
+    if (inactiveCountEl) inactiveCountEl.textContent = fmtInt(inactive.length);
     if (generatedAtEl) generatedAtEl.textContent = String(toObject(payload.meta).generated_at_utc || '-');
 
     renderTrackerTable(allItems);
     if (statusEl) {
-      statusEl.textContent = `Loaded ${fmtInt(allItems.length)} records (${fmtInt(active.length)} active / ${fmtInt(dropped.length)} dropped).`;
+      statusEl.textContent = `Loaded ${fmtInt(allItems.length)} records (${fmtInt(active.length)} active / ${fmtInt(inactive.length)} inactive).`;
     }
   } catch (err) {
     state.tracker.error = String(err?.message || err);
     if (activeCountEl) activeCountEl.textContent = '-';
-    if (droppedCountEl) droppedCountEl.textContent = '-';
+    if (inactiveCountEl) inactiveCountEl.textContent = '-';
     if (generatedAtEl) generatedAtEl.textContent = '-';
     renderTrackerTable([]);
     if (statusEl) statusEl.textContent = `Failed to load tracker: ${state.tracker.error}`;
