@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-04-25T15:20:25.916434+00:00",
+    "generated_at_utc": "2026-04-26T05:00:22.863666+00:00",
     "rules": {
       "engine": "bull",
       "max_rank": 10,
@@ -8,11 +8,11 @@
         "\ud83c\udfc6",
         "\u26a1"
       ],
-      "drop_after_trading_days": 10
+      "position_state": "active until stop-loss/trailing-stop/time-stop; inactive after exit"
     },
     "counts": {
       "active": 10,
-      "dropped": 0,
+      "inactive": 0,
       "items": 10
     }
   },
@@ -29,9 +29,22 @@
       "rank_at_capture": 4,
       "score_at_capture": 82.1799352709603,
       "distance_to_sma20_pct": 0.1889119320287922,
-      "rsi14": 77.06988837210687,
+      "rsi14": 77.06988837206967,
       "volume_buzz_ratio": 0.6547556900620964,
-      "last_updated_utc": "2026-04-25T15:20:25.884117+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.825664+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "VRT",
@@ -45,9 +58,22 @@
       "rank_at_capture": 8,
       "score_at_capture": 80.04396216432721,
       "distance_to_sma20_pct": 0.1286821564762981,
-      "rsi14": 67.77729657179029,
+      "rsi14": 67.77729657178995,
       "volume_buzz_ratio": 0.648198266911392,
-      "last_updated_utc": "2026-04-25T15:20:25.889474+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.826971+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "TER",
@@ -61,9 +87,22 @@
       "rank_at_capture": 2,
       "score_at_capture": 84.46072217290236,
       "distance_to_sma20_pct": 0.19061583901389478,
-      "rsi14": 77.63846129723453,
+      "rsi14": 77.63846129723447,
       "volume_buzz_ratio": 1.046120537932748,
-      "last_updated_utc": "2026-04-25T15:20:25.881307+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.828411+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "KEYS",
@@ -79,7 +118,20 @@
       "distance_to_sma20_pct": 0.09642718106089765,
       "rsi14": 74.98625937888227,
       "volume_buzz_ratio": 0.6244120732571238,
-      "last_updated_utc": "2026-04-25T15:20:25.879885+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.829808+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "JBL",
@@ -93,9 +145,22 @@
       "rank_at_capture": 7,
       "score_at_capture": 80.47103017444893,
       "distance_to_sma20_pct": 0.1458382053992444,
-      "rsi14": 78.41224924526769,
+      "rsi14": 78.41224924526745,
       "volume_buzz_ratio": 1.0344262461267093,
-      "last_updated_utc": "2026-04-25T15:20:25.888441+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.856475+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "INTC",
@@ -111,7 +176,20 @@
       "distance_to_sma20_pct": 0.385969049747088,
       "rsi14": 82.1670208985083,
       "volume_buzz_ratio": 2.8792024736659783,
-      "last_updated_utc": "2026-04-25T15:20:25.916424+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.858009+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "GLW",
@@ -125,9 +203,22 @@
       "rank_at_capture": 6,
       "score_at_capture": 81.64158353995768,
       "distance_to_sma20_pct": 0.10466666499599708,
-      "rsi14": 68.4139489974217,
+      "rsi14": 68.41394899738262,
       "volume_buzz_ratio": 0.8320517341587812,
-      "last_updated_utc": "2026-04-25T15:20:25.886863+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.859457+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "FIX",
@@ -141,9 +232,22 @@
       "rank_at_capture": 3,
       "score_at_capture": 82.26049724066209,
       "distance_to_sma20_pct": 0.10724805676169935,
-      "rsi14": 66.5975409722521,
+      "rsi14": 66.59754097225579,
       "volume_buzz_ratio": 1.8698646146101152,
-      "last_updated_utc": "2026-04-25T15:20:25.882700+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.860852+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "CIEN",
@@ -159,7 +263,20 @@
       "distance_to_sma20_pct": 0.11427165919929538,
       "rsi14": 67.77870540586059,
       "volume_buzz_ratio": 0.47725765849293583,
-      "last_updated_utc": "2026-04-25T15:20:25.914988+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.862258+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "AMAT",
@@ -173,11 +290,25 @@
       "rank_at_capture": 5,
       "score_at_capture": 82.16413764383982,
       "distance_to_sma20_pct": 0.10078329504151906,
-      "rsi14": 69.34383766753368,
+      "rsi14": 69.34383766941772,
       "volume_buzz_ratio": 0.9127491114543099,
-      "last_updated_utc": "2026-04-25T15:20:25.885494+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.863659+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     }
   ],
+  "inactive": [],
   "dropped": [],
   "items": [
     {
@@ -192,9 +323,22 @@
       "rank_at_capture": 4,
       "score_at_capture": 82.1799352709603,
       "distance_to_sma20_pct": 0.1889119320287922,
-      "rsi14": 77.06988837210687,
+      "rsi14": 77.06988837206967,
       "volume_buzz_ratio": 0.6547556900620964,
-      "last_updated_utc": "2026-04-25T15:20:25.884117+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.825664+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "VRT",
@@ -208,9 +352,22 @@
       "rank_at_capture": 8,
       "score_at_capture": 80.04396216432721,
       "distance_to_sma20_pct": 0.1286821564762981,
-      "rsi14": 67.77729657179029,
+      "rsi14": 67.77729657178995,
       "volume_buzz_ratio": 0.648198266911392,
-      "last_updated_utc": "2026-04-25T15:20:25.889474+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.826971+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "TER",
@@ -224,9 +381,22 @@
       "rank_at_capture": 2,
       "score_at_capture": 84.46072217290236,
       "distance_to_sma20_pct": 0.19061583901389478,
-      "rsi14": 77.63846129723453,
+      "rsi14": 77.63846129723447,
       "volume_buzz_ratio": 1.046120537932748,
-      "last_updated_utc": "2026-04-25T15:20:25.881307+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.828411+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "KEYS",
@@ -242,7 +412,20 @@
       "distance_to_sma20_pct": 0.09642718106089765,
       "rsi14": 74.98625937888227,
       "volume_buzz_ratio": 0.6244120732571238,
-      "last_updated_utc": "2026-04-25T15:20:25.879885+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.829808+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "JBL",
@@ -256,9 +439,22 @@
       "rank_at_capture": 7,
       "score_at_capture": 80.47103017444893,
       "distance_to_sma20_pct": 0.1458382053992444,
-      "rsi14": 78.41224924526769,
+      "rsi14": 78.41224924526745,
       "volume_buzz_ratio": 1.0344262461267093,
-      "last_updated_utc": "2026-04-25T15:20:25.888441+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.856475+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "INTC",
@@ -274,7 +470,20 @@
       "distance_to_sma20_pct": 0.385969049747088,
       "rsi14": 82.1670208985083,
       "volume_buzz_ratio": 2.8792024736659783,
-      "last_updated_utc": "2026-04-25T15:20:25.916424+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.858009+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "GLW",
@@ -288,9 +497,22 @@
       "rank_at_capture": 6,
       "score_at_capture": 81.64158353995768,
       "distance_to_sma20_pct": 0.10466666499599708,
-      "rsi14": 68.4139489974217,
+      "rsi14": 68.41394899738262,
       "volume_buzz_ratio": 0.8320517341587812,
-      "last_updated_utc": "2026-04-25T15:20:25.886863+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.859457+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "FIX",
@@ -304,9 +526,22 @@
       "rank_at_capture": 3,
       "score_at_capture": 82.26049724066209,
       "distance_to_sma20_pct": 0.10724805676169935,
-      "rsi14": 66.5975409722521,
+      "rsi14": 66.59754097225579,
       "volume_buzz_ratio": 1.8698646146101152,
-      "last_updated_utc": "2026-04-25T15:20:25.882700+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.860852+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "CIEN",
@@ -322,7 +557,20 @@
       "distance_to_sma20_pct": 0.11427165919929538,
       "rsi14": 67.77870540586059,
       "volume_buzz_ratio": 0.47725765849293583,
-      "last_updated_utc": "2026-04-25T15:20:25.914988+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.862258+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     },
     {
       "symbol": "AMAT",
@@ -336,9 +584,22 @@
       "rank_at_capture": 5,
       "score_at_capture": 82.16413764383982,
       "distance_to_sma20_pct": 0.10078329504151906,
-      "rsi14": 69.34383766753368,
+      "rsi14": 69.34383766941772,
       "volume_buzz_ratio": 0.9127491114543099,
-      "last_updated_utc": "2026-04-25T15:20:25.885494+00:00"
+      "last_updated_utc": "2026-04-26T05:00:22.863659+00:00",
+      "entry_date_utc": null,
+      "position_state": "active",
+      "status_tags": [
+        "entry_pending"
+      ],
+      "status_tag": "entry_pending",
+      "activated": false,
+      "activation_date_utc": null,
+      "activation_price": null,
+      "highest_close_since_entry": null,
+      "exit_reason": null,
+      "exit_date_utc": null,
+      "exit_price": null
     }
   ]
 }

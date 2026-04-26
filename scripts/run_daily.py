@@ -120,25 +120,29 @@ def _enrich_candidates(
         row = dict(c)
 
         atr14 = _num(row.get("atr14"))
-        support_level = _num(row.get("bb_lower"))
-        resistance_level = _num(row.get("high_20d"))
-        close = _num(row.get("close"))
+        signal_close = _num(row.get("adj_close"))
+        if signal_close is None:
+            signal_close = _num(row.get("close"))
 
-        stop_loss = (support_level - atr14) if support_level is not None and atr14 is not None else None
-
-        take_profit = None
-        if resistance_level is not None and atr14 is not None:
-            take_profit = resistance_level + atr14
-        elif close is not None and atr14 is not None:
-            take_profit = close + (3.0 * atr14)
+        entry_reference = signal_close
+        stop_loss = None
+        activation_level = None
+        trailing_stop_offset = None
+        if atr14 is not None and signal_close is not None and atr14 > 0 and signal_close > 0:
+            stop_loss = signal_close - (2.0 * atr14)
+            activation_level = entry_reference + (2.0 * atr14)
+            trailing_stop_offset = 1.5 * atr14
 
         row["risk"] = {
-            "support_level": support_level,
-            "resistance_level": resistance_level,
+            "signal_close": signal_close,
+            "entry_reference": entry_reference,
             "atr14": atr14,
             "stop_loss": stop_loss,
-            "take_profit": take_profit,
-            "method": "stop=bb_lower-1*atr14; tp=high_20d+1*atr14 (fallback close+3*atr14)",
+            "activation_level": activation_level,
+            "take_profit": activation_level,
+            "trailing_stop_offset": trailing_stop_offset,
+            "max_hold_days": 15,
+            "method": "backtest-aligned: sl=signal_close-2*atr14; activation=entry+2*atr14; trailing=highest_close-1.5*atr14 after activation; time_stop=15 trading days",
         }
 
         yf_symbol = str(row.get("yf_symbol") or "")
