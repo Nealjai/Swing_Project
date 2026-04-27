@@ -4,3 +4,4 @@ docs/data/latest.json
 docs/data/latest.csv
 data/backtests/
 .venv/
+.tools/node-runtime/
