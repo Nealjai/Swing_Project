@@ -228,7 +228,47 @@
         </section>
       </section>
 
-      <section id="tabMarketCondition" class="tab-panel" aria-labelledby="tabBtnMarketCondition">
+      <section class="card screener-logic-card" id="screener-explanation">
+        <h2>Understanding the Screener Logic</h2>
+        <div class="explanation-grid">
+          <div class="explanation-column">
+            <h3>Active Engine</h3>
+            <p class="muted">The screener adapts to market regime by activating one engine. The active engine is highlighted below.</p>
+            <div class="engine-logic-selector" aria-label="Active screener engine">
+              <span class="engine-logic-tag bull" data-engine-tag="bull">Bull Engine</span>
+              <span class="engine-logic-tag weak" data-engine-tag="weak">Weak Engine</span>
+            </div>
+            <p class="muted engine-logic-explanation">The Bull Engine seeks strong stocks breaking out from sound price structures. The Weak Engine targets defensive, oversold rebound setups.</p>
+          </div>
+          <div class="explanation-column">
+            <h3>Tag Definitions</h3>
+            <p class="muted">Tags are assigned from normalized scores (0 to 1) in table logic. A stock can carry both 🏆 and ⚡ together.</p>
+            <dl class="explanation-list">
+              <dt>🏆 Leadership</dt>
+              <dd>Given when <code>leadership_score ≥ 0.90</code>.</dd>
+              <dt>⚡ Actionable</dt>
+              <dd>Given when <code>actionability_score ≥ 0.58</code>.</dd>
+              <dt>👀 Watchlist</dt>
+              <dd>Given when <code>0.50 ≤ actionability_score < 0.58</code> and ⚡ is not assigned.</dd>
+              <dt>- (None)</dt>
+              <dd>Shown when none of the above thresholds are met.</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="explanation-footer">
+          <h4>How scores are calculated</h4>
+          <p class="muted">All components are normalized with a robust method (median/MAD + sigmoid) before weighting.</p>
+          <ul class="muted formula-list">
+            <li><strong>Bull Leadership</strong> = <code>0.60 × RS + 0.40 × Trend</code></li>
+            <li><strong>Bull Actionability</strong> = <code>0.40 × Breakout + 0.25 × Compression + 0.20 × Volume + 0.15 × Stage</code></li>
+            <li><strong>Weak Leadership</strong> = <code>0.70 × Trend + 0.30 × Liquidity</code></li>
+            <li><strong>Weak Actionability</strong> = <code>0.45 × Reversal + 0.35 × Extension + 0.20 × Capitulation</code></li>
+            <li><strong>Final Score</strong>: Bull <code>100 × (0.55 × Actionability + 0.45 × Leadership)</code>; Weak <code>100 × (0.60 × Actionability + 0.40 × Leadership)</code></li>
+          </ul>
+        </div>
+      </section>
+
+     <section id="tabMarketCondition" class="tab-panel" aria-labelledby="tabBtnMarketCondition">
         <div id="market-condition" class="tab-content">
           <section class="summary-grid">
             <div class="card">
@@ -319,6 +359,46 @@
           <section id="howItWorksInterpretation" class="card" aria-labelledby="howItWorksInterpretationTitle">
             <h2 id="howItWorksInterpretationTitle">What Does a Result Mean?</h2>
             <p id="howItWorksInterpretationText" class="muted"></p>
+          </section>
+
+          <section class="card screener-logic-card" id="howitworks-screener-explanation" aria-labelledby="howItWorksScreenerLogicTitle">
+            <h2 id="howItWorksScreenerLogicTitle">Understanding the Screener Logic</h2>
+            <div class="explanation-grid">
+              <div class="explanation-column">
+                <h3>Active Engine</h3>
+                <p class="muted">The screener adapts to market regime by activating one engine. The active engine is highlighted below.</p>
+                <div class="engine-logic-selector" aria-label="Active screener engine">
+                  <span class="engine-logic-tag bull" data-engine-tag="bull">Bull Engine</span>
+                  <span class="engine-logic-tag weak" data-engine-tag="weak">Weak Engine</span>
+                </div>
+                <p class="muted engine-logic-explanation">The Bull Engine seeks strong stocks breaking out from sound price structures. The Weak Engine targets defensive, oversold rebound setups.</p>
+              </div>
+              <div class="explanation-column">
+                <h3>Tag Definitions</h3>
+                <p class="muted">Tags are assigned from normalized scores (0 to 1) in table logic. A stock can carry both 🏆 and ⚡ together.</p>
+                <dl class="explanation-list">
+                  <dt>🏆 Leadership</dt>
+                  <dd>Given when <code>leadership_score ≥ 0.90</code>.</dd>
+                  <dt>⚡ Actionable</dt>
+                  <dd>Given when <code>actionability_score ≥ 0.58</code>.</dd>
+                  <dt>👀 Watchlist</dt>
+                  <dd>Given when <code>0.50 ≤ actionability_score < 0.58</code> and ⚡ is not assigned.</dd>
+                  <dt>- (None)</dt>
+                  <dd>Shown when none of the above thresholds are met.</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="explanation-footer">
+              <h4>How scores are calculated</h4>
+              <p class="muted">All components are normalized with a robust method (median/MAD + sigmoid) before weighting.</p>
+              <ul class="muted formula-list">
+                <li><strong>Bull Leadership</strong> = <code>0.60 × RS + 0.40 × Trend</code></li>
+                <li><strong>Bull Actionability</strong> = <code>0.40 × Breakout + 0.25 × Compression + 0.20 × Volume + 0.15 × Stage</code></li>
+                <li><strong>Weak Leadership</strong> = <code>0.70 × Trend + 0.30 × Liquidity</code></li>
+                <li><strong>Weak Actionability</strong> = <code>0.45 × Reversal + 0.35 × Extension + 0.20 × Capitulation</code></li>
+                <li><strong>Final Score</strong>: Bull <code>100 × (0.55 × Actionability + 0.45 × Leadership)</code>; Weak <code>100 × (0.60 × Actionability + 0.40 × Leadership)</code></li>
+              </ul>
+            </div>
           </section>
         </div>
       </section>
@@ -491,55 +571,18 @@
             </table>
           </div>
         </section>
+
+        <section class="card" id="tracker-explanation">
+          <h3>Understanding the Tracker</h3>
+          <p class="muted">The tracker monitors Bull-engine candidates that were captured as top-10 and had both 🏆 + ⚡ tags at discovery time. It follows a 2-week window and mirrors backtest-style state transitions.</p>
+          <ul class="muted explanation-list tracker-explanation-list">
+            <li><strong>Active:</strong> Position is open and monitored.</li>
+            <li><strong>Trail Stop Activated:</strong> Price reached the activation threshold and a trailing stop is now protecting gains.</li>
+            <li><strong>Inactive:</strong> Position exited by stop loss, trailing stop, or time-stop.</li>
+          </ul>
+        </section>
       </section>
 
-     <section class="card" id="tracker-explanation">
-       <h2>Understanding the Tracker</h2>
-       <div class="explanation-grid">
-         <div class="explanation-column">
-           <h3>Column Definitions</h3>
-           <dl class="explanation-list">
-             <dt>Symbol</dt>
-             <dd>The stock ticker symbol.</dd>
-             <dt>Captured Date</dt>
-             <dd>The date the stock first appeared in the screener results meeting the tracker criteria.</dd>
-             <dt>Entry Date</dt>
-             <dd>The date a hypothetical entry was triggered based on the backtest logic (usually the day after capture).</dd>
-             <dt>Entry Price</dt>
-             <dd>The price at which the hypothetical entry was made (usually the opening price on the entry date).</dd>
-             <dt>Current Price</dt>
-             <dd>The most recent closing price for the stock.</dd>
-             <dt>SL</dt>
-             <dd>The initial stop-loss price, calculated at the time of capture.</dd>
-             <dt>Activation</dt>
-             <dd>The price at which the trailing stop mechanism activates.</dd>
-             <dt>Trail Stop</dt>
-             <dd>The current trailing stop price. This value updates as the price moves favorably.</dd>
-             <dt>State</dt>
-             <dd>The current status of the tracked position (e.g., Active, Inactive).</dd>
-             <dt>Tag</dt>
-             <dd>The lifecycle tag indicating the position's current management state.</dd>
-             <dt>Exit Reason</dt>
-             <dd>If inactive, the reason for the exit (e.g., STOP_LOSS, TIME_STOP).</dd>
-           </dl>
-         </div>
-         <div class="explanation-column">
-           <h3>Tag Definitions</h3>
-           <dl class="explanation-list">
-             <dt><span class="tracker-tag entry-pending">ENTRY_PENDING</span></dt>
-             <dd>The system is waiting for the market to open on the next trading day to log the entry price.</dd>
-             <dt><span class="tracker-tag watching">WATCHING</span></dt>
-             <dd>An entry has been logged. The system is now monitoring the price relative to the Stop Loss and Activation price.</dd>
-             <dt><span class="tracker-tag trail-stop">TRAIL_STOP</span></dt>
-             <dd>The price has hit the 'Activation' level. The position is now managed by a trailing stop.</dd>
-             <dt><span class="tracker-tag stop-loss">STOP_LOSS</span></dt>
-             <dd>The position was exited because the price hit the stop-loss level.</dd>
-             <dt><span class="tracker-tag time-stop">TIME_STOP</span></dt>
-             <dd>The position was exited because it reached its maximum holding period without hitting a stop.</dd>
-           </dl>
-         </div>
-       </div>
-     </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>

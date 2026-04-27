@@ -1523,6 +1523,66 @@ pre {
   gap: 24px;
 }
 
+.engine-logic-selector {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.engine-logic-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.engine-logic-tag.bull {
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.engine-logic-tag.weak {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.engine-logic-tag.active {
+  color: var(--text);
+  box-shadow: 0 0 0 1px rgba(226, 232, 240, 0.18) inset;
+}
+
+.engine-logic-tag.bull.active {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(74, 222, 128, 0.7);
+}
+
+.engine-logic-tag.weak.active {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(248, 113, 113, 0.7);
+}
+
+.engine-logic-explanation {
+  margin: 0;
+}
+
+.formula-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.formula-list code {
+  font-size: 12px;
+}
+
 .explanation-list dt {
   font-weight: bold;
   color: var(--text);
@@ -1539,6 +1599,15 @@ pre {
   font-size: 14px;
   padding-left: 4px;
   border-left: 2px solid var(--border);
+}
+
+.tracker-explanation-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.tracker-explanation-list li {
+  margin-bottom: 8px;
 }
 
 @media (max-width: 900px) {

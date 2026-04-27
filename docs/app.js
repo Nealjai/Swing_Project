@@ -421,6 +421,28 @@ function renderHowItWorks(payload, marketPayload = null) {
     heroSubheadline.innerHTML = `The <strong>${esc(engineLabel)}</strong> engine is active. Here’s what that means.`;
   }
 
+  const logicCards = Array.from(document.querySelectorAll('.screener-logic-card'));
+  for (const card of logicCards) {
+    const engineLogicBull = card.querySelector('[data-engine-tag="bull"]');
+    const engineLogicWeak = card.querySelector('[data-engine-tag="weak"]');
+    const engineLogicExplanation = card.querySelector('.engine-logic-explanation');
+
+    if (engineLogicBull) {
+      engineLogicBull.classList.toggle('active', activeEngine === 'bull');
+      engineLogicBull.setAttribute('aria-current', activeEngine === 'bull' ? 'true' : 'false');
+    }
+    if (engineLogicWeak) {
+      engineLogicWeak.classList.toggle('active', activeEngine === 'weak');
+      engineLogicWeak.setAttribute('aria-current', activeEngine === 'weak' ? 'true' : 'false');
+    }
+    if (engineLogicExplanation) {
+      engineLogicExplanation.textContent =
+        activeEngine === 'bull'
+          ? 'Bull Engine is active: Leadership = 0.60×RS + 0.40×Trend, and Actionability = 0.40×Breakout + 0.25×Compression + 0.20×Volume + 0.15×Stage.'
+          : 'Weak Engine is active: Leadership = 0.70×Trend + 0.30×Liquidity, and Actionability = 0.45×Reversal + 0.35×Extension + 0.20×Capitulation.';
+    }
+  }
+
   renderHowItWorksEngineCards(getHowItWorksEngineCards(), activeEngine);
 
   const workflowEl = document.getElementById('howItWorksWorkflowSteps');
