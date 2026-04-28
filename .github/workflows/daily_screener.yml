@@ -12,8 +12,9 @@ on:
     # 20:50 HKT daily = 12:50 UTC daily
     - cron: "50 12 * * *"
     # Run after U.S. market open so tracker can read today's open price
-    - cron: "0 14 * * 1-5"
+    - cron: "15 14 * * 1-5" 
 
+    
 permissions:
   contents: write
 
