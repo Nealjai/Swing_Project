@@ -11,6 +11,8 @@ on:
     - cron: "0 9 * * *"
     # 20:50 HKT daily = 12:50 UTC daily
     - cron: "50 12 * * *"
+    # Run after U.S. market open so tracker can read today's open price
+    - cron: "0 14 * * 1-5"
 
 permissions:
   contents: write
@@ -42,7 +44,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add docs/data/latest.json docs/data/latest.csv
+          git add docs/data/latest.json docs/data/latest.csv docs/data/tracker.json
 
           if git diff --staged --quiet; then
             echo "No artifact changes detected; skipping commit."
