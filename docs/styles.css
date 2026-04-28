@@ -1610,6 +1610,71 @@ pre {
   margin-bottom: 8px;
 }
 
+.tracker-collapsible {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.tracker-collapsible > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-weight: 700;
+  background: rgba(148, 163, 184, 0.08);
+  border-bottom: 1px solid var(--border);
+}
+
+.tracker-collapsible[open] > summary {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.tracker-collapsible > :not(summary) {
+  padding: 12px 14px;
+}
+
+.tracker-legend-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tracker-legend-table td {
+  white-space: normal;
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.tracker-legend-table tr:first-child td {
+  border-top: 0;
+}
+
+.tracker-legend-table td:first-child {
+  width: 180px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.tracker-legend-content h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.tracker-legend-content h4 + .tracker-legend-list {
+  margin-top: 0;
+}
+
+.tracker-legend-list {
+  margin: 0 0 12px;
+  padding-left: 18px;
+}
+
+.tracker-legend-list li {
+  margin-bottom: 6px;
+}
+
 @media (max-width: 900px) {
   .explanation-grid {
     grid-template-columns: 1fr;
