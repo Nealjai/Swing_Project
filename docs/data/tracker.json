@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-04-29T15:21:51.584069+00:00",
+    "generated_at_utc": "2026-04-29T16:10:09.637138+00:00",
     "rules": {
       "engine": "bull",
       "max_rank": 10,
@@ -23,8 +23,8 @@
       "entry_date_utc": null,
       "entry_price": 429.2701110839844,
       "capture_close": 429.2701110839844,
-      "current_close": 429.2701110839844,
-      "return_since_capture_pct": 0.0,
+      "current_close": 429.8900146484375,
+      "return_since_capture_pct": 0.0014440874136047999,
       "days_tracked_trading": 1,
       "expiry_date_utc": null,
       "status": "active",
@@ -35,9 +35,9 @@
       ],
       "rank_at_capture": 1,
       "score_at_capture": 78.72761557372246,
-      "distance_to_sma20_pct": 0.18917645507850223,
-      "rsi14": 76.83015710913423,
-      "volume_buzz_ratio": 0.5381370681936269,
+      "distance_to_sma20_pct": 0.19079148402235568,
+      "rsi14": 76.92391368227167,
+      "volume_buzz_ratio": 0.6315846676269264,
       "signal_close": 429.2701110839844,
       "signal_atr14": 21.37500217982701,
       "stop_loss": 386.52010672433033,
@@ -51,7 +51,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-04-29T15:21:51.583344+00:00"
+      "last_updated_utc": "2026-04-29T16:10:09.636338+00:00"
     },
     {
       "symbol": "GNRC",
@@ -59,8 +59,8 @@
       "entry_date_utc": null,
       "entry_price": 248.60000610351562,
       "capture_close": 248.60000610351562,
-      "current_close": 248.60000610351562,
-      "return_since_capture_pct": 0.0,
+      "current_close": 249.9550018310547,
+      "return_since_capture_pct": 0.0054505056084948045,
       "days_tracked_trading": 1,
       "expiry_date_utc": null,
       "status": "active",
@@ -71,9 +71,9 @@
       ],
       "rank_at_capture": 4,
       "score_at_capture": 74.43332995762647,
-      "distance_to_sma20_pct": 0.1815224615924793,
-      "rsi14": 73.6170838163022,
-      "volume_buzz_ratio": 0.9153173548391109,
+      "distance_to_sma20_pct": 0.18757996189468606,
+      "rsi14": 74.03983997845518,
+      "volume_buzz_ratio": 1.14589658510196,
       "signal_close": 248.60000610351562,
       "signal_atr14": 9.907501220703125,
       "stop_loss": 228.78500366210938,
@@ -87,7 +87,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-04-29T15:21:51.584058+00:00"
+      "last_updated_utc": "2026-04-29T16:10:09.637125+00:00"
     }
   ],
   "inactive": [],
@@ -99,8 +99,8 @@
       "entry_date_utc": null,
       "entry_price": 429.2701110839844,
       "capture_close": 429.2701110839844,
-      "current_close": 429.2701110839844,
-      "return_since_capture_pct": 0.0,
+      "current_close": 429.8900146484375,
+      "return_since_capture_pct": 0.0014440874136047999,
       "days_tracked_trading": 1,
       "expiry_date_utc": null,
       "status": "active",
@@ -111,9 +111,9 @@
       ],
       "rank_at_capture": 1,
       "score_at_capture": 78.72761557372246,
-      "distance_to_sma20_pct": 0.18917645507850223,
-      "rsi14": 76.83015710913423,
-      "volume_buzz_ratio": 0.5381370681936269,
+      "distance_to_sma20_pct": 0.19079148402235568,
+      "rsi14": 76.92391368227167,
+      "volume_buzz_ratio": 0.6315846676269264,
       "signal_close": 429.2701110839844,
       "signal_atr14": 21.37500217982701,
       "stop_loss": 386.52010672433033,
@@ -127,7 +127,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-04-29T15:21:51.583344+00:00"
+      "last_updated_utc": "2026-04-29T16:10:09.636338+00:00"
     },
     {
       "symbol": "GNRC",
@@ -135,8 +135,8 @@
       "entry_date_utc": null,
       "entry_price": 248.60000610351562,
       "capture_close": 248.60000610351562,
-      "current_close": 248.60000610351562,
-      "return_since_capture_pct": 0.0,
+      "current_close": 249.9550018310547,
+      "return_since_capture_pct": 0.0054505056084948045,
       "days_tracked_trading": 1,
       "expiry_date_utc": null,
       "status": "active",
@@ -147,9 +147,9 @@
       ],
       "rank_at_capture": 4,
       "score_at_capture": 74.43332995762647,
-      "distance_to_sma20_pct": 0.1815224615924793,
-      "rsi14": 73.6170838163022,
-      "volume_buzz_ratio": 0.9153173548391109,
+      "distance_to_sma20_pct": 0.18757996189468606,
+      "rsi14": 74.03983997845518,
+      "volume_buzz_ratio": 1.14589658510196,
       "signal_close": 248.60000610351562,
       "signal_atr14": 9.907501220703125,
       "stop_loss": 228.78500366210938,
@@ -163,7 +163,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-04-29T15:21:51.584058+00:00"
+      "last_updated_utc": "2026-04-29T16:10:09.637125+00:00"
     }
   ]
 }
