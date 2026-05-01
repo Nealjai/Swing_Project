@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-05-01T05:56:42.384628+00:00",
+    "generated_at_utc": "2026-05-01T10:25:07.364059+00:00",
     "rules": {
       "engine": "bull",
       "max_rank": 10,
@@ -36,7 +36,7 @@
       "rank_at_capture": 9,
       "score_at_capture": 76.80200001141925,
       "distance_to_sma20_pct": 0.09523496690430089,
-      "rsi14": 65.16627777334614,
+      "rsi14": 65.16627777330724,
       "volume_buzz_ratio": 0.782463631989645,
       "signal_close": 328.489990234375,
       "signal_atr14": 15.425140380859375,
@@ -51,7 +51,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.384610+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.359403+00:00"
     },
     {
       "symbol": "LITE",
@@ -87,7 +87,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.383902+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.359963+00:00"
     },
     {
       "symbol": "FIX",
@@ -108,7 +108,7 @@
       "rank_at_capture": 7,
       "score_at_capture": 78.2040669822549,
       "distance_to_sma20_pct": 0.12180474312314882,
-      "rsi14": 69.00605462874685,
+      "rsi14": 69.00605462889486,
       "volume_buzz_ratio": 1.2805611312033116,
       "signal_close": 1840.25,
       "signal_atr14": 77.65071323939732,
@@ -123,7 +123,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.383172+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.360482+00:00"
     },
     {
       "symbol": "CIEN",
@@ -159,7 +159,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.382427+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.360999+00:00"
     },
     {
       "symbol": "CAT",
@@ -180,7 +180,7 @@
       "rank_at_capture": 4,
       "score_at_capture": 80.81806670195739,
       "distance_to_sma20_pct": 0.1238613125818202,
-      "rsi14": 75.21075658994093,
+      "rsi14": 75.21075659040974,
       "volume_buzz_ratio": 2.0503929781904793,
       "signal_close": 890.1099853515625,
       "signal_atr14": 25.730717250279017,
@@ -195,7 +195,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.381696+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.361495+00:00"
     },
     {
       "symbol": "STX",
@@ -216,7 +216,7 @@
       "rank_at_capture": 1,
       "score_at_capture": 82.02663265131558,
       "distance_to_sma20_pct": 0.24256990561706848,
-      "rsi14": 80.46185493290999,
+      "rsi14": 80.46185493288537,
       "volume_buzz_ratio": 1.6981467990429433,
       "signal_close": 643.2999877929688,
       "signal_atr14": 33.339991978236604,
@@ -231,7 +231,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.377958+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.362013+00:00"
     },
     {
       "symbol": "PWR",
@@ -252,7 +252,7 @@
       "rank_at_capture": 5,
       "score_at_capture": 73.49872176174148,
       "distance_to_sma20_pct": 0.20361100340035354,
-      "rsi14": 82.61057322338301,
+      "rsi14": 82.6105732103579,
       "volume_buzz_ratio": 2.186040723124956,
       "signal_close": 708.0900268554688,
       "signal_atr14": 21.755000523158483,
@@ -267,7 +267,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.378690+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.362523+00:00"
     },
     {
       "symbol": "KEYS",
@@ -303,7 +303,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.379486+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.363047+00:00"
     },
     {
       "symbol": "WDC",
@@ -324,7 +324,7 @@
       "rank_at_capture": 1,
       "score_at_capture": 78.72761557372246,
       "distance_to_sma20_pct": 0.18399430831926922,
-      "rsi14": 77.83594036018071,
+      "rsi14": 77.83594036058722,
       "volume_buzz_ratio": 1.3727584973423186,
       "signal_close": 429.2701110839844,
       "signal_atr14": 21.37500217982701,
@@ -339,7 +339,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.380232+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.363541+00:00"
     },
     {
       "symbol": "GNRC",
@@ -375,7 +375,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.380977+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.364045+00:00"
     }
   ],
   "inactive": [],
@@ -400,7 +400,7 @@
       "rank_at_capture": 9,
       "score_at_capture": 76.80200001141925,
       "distance_to_sma20_pct": 0.09523496690430089,
-      "rsi14": 65.16627777334614,
+      "rsi14": 65.16627777330724,
       "volume_buzz_ratio": 0.782463631989645,
       "signal_close": 328.489990234375,
       "signal_atr14": 15.425140380859375,
@@ -415,7 +415,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.384610+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.359403+00:00"
     },
     {
       "symbol": "LITE",
@@ -451,7 +451,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.383902+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.359963+00:00"
     },
     {
       "symbol": "FIX",
@@ -472,7 +472,7 @@
       "rank_at_capture": 7,
       "score_at_capture": 78.2040669822549,
       "distance_to_sma20_pct": 0.12180474312314882,
-      "rsi14": 69.00605462874685,
+      "rsi14": 69.00605462889486,
       "volume_buzz_ratio": 1.2805611312033116,
       "signal_close": 1840.25,
       "signal_atr14": 77.65071323939732,
@@ -487,7 +487,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.383172+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.360482+00:00"
     },
     {
       "symbol": "CIEN",
@@ -523,7 +523,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.382427+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.360999+00:00"
     },
     {
       "symbol": "CAT",
@@ -544,7 +544,7 @@
       "rank_at_capture": 4,
       "score_at_capture": 80.81806670195739,
       "distance_to_sma20_pct": 0.1238613125818202,
-      "rsi14": 75.21075658994093,
+      "rsi14": 75.21075659040974,
       "volume_buzz_ratio": 2.0503929781904793,
       "signal_close": 890.1099853515625,
       "signal_atr14": 25.730717250279017,
@@ -559,7 +559,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.381696+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.361495+00:00"
     },
     {
       "symbol": "STX",
@@ -580,7 +580,7 @@
       "rank_at_capture": 1,
       "score_at_capture": 82.02663265131558,
       "distance_to_sma20_pct": 0.24256990561706848,
-      "rsi14": 80.46185493290999,
+      "rsi14": 80.46185493288537,
       "volume_buzz_ratio": 1.6981467990429433,
       "signal_close": 643.2999877929688,
       "signal_atr14": 33.339991978236604,
@@ -595,7 +595,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.377958+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.362013+00:00"
     },
     {
       "symbol": "PWR",
@@ -616,7 +616,7 @@
       "rank_at_capture": 5,
       "score_at_capture": 73.49872176174148,
       "distance_to_sma20_pct": 0.20361100340035354,
-      "rsi14": 82.61057322338301,
+      "rsi14": 82.6105732103579,
       "volume_buzz_ratio": 2.186040723124956,
       "signal_close": 708.0900268554688,
       "signal_atr14": 21.755000523158483,
@@ -631,7 +631,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.378690+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.362523+00:00"
     },
     {
       "symbol": "KEYS",
@@ -667,7 +667,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.379486+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.363047+00:00"
     },
     {
       "symbol": "WDC",
@@ -688,7 +688,7 @@
       "rank_at_capture": 1,
       "score_at_capture": 78.72761557372246,
       "distance_to_sma20_pct": 0.18399430831926922,
-      "rsi14": 77.83594036018071,
+      "rsi14": 77.83594036058722,
       "volume_buzz_ratio": 1.3727584973423186,
       "signal_close": 429.2701110839844,
       "signal_atr14": 21.37500217982701,
@@ -703,7 +703,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.380232+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.363541+00:00"
     },
     {
       "symbol": "GNRC",
@@ -739,7 +739,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-01T05:56:42.380977+00:00"
+      "last_updated_utc": "2026-05-01T10:25:07.364045+00:00"
     }
   ]
 }
