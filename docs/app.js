@@ -30,6 +30,12 @@ function fmtPctPoints(value, digits = 2) {
   return `${Number(value).toFixed(digits)}%`;
 }
 
+function fmtSignedPctPoints(value, digits = 2) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  const n = Number(value);
+  return `${n >= 0 ? '+' : ''}${n.toFixed(digits)}%`;
+}
+
 function fmtDollar(value, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
   return `$${Number(value).toFixed(digits)}`;
@@ -2958,9 +2964,22 @@ function renderTrackerTable(items) {
 
   const rows = toArray(items);
   if (!rows.length) {
-    tableBody.innerHTML = '<tr><td colspan="11">No tracked symbols yet.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="13">No tracked symbols yet.</td></tr>';
     return;
   }
+
+  const computeDaysTracked = (entryDateUtc, rowObj) => {
+    const entryTs = Date.parse(`${String(entryDateUtc).slice(0, 10)}T00:00:00Z`);
+    if (!Number.isFinite(entryTs)) return null;
+
+    const endDateRaw = rowObj.last_updated_utc || rowObj.exit_date_utc || null;
+    const endTs = endDateRaw
+      ? Date.parse(`${String(endDateRaw).slice(0, 10)}T00:00:00Z`)
+      : Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+    if (!Number.isFinite(endTs)) return null;
+
+    return Math.max(0, Math.floor((endTs - entryTs) / 86400000));
+  };
 
   tableBody.innerHTML = rows
     .map((row) => {
@@ -2969,16 +2988,33 @@ function renderTrackerTable(items) {
       const primaryTag = String(r.status_tag || toArray(r.status_tags)[0] || 'watching');
       const exitReason = r.exit_reason ? String(r.exit_reason) : '-';
 
+      const entryDate = r.entry_date_utc ? String(r.entry_date_utc) : null;
+      const entryPrice = toFiniteNumber(r.entry_price);
+      const currentClose = toFiniteNumber(r.current_close);
+
+      const hasEntryDate = !!entryDate;
+      const hasEntryPrice = entryPrice !== null;
+
+      const returnPct = hasEntryPrice && currentClose !== null && entryPrice !== 0
+        ? ((currentClose - entryPrice) / entryPrice) * 100
+        : null;
+
+      const daysTrackedRaw = hasEntryDate
+        ? (r.days_tracked_trading ?? r.days_tracked ?? computeDaysTracked(entryDate, r))
+        : null;
+
       return `
         <tr>
           <td>${esc(r.symbol || '-')}</td>
           <td>${esc(r.capture_date_utc || '-')}</td>
-          <td>${esc(r.entry_date_utc || '-')}</td>
-          <td>${fmtNumber(r.entry_price)}</td>
+          <td>${hasEntryDate ? esc(entryDate) : '-'}</td>
+          <td>${hasEntryPrice ? fmtNumber(entryPrice) : '-'}</td>
           <td>${fmtNumber(r.current_close)}</td>
           <td>${fmtNumber(r.stop_loss)}</td>
           <td>${fmtNumber(r.activation_level)}</td>
-          <td>${fmtNumber(r.trail_stop_price)}</td>
+          <td>${hasEntryPrice ? fmtNumber(r.trail_stop_price) : '-'}</td>
+          <td>${hasEntryPrice ? fmtSignedPctPoints(returnPct, 2) : '-'}</td>
+          <td>${hasEntryDate ? fmtInt(daysTrackedRaw) : '-'}</td>
           <td><span class="${trackerStatusClass(stateLabel)}">${esc(stateLabel)}</span></td>
           <td><span class="${trackerTagClass(primaryTag)}">${esc(primaryTag)}</span></td>
           <td>${esc(exitReason)}</td>

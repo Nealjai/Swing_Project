@@ -4,6 +4,7 @@ import json
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,7 @@ import pandas as pd
 TRACKER_PATH = Path("docs/data/tracker.json")
 TRACKING_WINDOW_TRADING_DAYS = 10
 MAX_DROPPED_HISTORY = 300
+NY_TZ = ZoneInfo("America/New_York")
 
 
 def _to_float(value: Any) -> float | None:
@@ -26,8 +28,8 @@ def _to_float(value: Any) -> float | None:
         return None
 
 
-def _today_utc_date() -> date:
-    return datetime.now(timezone.utc).date()
+def _today_ny_date() -> date:
+    return datetime.now(NY_TZ).date()
 
 
 def _iso_now_utc() -> str:
@@ -190,22 +192,22 @@ def _build_latest_metrics_map(rows: Iterable[Dict[str, Any]], enriched: Dict[str
     return out
 
 
-def _resolve_entry_from_history(df: pd.DataFrame | None, capture_date: date, fallback: float | None) -> Tuple[str | None, float | None]:
-    if df is None or df.empty:
-        return None, fallback
+def _open_on_date(df: pd.DataFrame | None, target_date: date | None) -> float | None:
+    if df is None or df.empty or target_date is None:
+        return None
 
     try:
-        idx = pd.to_datetime(df.index)
-        next_rows = df.loc[idx.date > capture_date]
-        if next_rows.empty or "Open" not in next_rows.columns:
-            return None, fallback
-        entry_ts = pd.to_datetime(next_rows.index[0])
-        entry_open = _to_float(next_rows["Open"].iloc[0])
-        if entry_open is None or entry_open <= 0:
-            return entry_ts.date().isoformat(), fallback
-        return entry_ts.date().isoformat(), entry_open
+        frame = df.copy()
+        idx_dates = pd.to_datetime(frame.index).date
+        exact_rows = frame.loc[idx_dates == target_date]
+        if exact_rows.empty or "Open" not in exact_rows.columns:
+            return None
+        open_px = _to_float(exact_rows["Open"].iloc[0])
+        if open_px is None or open_px <= 0:
+            return None
+        return open_px
     except Exception:  # noqa: BLE001
-        return None, fallback
+        return None
 
 
 def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: Dict[str, Any]) -> Dict[str, Any]:
@@ -234,11 +236,8 @@ def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: D
     if trailing_stop_offset is None and atr14 is not None:
         trailing_stop_offset = 1.5 * atr14
 
-    entry_date_utc, entry_price = _resolve_entry_from_history(
-        latest.get("df"),
-        current_date,
-        _to_float((risk or {}).get("entry_reference")) or signal_close,
-    )
+    entry_date_utc = current_date.isoformat()
+    entry_price = _open_on_date(latest.get("df"), current_date)
 
     return {
         "symbol": _symbol_from_candidate(candidate),
@@ -289,9 +288,34 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
     else:
         out["return_since_capture_pct"] = None
 
+    capture_date = _extract_date(out.get("capture_date_utc"))
+    entry_date = _extract_date(out.get("entry_date_utc"))
+    entry_price = _to_float(out.get("entry_price"))
+
+    # Legacy repair: if old buggy record has price but no entry date,
+    # clear the price and re-resolve from entry/capture date rules.
+    if entry_date is None and entry_price is not None and entry_price > 0:
+        entry_price = None
+
+    # Legacy repair: normalize inconsistent historical records.
+    if entry_date is None and capture_date is not None:
+        entry_date = capture_date
+    elif capture_date is not None and entry_date is not None and entry_date < capture_date:
+        entry_date = capture_date
+    if capture_date is None and entry_date is not None:
+        capture_date = entry_date
+
+    out["capture_date_utc"] = capture_date.isoformat() if capture_date is not None else None
+    out["entry_date_utc"] = entry_date.isoformat() if entry_date is not None else None
+
+    if entry_date is not None and (entry_price is None or entry_price <= 0):
+        # Resolve only from the exact entry-date open; no fallback price.
+        entry_price = _open_on_date(latest.get("df"), entry_date)
+    out["entry_price"] = entry_price
+
     days_tracked, expiry_date = _compute_trading_day_stats(
         index=latest.get("df_index"),
-        capture_date_raw=out.get("capture_date_utc"),
+        capture_date_raw=out.get("entry_date_utc"),
         current_date=current_date,
     )
     out["days_tracked_trading"] = int(days_tracked)
@@ -300,9 +324,6 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
     out["distance_to_sma20_pct"] = _to_float(latest.get("distance_to_sma20_pct"))
     out["rsi14"] = _to_float(latest.get("rsi14"))
     out["volume_buzz_ratio"] = _to_float(latest.get("volume_buzz_ratio"))
-
-    entry_date = _extract_date(out.get("entry_date_utc"))
-    entry_price = _to_float(out.get("entry_price"))
     stop_loss = _to_float(out.get("stop_loss"))
     activation_level = _to_float(out.get("activation_level"))
     trailing_stop_offset = _to_float(out.get("trailing_stop_offset"))
@@ -452,7 +473,7 @@ def update_tracker_file(
 ) -> Dict[str, Any]:
     """Update tracker JSON without modifying existing screener payload contracts."""
 
-    current_date = _today_utc_date()
+    current_date = _today_ny_date()
     existing = _safe_read_tracker(tracker_path)
 
     active_existing = [_clean_record(r) for r in existing.get("active", []) if str(r.get("symbol") or "").strip()]

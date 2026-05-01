@@ -562,6 +562,8 @@
                   <th>SL</th>
                   <th>Activation</th>
                   <th>Trail Stop</th>
+                  <th>Return %</th>
+                  <th>Days Tracked</th>
                   <th>State</th>
                   <th>Tag</th>
                   <th>Exit Reason</th>
@@ -589,6 +591,8 @@
                   <tr><td>SL</td><td>Stop-loss price.</td></tr>
                   <tr><td>Activation</td><td>Price level that activates trailing-stop protection.</td></tr>
                   <tr><td>Trail Stop</td><td>Current trailing-stop level after activation.</td></tr>
+                  <tr><td>Return %</td><td>Unrealized return from entry price to current price: <code>((current - entry) / entry) × 100</code>.</td></tr>
+                  <tr><td>Days Tracked</td><td>Trading days tracked for the symbol while monitored in tracker lifecycle.</td></tr>
                   <tr><td>State</td><td>Position lifecycle state (Active / Inactive).</td></tr>
                   <tr><td>Tag</td><td>Lifecycle tag (watching, entry_pending, trail_stop, stop_loss, time_stop).</td></tr>
                   <tr><td>Exit Reason</td><td>Reason for becoming inactive, when applicable.</td></tr>
