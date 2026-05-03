@@ -193,9 +193,14 @@ let state = {
     loading: false,
     data: null,
     error: null,
+    selectedSymbol: null,
+    selectedIndex: null,
+    chart: null,
+    items: [],
   },
   indicatorVisibility: {
     close: true,
+    sma10: false,
     sma20: true,
     sma50: true,
     sma100: true,
@@ -917,6 +922,14 @@ async function renderListViewChartForSymbol(symbolOrYfSymbol) {
     historyRows: history,
     lineSeries: [
       {
+        id: 'sma10',
+        key: 'sma10',
+        color: '#38bdf8',
+        lineWidth: 1.5,
+        label: 'SMA10',
+        visible: !!state.indicatorVisibility.sma10,
+      },
+      {
         id: 'sma20',
         key: 'sma20',
         color: '#f59e0b',
@@ -1043,6 +1056,7 @@ function initSelection() {
   state.indicatorVisibility = {
     ...state.indicatorVisibility,
     ...defaults,
+    sma10: false,
     sma20: true,
     sma50: true,
     sma100: true,
@@ -2365,6 +2379,7 @@ function normalizeOhlcvHistoryRows(rawHistory) {
   const low = toArray(history.low?.length ? history.low : history.Low);
   const close = toArray(history.close?.length ? history.close : history.Close);
   const volume = toArray(history.volume?.length ? history.volume : history.Volume);
+  const rawSma10 = toArray(history.sma10?.length ? history.sma10 : history.SMA10);
   const rawSma20 = toArray(history.sma20?.length ? history.sma20 : history.SMA20);
   const rawSma50 = toArray(history.sma50?.length ? history.sma50 : history.SMA50);
   const rawSma100 = toArray(history.sma100?.length ? history.sma100 : history.SMA100);
@@ -2373,6 +2388,7 @@ function normalizeOhlcvHistoryRows(rawHistory) {
   const rawEma21 = toArray(history.ema21?.length ? history.ema21 : history.EMA21);
   const bbLower = toArray(history.bb_lower?.length ? history.bb_lower : history.BB_LOWER);
 
+  const sma10 = rawSma10.length ? rawSma10 : computeSmaSeries(close, 10);
   const sma20 = rawSma20.length ? rawSma20 : computeSmaSeries(close, 20);
   const sma50 = rawSma50.length ? rawSma50 : computeSmaSeries(close, 50);
   const sma100 = rawSma100.length ? rawSma100 : computeSmaSeries(close, 100);
@@ -2391,6 +2407,7 @@ function normalizeOhlcvHistoryRows(rawHistory) {
       low: low[i],
       close: close[i],
       volume: volume[i],
+      sma10: sma10[i],
       sma20: sma20[i],
       sma50: sma50[i],
       sma100: sma100[i],
@@ -2674,6 +2691,7 @@ function destroyScreenerChart() {
 function normalizeScreenerIndicatorKey(rawKey) {
   const key = String(rawKey || '').trim();
   if (key === 'bbLower') return 'bb_lower';
+  if (key === 'sma10') return 'sma10';
   return key;
 }
 
@@ -2777,6 +2795,14 @@ async function renderScreenerChartForSymbol(symbolOrYfSymbol) {
     container,
     historyRows: history,
     lineSeries: [
+      {
+        id: 'sma10',
+        key: 'sma10',
+        color: '#38bdf8',
+        lineWidth: 1.5,
+        label: 'SMA10',
+        visible: !!state.indicatorVisibility.sma10,
+      },
       {
         id: 'sma20',
         key: 'sma20',
@@ -2944,6 +2970,183 @@ function getTrackerElements() {
   };
 }
 
+function getTrackerChartElements() {
+  return {
+    card: document.getElementById('trackerChartCard'),
+    container: document.getElementById('trackerChartContainer'),
+    legend: document.getElementById('trackerChartLegend'),
+    titleEl: document.getElementById('trackerPriceChartTitle'),
+    prevBtn: document.getElementById('trackerPrevSymbolBtn'),
+    nextBtn: document.getElementById('trackerNextSymbolBtn'),
+    indicatorRoot: document.getElementById('trackerIndicatorControls'),
+  };
+}
+
+function destroyTrackerChart() {
+  if (state.tracker.chart) {
+    state.tracker.chart.remove();
+    state.tracker.chart = null;
+  }
+  const { legend } = getTrackerChartElements();
+  if (legend) legend.innerHTML = '';
+}
+
+function highlightActiveTrackerRow(symbol) {
+  const targetSymbol = String(symbol || '').trim();
+  const rows = Array.from(document.querySelectorAll('#trackerTable tbody tr'));
+  for (const row of rows) {
+    const firstCellText = String(row.querySelector('td')?.textContent || '').trim();
+    row.classList.toggle('active', !!targetSymbol && firstCellText === targetSymbol);
+  }
+}
+
+async function renderTrackerChartForSymbol(symbol) {
+  const { container, titleEl } = getTrackerChartElements();
+  if (!container) return;
+
+  const safeSymbol = String(symbol || '').trim();
+  if (!safeSymbol) {
+    destroyTrackerChart();
+    container.innerHTML = '<p class="muted">Select a symbol from the table to view its chart</p>';
+    if (titleEl) titleEl.textContent = 'Price Chart (3Y)';
+    return;
+  }
+
+  if (titleEl) {
+    titleEl.textContent = `${safeSymbol} Price Chart (3Y)`;
+  }
+
+  await loadLightweightChartsIfNeeded();
+
+  const raw = await fetch3YDailyData(safeSymbol);
+  const history = normalizeOhlcvHistoryRows(raw);
+
+  destroyTrackerChart();
+  container.innerHTML = '';
+
+  if (!history.length) {
+    container.innerHTML = '<p class="muted">No chart data available</p>';
+    return;
+  }
+
+  state.tracker.chart = renderLightweightCandleChart({
+    container,
+    historyRows: history,
+    lineSeries: [
+      {
+        id: 'sma10',
+        key: 'sma10',
+        color: '#38bdf8',
+        lineWidth: 1.5,
+        label: 'SMA10',
+        visible: !!state.indicatorVisibility.sma10,
+      },
+      {
+        id: 'sma20',
+        key: 'sma20',
+        color: '#f59e0b',
+        lineWidth: 1.8,
+        label: 'SMA20',
+        visible: !!state.indicatorVisibility.sma20,
+      },
+      {
+        id: 'sma50',
+        key: 'sma50',
+        color: '#22c55e',
+        lineWidth: 1.8,
+        label: 'SMA50',
+        visible: !!state.indicatorVisibility.sma50,
+      },
+      {
+        id: 'sma100',
+        key: 'sma100',
+        color: '#8b5cf6',
+        lineWidth: 1.8,
+        label: 'SMA100',
+        visible: !!state.indicatorVisibility.sma100,
+      },
+      {
+        id: 'sma200',
+        key: 'sma200',
+        color: '#e879f9',
+        lineWidth: 1.8,
+        label: 'SMA200',
+        visible: !!state.indicatorVisibility.sma200,
+      },
+      {
+        id: 'volume',
+        key: 'volume',
+        type: 'histogram',
+        color: 'rgba(148, 163, 184, 0.35)',
+        label: 'Volume',
+        visible: !!state.indicatorVisibility.volume,
+        pane: 1,
+      },
+    ],
+  });
+
+  updateChartLegend(state.tracker.chart, 'trackerChartLegend');
+
+  if (!container.dataset.trackerChartResizeBound) {
+    window.addEventListener('resize', () => {
+      if (!state.tracker.chart) return;
+      const { container: trackerContainer } = getTrackerChartElements();
+      if (!trackerContainer) return;
+      state.tracker.chart.applyOptions({ width: Math.max(trackerContainer.clientWidth || 0, 640) });
+    });
+    container.dataset.trackerChartResizeBound = '1';
+  }
+}
+
+function bindTrackerChartIndicatorControls() {
+  const { indicatorRoot } = getTrackerChartElements();
+  bindIndicatorControls(indicatorRoot, 'trackerChartIndicator', (key, visible) => {
+    const series = toObject(state.tracker.chart?.__seriesMap)[key];
+    if (series && typeof series.applyOptions === 'function') {
+      series.applyOptions({ visible });
+      updateChartLegend(state.tracker.chart, 'trackerChartLegend');
+    }
+  });
+}
+
+function initTrackerChartNavigationButtons() {
+  const { prevBtn, nextBtn } = getTrackerChartElements();
+
+  if (prevBtn && !prevBtn.dataset.boundTrackerNav) {
+    prevBtn.addEventListener('click', () => {
+      const items = toArray(state.tracker.items);
+      if (!items.length) return;
+
+      const current = Number.isInteger(state.tracker.selectedIndex) ? state.tracker.selectedIndex : 0;
+      const nextIndex = (current - 1 + items.length) % items.length;
+      const nextSymbol = String(toObject(items[nextIndex]).symbol || '');
+
+      state.tracker.selectedIndex = nextIndex;
+      state.tracker.selectedSymbol = nextSymbol;
+      highlightActiveTrackerRow(nextSymbol);
+      void renderTrackerChartForSymbol(nextSymbol);
+    });
+    prevBtn.dataset.boundTrackerNav = '1';
+  }
+
+  if (nextBtn && !nextBtn.dataset.boundTrackerNav) {
+    nextBtn.addEventListener('click', () => {
+      const items = toArray(state.tracker.items);
+      if (!items.length) return;
+
+      const current = Number.isInteger(state.tracker.selectedIndex) ? state.tracker.selectedIndex : 0;
+      const nextIndex = (current + 1) % items.length;
+      const nextSymbol = String(toObject(items[nextIndex]).symbol || '');
+
+      state.tracker.selectedIndex = nextIndex;
+      state.tracker.selectedSymbol = nextSymbol;
+      highlightActiveTrackerRow(nextSymbol);
+      void renderTrackerChartForSymbol(nextSymbol);
+    });
+    nextBtn.dataset.boundTrackerNav = '1';
+  }
+}
+
 function trackerStatusClass(status) {
   const normalized = String(status || '').toLowerCase();
   return normalized === 'inactive' || normalized === 'dropped' ? 'tracker-status inactive' : 'tracker-status active';
@@ -2963,6 +3166,7 @@ function renderTrackerTable(items) {
   if (!tableBody) return;
 
   const rows = toArray(items);
+  tableBody.innerHTML = '';
   if (!rows.length) {
     tableBody.innerHTML = '<tr><td colspan="13">No tracked symbols yet.</td></tr>';
     return;
@@ -2981,47 +3185,51 @@ function renderTrackerTable(items) {
     return Math.max(0, Math.floor((endTs - entryTs) / 86400000));
   };
 
-  tableBody.innerHTML = rows
-    .map((row) => {
-      const r = toObject(row);
-      const stateLabel = String(r.position_state || r.status || '-');
-      const primaryTag = String(r.status_tag || toArray(r.status_tags)[0] || 'watching');
-      const exitReason = r.exit_reason ? String(r.exit_reason) : '-';
+  for (let i = 0; i < rows.length; i += 1) {
+    const r = toObject(rows[i]);
+    const stateLabel = String(r.position_state || r.status || '-');
+    const primaryTag = String(r.status_tag || toArray(r.status_tags)[0] || 'watching');
+    const exitReason = r.exit_reason ? String(r.exit_reason) : '-';
 
-      const entryDate = r.entry_date_utc ? String(r.entry_date_utc) : null;
-      const entryPrice = toFiniteNumber(r.entry_price);
-      const currentClose = toFiniteNumber(r.current_close);
+    const entryDate = r.entry_date_utc ? String(r.entry_date_utc) : null;
+    const entryPrice = toFiniteNumber(r.entry_price);
+    const currentClose = toFiniteNumber(r.current_close);
 
-      const hasEntryDate = !!entryDate;
-      const hasEntryPrice = entryPrice !== null;
+    const hasEntryDate = !!entryDate;
+    const hasEntryPrice = entryPrice !== null;
 
-      const returnPct = hasEntryPrice && currentClose !== null && entryPrice !== 0
-        ? ((currentClose - entryPrice) / entryPrice) * 100
-        : null;
+    const returnPct = hasEntryPrice && currentClose !== null && entryPrice !== 0 ? ((currentClose - entryPrice) / entryPrice) * 100 : null;
 
-      const daysTrackedRaw = hasEntryDate
-        ? (r.days_tracked_trading ?? r.days_tracked ?? computeDaysTracked(entryDate, r))
-        : null;
+    const daysTrackedRaw = hasEntryDate ? (r.days_tracked_trading ?? r.days_tracked ?? computeDaysTracked(entryDate, r)) : null;
 
-      return `
-        <tr>
-          <td>${esc(r.symbol || '-')}</td>
-          <td>${esc(r.capture_date_utc || '-')}</td>
-          <td>${hasEntryDate ? esc(entryDate) : '-'}</td>
-          <td>${hasEntryPrice ? fmtNumber(entryPrice) : '-'}</td>
-          <td>${fmtNumber(r.current_close)}</td>
-          <td>${fmtNumber(r.stop_loss)}</td>
-          <td>${fmtNumber(r.activation_level)}</td>
-          <td>${hasEntryPrice ? fmtNumber(r.trail_stop_price) : '-'}</td>
-          <td>${hasEntryPrice ? fmtSignedPctPoints(returnPct, 2) : '-'}</td>
-          <td>${hasEntryDate ? fmtInt(daysTrackedRaw) : '-'}</td>
-          <td><span class="${trackerStatusClass(stateLabel)}">${esc(stateLabel)}</span></td>
-          <td><span class="${trackerTagClass(primaryTag)}">${esc(primaryTag)}</span></td>
-          <td>${esc(exitReason)}</td>
-        </tr>
-      `;
-    })
-    .join('');
+    const tr = document.createElement('tr');
+    const symbol = String(r.symbol || '');
+    tr.dataset.symbol = symbol;
+    tr.innerHTML = `
+      <td>${esc(r.symbol || '-')}</td>
+      <td>${esc(r.capture_date_utc || '-')}</td>
+      <td>${hasEntryDate ? esc(entryDate) : '-'}</td>
+      <td>${hasEntryPrice ? fmtNumber(entryPrice) : '-'}</td>
+      <td>${fmtNumber(r.current_close)}</td>
+      <td>${fmtNumber(r.stop_loss)}</td>
+      <td>${fmtNumber(r.activation_level)}</td>
+      <td>${hasEntryPrice ? fmtNumber(r.trail_stop_price) : '-'}</td>
+      <td>${hasEntryPrice ? fmtSignedPctPoints(returnPct, 2) : '-'}</td>
+      <td>${hasEntryDate ? fmtInt(daysTrackedRaw) : '-'}</td>
+      <td><span class="${trackerStatusClass(stateLabel)}">${esc(stateLabel)}</span></td>
+      <td><span class="${trackerTagClass(primaryTag)}">${esc(primaryTag)}</span></td>
+      <td>${esc(exitReason)}</td>
+    `;
+
+    tr.addEventListener('click', () => {
+      state.tracker.selectedIndex = i;
+      state.tracker.selectedSymbol = symbol;
+      highlightActiveTrackerRow(symbol);
+      void renderTrackerChartForSymbol(symbol);
+    });
+
+    tableBody.appendChild(tr);
+  }
 }
 
 async function renderTracker() {
@@ -3050,6 +3258,18 @@ async function renderTracker() {
     if (generatedAtEl) generatedAtEl.textContent = String(toObject(payload.meta).generated_at_utc || '-');
 
     renderTrackerTable(allItems);
+    state.tracker.items = allItems;
+    bindTrackerChartIndicatorControls();
+    initTrackerChartNavigationButtons();
+
+    if (allItems.length && !state.tracker.selectedSymbol) {
+      const firstSymbol = String(toObject(allItems[0]).symbol || '');
+      state.tracker.selectedIndex = 0;
+      state.tracker.selectedSymbol = firstSymbol;
+      highlightActiveTrackerRow(firstSymbol);
+      void renderTrackerChartForSymbol(firstSymbol);
+    }
+
     if (statusEl) {
       statusEl.textContent = `Loaded ${fmtInt(allItems.length)} records (${fmtInt(active.length)} active / ${fmtInt(inactive.length)} inactive).`;
     }
@@ -3059,6 +3279,10 @@ async function renderTracker() {
     if (inactiveCountEl) inactiveCountEl.textContent = '-';
     if (generatedAtEl) generatedAtEl.textContent = '-';
     renderTrackerTable([]);
+    state.tracker.items = [];
+    state.tracker.selectedIndex = null;
+    state.tracker.selectedSymbol = null;
+    await renderTrackerChartForSymbol(null);
     if (statusEl) statusEl.textContent = `Failed to load tracker: ${state.tracker.error}`;
   } finally {
     state.tracker.loading = false;

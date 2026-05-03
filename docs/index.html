@@ -98,6 +98,10 @@
                   <p class="indicator-controls-title">Indicator Controls</p>
                   <div class="indicator-controls-grid">
                     <label class="indicator-control">
+                      <input type="checkbox" name="listChartIndicator" value="sma10" />
+                      <span>SMA10</span>
+                    </label>
+                    <label class="indicator-control">
                       <input type="checkbox" name="listChartIndicator" value="sma20" checked />
                       <span>SMA20</span>
                     </label>
@@ -198,6 +202,10 @@
               <section id="chartViewIndicatorControls" class="screener-indicator-controls" aria-label="Chart indicator controls">
                 <p class="indicator-controls-title">Indicator Controls</p>
                 <div class="indicator-controls-grid">
+                  <label class="indicator-control">
+                    <input type="checkbox" name="chartIndicator" value="sma10" />
+                    <span>SMA10</span>
+                  </label>
                   <label class="indicator-control">
                     <input type="checkbox" name="chartIndicator" value="sma20" checked />
                     <span>SMA20</span>
@@ -572,6 +580,49 @@
               <tbody></tbody>
             </table>
           </div>
+        </section>
+
+        <section class="card" id="trackerChartCard">
+          <div class="chart-header">
+            <h2 id="trackerPriceChartTitle">Price Chart (3Y)</h2>
+            <div class="legend-toggles">
+              <button type="button" id="trackerPrevSymbolBtn" aria-label="Previous symbol">↑</button>
+              <button type="button" id="trackerNextSymbolBtn" aria-label="Next symbol">↓</button>
+            </div>
+          </div>
+
+          <section id="trackerIndicatorControls" class="screener-indicator-controls" aria-label="Tracker chart indicator controls">
+            <p class="indicator-controls-title">Indicator Controls</p>
+            <div class="indicator-controls-grid">
+              <label class="indicator-control">
+                <input type="checkbox" name="trackerChartIndicator" value="sma10" />
+                <span>SMA10</span>
+              </label>
+              <label class="indicator-control">
+                <input type="checkbox" name="trackerChartIndicator" value="sma20" checked />
+                <span>SMA20</span>
+              </label>
+              <label class="indicator-control">
+                <input type="checkbox" name="trackerChartIndicator" value="sma50" checked />
+                <span>SMA50</span>
+              </label>
+              <label class="indicator-control">
+                <input type="checkbox" name="trackerChartIndicator" value="sma100" checked />
+                <span>SMA100</span>
+              </label>
+              <label class="indicator-control">
+                <input type="checkbox" name="trackerChartIndicator" value="sma200" checked />
+                <span>SMA200</span>
+              </label>
+              <label class="indicator-control">
+                <input type="checkbox" name="trackerChartIndicator" value="volume" />
+                <span>Volume</span>
+              </label>
+            </div>
+          </section>
+
+          <div id="trackerChartLegend"></div>
+          <div id="trackerChartContainer" class="screener-chart-container"></div>
         </section>
 
         <section class="card" id="tracker-explanation">
