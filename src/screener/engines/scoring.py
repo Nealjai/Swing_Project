@@ -51,7 +51,11 @@ def robust_unit_score(
     if value is None:
         return float(neutral)
 
-    vals = [x for x in (to_float(v) for v in population) if x is not None]
+    vals: list[float] = []
+    for raw in population:
+        parsed = to_float(raw)
+        if parsed is not None:
+            vals.append(parsed)
     if len(vals) < 5:
         return float(neutral)
 
