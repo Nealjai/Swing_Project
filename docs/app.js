@@ -480,44 +480,28 @@ function renderStrategy(payload) {
   renderHowItWorks(payload, state.marketCondition.data);
 }
 
-function renderDiagnostics(rawDiagnostics) {
-  const diagnostics = toObject(rawDiagnostics);
-  const counts = toObject(diagnostics.counts);
-  const preferredSkipped = toArray(diagnostics.skipped_tickers);
-  const skippedTickers = preferredSkipped.length ? preferredSkipped : toArray(diagnostics.skipped);
-  const warnings = toArray(diagnostics.warnings);
-  const errors = toArray(diagnostics.errors);
-
+function renderDiagnostics(stats) {
   const summary = document.getElementById('diagnosticsSummary');
+  const diagnosticsEl = document.getElementById('diagnostics');
+
+  if (!summary && !diagnosticsEl) {
+    return;
+  }
+
   if (summary) {
+    const safeStats = toObject(stats);
+    const missingSymbols = toArray(safeStats.missingSymbols);
+    const oldSymbols = toArray(safeStats.oldSymbols);
+
     summary.innerHTML = `
-      <p>Downloaded symbols: <strong>${fmtInt(counts.downloaded_symbols ?? diagnostics.downloaded_symbols)}</strong></p>
-      <p>Cached symbols: <strong>${fmtInt(counts.cached_symbols ?? diagnostics.cached_symbols)}</strong></p>
-      <p>Rows with metrics: <strong>${fmtInt(counts.rows_with_metrics ?? diagnostics.rows_with_metrics)}</strong></p>
-      <p>Skipped tickers: <strong>${fmtInt(counts.missing_or_skipped_count ?? diagnostics.missing_or_skipped_count ?? skippedTickers.length)}</strong></p>
-      <p>Raw candidates: <strong>${fmtInt(counts.raw_candidates_count)}</strong> | Ranked shown: <strong>${fmtInt(counts.ranked_candidates_count)}</strong></p>
-      <p>Warnings: <strong>${fmtInt(warnings.length)}</strong> | Errors: <strong>${fmtInt(errors.length)}</strong></p>
+      <p>Total Symbols: ${fmtInt(safeStats.totalSymbols)}</p>
+      <p>Missing Symbols: ${missingSymbols.length}</p>
+      <p>Old Symbols (not updated in > 5 days): ${oldSymbols.length}</p>
     `;
   }
 
-  const detail = {
-    counts: {
-      downloaded_symbols: counts.downloaded_symbols ?? diagnostics.downloaded_symbols ?? null,
-      cached_symbols: counts.cached_symbols ?? diagnostics.cached_symbols ?? null,
-      rows_with_metrics: counts.rows_with_metrics ?? diagnostics.rows_with_metrics ?? null,
-      missing_or_skipped_count:
-        counts.missing_or_skipped_count ?? diagnostics.missing_or_skipped_count ?? skippedTickers.length,
-      raw_candidates_count: counts.raw_candidates_count ?? null,
-      ranked_candidates_count: counts.ranked_candidates_count ?? null,
-    },
-    skipped_tickers: skippedTickers,
-    warnings,
-    errors,
-  };
-
-  const diagnosticsEl = document.getElementById('diagnostics');
   if (diagnosticsEl) {
-    diagnosticsEl.textContent = JSON.stringify(detail, null, 2);
+    diagnosticsEl.textContent = JSON.stringify(stats, null, 2);
   }
 }
 
@@ -3240,11 +3224,31 @@ async function renderTracker() {
   if (statusEl) statusEl.textContent = 'Loading tracker...';
 
   try {
-    const url = `data/tracker.json?t=${Date.now()}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const trackerUrls = [
+      `data/tracker.json?t=${Date.now()}`,
+      `docs/data/tracker.json?t=${Date.now()}`,
+    ];
 
-    const payload = await res.json();
+    let payload = null;
+    let lastErr = null;
+    for (const candidateUrl of trackerUrls) {
+      try {
+        const res = await fetch(candidateUrl, { cache: 'no-store' });
+        if (!res.ok) {
+          lastErr = new Error(`HTTP ${res.status} ${res.statusText}`);
+          continue;
+        }
+        payload = await res.json();
+        break; // Success, exit loop
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+
+    if (!payload) {
+      // This will be caught by the outer try/catch and reported to the user
+      throw lastErr || new Error('Unable to load tracker data from all possible paths');
+    }
     state.tracker.data = payload;
     state.tracker.error = null;
     state.tracker.loaded = true;
