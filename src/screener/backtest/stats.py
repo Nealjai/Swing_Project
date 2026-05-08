@@ -55,20 +55,23 @@ def _summary_for_subset(df: pd.DataFrame) -> Dict[str, float | int | None]:
     wins = pnl[pnl > 0]
     losses = pnl[pnl < 0]
 
-    win_rate = (len(wins) / total_trades) * 100.0
-    avg_win = wins.mean() if len(wins) > 0 else None
-    avg_loss = losses.mean() if len(losses) > 0 else None
+    win_count = len(wins)
+    loss_count = len(losses)
 
-    gross_profit = wins.sum() if len(wins) > 0 else 0.0
-    gross_loss_abs = abs(losses.sum()) if len(losses) > 0 else 0.0
+    win_rate = (win_count / total_trades) * 100.0
+    avg_win = wins.mean() if win_count > 0 else None
+    avg_loss = losses.mean() if loss_count > 0 else None
+
+    gross_profit = wins.sum() if win_count > 0 else 0.0
+    gross_loss_abs = abs(losses.sum()) if loss_count > 0 else 0.0
     profit_factor = (gross_profit / gross_loss_abs) if gross_loss_abs > 0 else None
 
     expectancy = pnl.mean()
     max_consec_losses = _max_consecutive_losses(pnl)
     avg_hold_days = float(df["hold_days"].astype(float).mean()) if "hold_days" in df.columns else None
 
-    max_win = float(wins.max()) if len(wins) > 0 else None
-    max_loss = float(losses.min()) if len(losses) > 0 else None
+    max_win = float(wins.max()) if win_count > 0 else None
+    max_loss = float(losses.min()) if loss_count > 0 else None
 
     return {
         "total_trades": total_trades,
