@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-05-08T05:15:54.708411+00:00",
+    "generated_at_utc": "2026-05-08T06:04:27.321666+00:00",
     "rules": {
       "engine": "bull",
       "max_rank": 10,
@@ -36,7 +36,7 @@
       "rank_at_capture": 2,
       "score_at_capture": 80.20490301681134,
       "distance_to_sma20_pct": 0.09076878649907294,
-      "rsi14": 64.64021992268343,
+      "rsi14": 64.64021992268502,
       "volume_buzz_ratio": 1.57241860592147,
       "signal_close": 181.57000732421875,
       "signal_atr14": 10.982141767229352,
@@ -51,7 +51,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.609239+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.219513+00:00"
     },
     {
       "symbol": "WDC",
@@ -72,7 +72,7 @@
       "rank_at_capture": 2,
       "score_at_capture": 81.86398642054003,
       "distance_to_sma20_pct": 0.15424043279656918,
-      "rsi14": 73.8480486209622,
+      "rsi14": 73.84804862094855,
       "volume_buzz_ratio": 0.8509967234108899,
       "signal_close": 431.5199890136719,
       "signal_atr14": 23.989286150251115,
@@ -87,7 +87,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.620261+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.231140+00:00"
     },
     {
       "symbol": "PWR",
@@ -108,7 +108,7 @@
       "rank_at_capture": 10,
       "score_at_capture": 75.50698422207205,
       "distance_to_sma20_pct": 0.1486639099514795,
-      "rsi14": 73.58942191985602,
+      "rsi14": 73.58942191388991,
       "volume_buzz_ratio": 1.7513908285851338,
       "signal_close": 742.2100219726562,
       "signal_atr14": 22.670000348772323,
@@ -123,7 +123,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.631468+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.242756+00:00"
     },
     {
       "symbol": "KEYS",
@@ -159,7 +159,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.642575+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.254338+00:00"
     },
     {
       "symbol": "JBL",
@@ -180,7 +180,7 @@
       "rank_at_capture": 4,
       "score_at_capture": 79.65484863192125,
       "distance_to_sma20_pct": 0.057220257569603694,
-      "rsi14": 63.35763782165319,
+      "rsi14": 63.35763782165323,
       "volume_buzz_ratio": 1.4180777617454658,
       "signal_close": 342.4700012207031,
       "signal_atr14": 10.534999302455358,
@@ -195,7 +195,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.653695+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.265980+00:00"
     },
     {
       "symbol": "GNRC",
@@ -231,7 +231,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.664904+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.277792+00:00"
     },
     {
       "symbol": "CAT",
@@ -252,7 +252,7 @@
       "rank_at_capture": 9,
       "score_at_capture": 75.82534300275073,
       "distance_to_sma20_pct": 0.07801512332250349,
-      "rsi14": 66.63508163145765,
+      "rsi14": 66.63508163111146,
       "volume_buzz_ratio": 1.1547168985325065,
       "signal_close": 889.6699829101562,
       "signal_atr14": 26.602861676897323,
@@ -267,7 +267,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.676801+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.289311+00:00"
     },
     {
       "symbol": "VRT",
@@ -288,7 +288,7 @@
       "rank_at_capture": 4,
       "score_at_capture": 76.39216423898982,
       "distance_to_sma20_pct": 0.0714426719549821,
-      "rsi14": 62.981960538912766,
+      "rsi14": 62.98196053874094,
       "volume_buzz_ratio": 0.6778855832757448,
       "signal_close": 328.70001220703125,
       "signal_atr14": 15.570142473493304,
@@ -303,7 +303,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.687450+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.300162+00:00"
     },
     {
       "symbol": "LITE",
@@ -339,7 +339,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.698005+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.310914+00:00"
     },
     {
       "symbol": "CIEN",
@@ -375,48 +375,11 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.708384+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.321639+00:00"
     }
   ],
   "inactive": [
     {
-      "symbol": "MU",
-      "capture_date_utc": "2026-05-01",
-      "entry_date_utc": "2026-05-01",
-      "entry_price": 511.7799987792969,
-      "capture_close": 532.4299926757812,
-      "current_close": 646.6300048828125,
-      "return_since_capture_pct": 0.21448831541797153,
-      "days_tracked_trading": 5,
-      "expiry_date_utc": null,
-      "status": "inactive",
-      "position_state": "inactive",
-      "status_tag": "trail_stop_hit",
-      "status_tags": [
-        "trail_stop_hit",
-        "trail_stop"
-      ],
-      "rank_at_capture": 3,
-      "score_at_capture": 76.40541706140105,
-      "distance_to_sma20_pct": 0.27019203470243447,
-      "rsi14": 77.50175043566085,
-      "volume_buzz_ratio": 1.069081843024415,
-      "signal_close": 532.4299926757812,
-      "signal_atr14": 28.94142804827009,
-      "stop_loss": 474.54713657924106,
-      "activation_level": 590.3128487723214,
-      "trailing_stop_offset": 43.41214207240513,
-      "trail_stop_price": 596.7878701346261,
-      "activated": true,
-      "activation_date_utc": "2026-05-05",
-      "activation_price": 640.2000122070312,
-      "highest_close_since_entry": 640.2000122070312,
-      "exit_reason": "trailing_stop_close",
-      "exit_date_utc": "2026-05-01",
-      "exit_price": 542.2100219726562,
-      "last_updated_utc": "2026-05-08T05:15:54.598989+00:00"
-    },
-    {
       "symbol": "DELL",
       "capture_date_utc": "2026-05-04",
       "entry_date_utc": "2026-05-04",
@@ -436,7 +399,7 @@
       "rank_at_capture": 6,
       "score_at_capture": 73.72906307845406,
       "distance_to_sma20_pct": 0.11832361833624394,
-      "rsi14": 69.41992926369298,
+      "rsi14": 69.41992926266153,
       "volume_buzz_ratio": 0.575957812107415,
       "signal_close": 210.92080688476562,
       "signal_atr14": 9.047142028808594,
@@ -451,48 +414,48 @@
       "exit_reason": "trailing_stop_close",
       "exit_date_utc": "2026-05-04",
       "exit_price": 211.63999938964844,
-      "last_updated_utc": "2026-05-08T05:15:54.588436+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.208985+00:00"
+    },
+    {
+      "symbol": "MU",
+      "capture_date_utc": "2026-05-01",
+      "entry_date_utc": "2026-05-01",
+      "entry_price": 511.7799987792969,
+      "capture_close": 532.4299926757812,
+      "current_close": 646.6300048828125,
+      "return_since_capture_pct": 0.21448831541797153,
+      "days_tracked_trading": 5,
+      "expiry_date_utc": null,
+      "status": "inactive",
+      "position_state": "inactive",
+      "status_tag": "trail_stop_hit",
+      "status_tags": [
+        "trail_stop_hit",
+        "trail_stop"
+      ],
+      "rank_at_capture": 3,
+      "score_at_capture": 76.40541706140105,
+      "distance_to_sma20_pct": 0.27019203470243447,
+      "rsi14": 77.50175043568382,
+      "volume_buzz_ratio": 1.069081843024415,
+      "signal_close": 532.4299926757812,
+      "signal_atr14": 28.94142804827009,
+      "stop_loss": 474.54713657924106,
+      "activation_level": 590.3128487723214,
+      "trailing_stop_offset": 43.41214207240513,
+      "trail_stop_price": 596.7878701346261,
+      "activated": true,
+      "activation_date_utc": "2026-05-05",
+      "activation_price": 640.2000122070312,
+      "highest_close_since_entry": 640.2000122070312,
+      "exit_reason": "trailing_stop_close",
+      "exit_date_utc": "2026-05-01",
+      "exit_price": 542.2100219726562,
+      "last_updated_utc": "2026-05-08T06:04:27.198172+00:00"
     }
   ],
   "dropped": [
     {
-      "symbol": "MU",
-      "capture_date_utc": "2026-05-01",
-      "entry_date_utc": "2026-05-01",
-      "entry_price": 511.7799987792969,
-      "capture_close": 532.4299926757812,
-      "current_close": 646.6300048828125,
-      "return_since_capture_pct": 0.21448831541797153,
-      "days_tracked_trading": 5,
-      "expiry_date_utc": null,
-      "status": "inactive",
-      "position_state": "inactive",
-      "status_tag": "trail_stop_hit",
-      "status_tags": [
-        "trail_stop_hit",
-        "trail_stop"
-      ],
-      "rank_at_capture": 3,
-      "score_at_capture": 76.40541706140105,
-      "distance_to_sma20_pct": 0.27019203470243447,
-      "rsi14": 77.50175043566085,
-      "volume_buzz_ratio": 1.069081843024415,
-      "signal_close": 532.4299926757812,
-      "signal_atr14": 28.94142804827009,
-      "stop_loss": 474.54713657924106,
-      "activation_level": 590.3128487723214,
-      "trailing_stop_offset": 43.41214207240513,
-      "trail_stop_price": 596.7878701346261,
-      "activated": true,
-      "activation_date_utc": "2026-05-05",
-      "activation_price": 640.2000122070312,
-      "highest_close_since_entry": 640.2000122070312,
-      "exit_reason": "trailing_stop_close",
-      "exit_date_utc": "2026-05-01",
-      "exit_price": 542.2100219726562,
-      "last_updated_utc": "2026-05-08T05:15:54.598989+00:00"
-    },
-    {
       "symbol": "DELL",
       "capture_date_utc": "2026-05-04",
       "entry_date_utc": "2026-05-04",
@@ -512,7 +475,7 @@
       "rank_at_capture": 6,
       "score_at_capture": 73.72906307845406,
       "distance_to_sma20_pct": 0.11832361833624394,
-      "rsi14": 69.41992926369298,
+      "rsi14": 69.41992926266153,
       "volume_buzz_ratio": 0.575957812107415,
       "signal_close": 210.92080688476562,
       "signal_atr14": 9.047142028808594,
@@ -527,7 +490,44 @@
       "exit_reason": "trailing_stop_close",
       "exit_date_utc": "2026-05-04",
       "exit_price": 211.63999938964844,
-      "last_updated_utc": "2026-05-08T05:15:54.588436+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.208985+00:00"
+    },
+    {
+      "symbol": "MU",
+      "capture_date_utc": "2026-05-01",
+      "entry_date_utc": "2026-05-01",
+      "entry_price": 511.7799987792969,
+      "capture_close": 532.4299926757812,
+      "current_close": 646.6300048828125,
+      "return_since_capture_pct": 0.21448831541797153,
+      "days_tracked_trading": 5,
+      "expiry_date_utc": null,
+      "status": "inactive",
+      "position_state": "inactive",
+      "status_tag": "trail_stop_hit",
+      "status_tags": [
+        "trail_stop_hit",
+        "trail_stop"
+      ],
+      "rank_at_capture": 3,
+      "score_at_capture": 76.40541706140105,
+      "distance_to_sma20_pct": 0.27019203470243447,
+      "rsi14": 77.50175043568382,
+      "volume_buzz_ratio": 1.069081843024415,
+      "signal_close": 532.4299926757812,
+      "signal_atr14": 28.94142804827009,
+      "stop_loss": 474.54713657924106,
+      "activation_level": 590.3128487723214,
+      "trailing_stop_offset": 43.41214207240513,
+      "trail_stop_price": 596.7878701346261,
+      "activated": true,
+      "activation_date_utc": "2026-05-05",
+      "activation_price": 640.2000122070312,
+      "highest_close_since_entry": 640.2000122070312,
+      "exit_reason": "trailing_stop_close",
+      "exit_date_utc": "2026-05-01",
+      "exit_price": 542.2100219726562,
+      "last_updated_utc": "2026-05-08T06:04:27.198172+00:00"
     }
   ],
   "items": [
@@ -550,7 +550,7 @@
       "rank_at_capture": 2,
       "score_at_capture": 80.20490301681134,
       "distance_to_sma20_pct": 0.09076878649907294,
-      "rsi14": 64.64021992268343,
+      "rsi14": 64.64021992268502,
       "volume_buzz_ratio": 1.57241860592147,
       "signal_close": 181.57000732421875,
       "signal_atr14": 10.982141767229352,
@@ -565,7 +565,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.609239+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.219513+00:00"
     },
     {
       "symbol": "WDC",
@@ -586,7 +586,7 @@
       "rank_at_capture": 2,
       "score_at_capture": 81.86398642054003,
       "distance_to_sma20_pct": 0.15424043279656918,
-      "rsi14": 73.8480486209622,
+      "rsi14": 73.84804862094855,
       "volume_buzz_ratio": 0.8509967234108899,
       "signal_close": 431.5199890136719,
       "signal_atr14": 23.989286150251115,
@@ -601,7 +601,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.620261+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.231140+00:00"
     },
     {
       "symbol": "PWR",
@@ -622,7 +622,7 @@
       "rank_at_capture": 10,
       "score_at_capture": 75.50698422207205,
       "distance_to_sma20_pct": 0.1486639099514795,
-      "rsi14": 73.58942191985602,
+      "rsi14": 73.58942191388991,
       "volume_buzz_ratio": 1.7513908285851338,
       "signal_close": 742.2100219726562,
       "signal_atr14": 22.670000348772323,
@@ -637,7 +637,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.631468+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.242756+00:00"
     },
     {
       "symbol": "KEYS",
@@ -673,7 +673,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.642575+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.254338+00:00"
     },
     {
       "symbol": "JBL",
@@ -694,7 +694,7 @@
       "rank_at_capture": 4,
       "score_at_capture": 79.65484863192125,
       "distance_to_sma20_pct": 0.057220257569603694,
-      "rsi14": 63.35763782165319,
+      "rsi14": 63.35763782165323,
       "volume_buzz_ratio": 1.4180777617454658,
       "signal_close": 342.4700012207031,
       "signal_atr14": 10.534999302455358,
@@ -709,7 +709,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.653695+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.265980+00:00"
     },
     {
       "symbol": "GNRC",
@@ -745,7 +745,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.664904+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.277792+00:00"
     },
     {
       "symbol": "CAT",
@@ -766,7 +766,7 @@
       "rank_at_capture": 9,
       "score_at_capture": 75.82534300275073,
       "distance_to_sma20_pct": 0.07801512332250349,
-      "rsi14": 66.63508163145765,
+      "rsi14": 66.63508163111146,
       "volume_buzz_ratio": 1.1547168985325065,
       "signal_close": 889.6699829101562,
       "signal_atr14": 26.602861676897323,
@@ -781,7 +781,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.676801+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.289311+00:00"
     },
     {
       "symbol": "VRT",
@@ -802,7 +802,7 @@
       "rank_at_capture": 4,
       "score_at_capture": 76.39216423898982,
       "distance_to_sma20_pct": 0.0714426719549821,
-      "rsi14": 62.981960538912766,
+      "rsi14": 62.98196053874094,
       "volume_buzz_ratio": 0.6778855832757448,
       "signal_close": 328.70001220703125,
       "signal_atr14": 15.570142473493304,
@@ -817,7 +817,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.687450+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.300162+00:00"
     },
     {
       "symbol": "LITE",
@@ -853,7 +853,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.698005+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.310914+00:00"
     },
     {
       "symbol": "CIEN",
@@ -889,44 +889,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-05-08T05:15:54.708384+00:00"
-    },
-    {
-      "symbol": "MU",
-      "capture_date_utc": "2026-05-01",
-      "entry_date_utc": "2026-05-01",
-      "entry_price": 511.7799987792969,
-      "capture_close": 532.4299926757812,
-      "current_close": 646.6300048828125,
-      "return_since_capture_pct": 0.21448831541797153,
-      "days_tracked_trading": 5,
-      "expiry_date_utc": null,
-      "status": "inactive",
-      "position_state": "inactive",
-      "status_tag": "trail_stop_hit",
-      "status_tags": [
-        "trail_stop_hit",
-        "trail_stop"
-      ],
-      "rank_at_capture": 3,
-      "score_at_capture": 76.40541706140105,
-      "distance_to_sma20_pct": 0.27019203470243447,
-      "rsi14": 77.50175043566085,
-      "volume_buzz_ratio": 1.069081843024415,
-      "signal_close": 532.4299926757812,
-      "signal_atr14": 28.94142804827009,
-      "stop_loss": 474.54713657924106,
-      "activation_level": 590.3128487723214,
-      "trailing_stop_offset": 43.41214207240513,
-      "trail_stop_price": 596.7878701346261,
-      "activated": true,
-      "activation_date_utc": "2026-05-05",
-      "activation_price": 640.2000122070312,
-      "highest_close_since_entry": 640.2000122070312,
-      "exit_reason": "trailing_stop_close",
-      "exit_date_utc": "2026-05-01",
-      "exit_price": 542.2100219726562,
-      "last_updated_utc": "2026-05-08T05:15:54.598989+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.321639+00:00"
     },
     {
       "symbol": "DELL",
@@ -948,7 +911,7 @@
       "rank_at_capture": 6,
       "score_at_capture": 73.72906307845406,
       "distance_to_sma20_pct": 0.11832361833624394,
-      "rsi14": 69.41992926369298,
+      "rsi14": 69.41992926266153,
       "volume_buzz_ratio": 0.575957812107415,
       "signal_close": 210.92080688476562,
       "signal_atr14": 9.047142028808594,
@@ -963,7 +926,44 @@
       "exit_reason": "trailing_stop_close",
       "exit_date_utc": "2026-05-04",
       "exit_price": 211.63999938964844,
-      "last_updated_utc": "2026-05-08T05:15:54.588436+00:00"
+      "last_updated_utc": "2026-05-08T06:04:27.208985+00:00"
+    },
+    {
+      "symbol": "MU",
+      "capture_date_utc": "2026-05-01",
+      "entry_date_utc": "2026-05-01",
+      "entry_price": 511.7799987792969,
+      "capture_close": 532.4299926757812,
+      "current_close": 646.6300048828125,
+      "return_since_capture_pct": 0.21448831541797153,
+      "days_tracked_trading": 5,
+      "expiry_date_utc": null,
+      "status": "inactive",
+      "position_state": "inactive",
+      "status_tag": "trail_stop_hit",
+      "status_tags": [
+        "trail_stop_hit",
+        "trail_stop"
+      ],
+      "rank_at_capture": 3,
+      "score_at_capture": 76.40541706140105,
+      "distance_to_sma20_pct": 0.27019203470243447,
+      "rsi14": 77.50175043568382,
+      "volume_buzz_ratio": 1.069081843024415,
+      "signal_close": 532.4299926757812,
+      "signal_atr14": 28.94142804827009,
+      "stop_loss": 474.54713657924106,
+      "activation_level": 590.3128487723214,
+      "trailing_stop_offset": 43.41214207240513,
+      "trail_stop_price": 596.7878701346261,
+      "activated": true,
+      "activation_date_utc": "2026-05-05",
+      "activation_price": 640.2000122070312,
+      "highest_close_since_entry": 640.2000122070312,
+      "exit_reason": "trailing_stop_close",
+      "exit_date_utc": "2026-05-01",
+      "exit_price": 542.2100219726562,
+      "last_updated_utc": "2026-05-08T06:04:27.198172+00:00"
     }
   ]
 }
