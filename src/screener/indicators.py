@@ -44,17 +44,20 @@ def add_indicators(
     signal_close = out["Adj Close"] if "Adj Close" in out.columns else out["Close"]
     out["signal_close"] = signal_close
 
+    roll20 = signal_close.rolling(20)
+    roll_bb = signal_close.rolling(bb_length)
+
     out["ema9"] = signal_close.ewm(span=9, adjust=False).mean()
     out["ema21"] = signal_close.ewm(span=21, adjust=False).mean()
-    out["sma20"] = signal_close.rolling(20).mean()
+    out["sma20"] = roll20.mean()
     out["sma50"] = signal_close.rolling(50).mean()
     out["sma200"] = signal_close.rolling(sma_regime_length).mean()
 
     out["high_20d"] = signal_close.rolling(breakout_lookback).max()
     out["rsi14"] = compute_rsi(signal_close, rsi_length)
 
-    bb_mid = signal_close.rolling(bb_length).mean()
-    bb_sigma = signal_close.rolling(bb_length).std(ddof=0)
+    bb_mid = roll_bb.mean()
+    bb_sigma = roll_bb.std(ddof=0)
     out["bb_mid"] = bb_mid
     out["bb_upper"] = bb_mid + bb_std * bb_sigma
     out["bb_lower"] = bb_mid - bb_std * bb_sigma
