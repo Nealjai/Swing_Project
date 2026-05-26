@@ -210,6 +210,25 @@ def _open_on_date(df: pd.DataFrame | None, target_date: date | None) -> float | 
         return None
 
 
+def _next_trading_open(df: pd.DataFrame | None, from_date: date | None) -> Tuple[date | None, float | None]:
+    if df is None or df.empty or from_date is None:
+        return None, None
+
+    try:
+        frame = df.copy().sort_index()
+        for ts, row in frame.iterrows():
+            bar_date = pd.Timestamp(ts).date()
+            if bar_date < from_date:
+                continue
+            open_px = _to_float(row.get("Open"))
+            if open_px is not None and open_px > 0:
+                return bar_date, open_px
+    except Exception:  # noqa: BLE001
+        return None, None
+
+    return None, None
+
+
 def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: Dict[str, Any]) -> Dict[str, Any]:
     capture_close = _to_float(candidate.get("close"))
     current_close = _to_float(latest.get("current_close"))
@@ -236,8 +255,8 @@ def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: D
     if trailing_stop_offset is None and atr14 is not None:
         trailing_stop_offset = 1.5 * atr14
 
-    entry_date_utc = current_date.isoformat()
-    entry_price = _open_on_date(latest.get("df"), current_date)
+    entry_date, entry_price = _next_trading_open(latest.get("df"), current_date)
+    entry_date_utc = entry_date.isoformat() if entry_date is not None else None
 
     return {
         "symbol": _symbol_from_candidate(candidate),
@@ -309,8 +328,11 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
     out["entry_date_utc"] = entry_date.isoformat() if entry_date is not None else None
 
     if entry_date is not None and (entry_price is None or entry_price <= 0):
-        # Resolve only from the exact entry-date open; no fallback price.
-        entry_price = _open_on_date(latest.get("df"), entry_date)
+        resolved_entry_date, resolved_entry_price = _next_trading_open(latest.get("df"), entry_date)
+        if resolved_entry_date is not None and resolved_entry_price is not None:
+            entry_date = resolved_entry_date
+            entry_price = resolved_entry_price
+            out["entry_date_utc"] = entry_date.isoformat()
     out["entry_price"] = entry_price
 
     days_tracked, expiry_date = _compute_trading_day_stats(
@@ -507,7 +529,7 @@ def update_tracker_file(
             "df": None,
         }
 
-        if symbol in active_map or symbol in inactive_map:
+        if symbol in active_map:
             continue
 
         active_map[symbol] = _new_tracker_record(candidate, current_date=current_date, latest=latest)
@@ -516,14 +538,29 @@ def update_tracker_file(
     refreshed_inactive: List[Dict[str, Any]] = []
 
     for symbol, record in {**inactive_map, **active_map}.items():
-        latest = latest_by_symbol.get(symbol) or {
-            "current_close": _to_float(record.get("current_close")),
-            "rsi14": _to_float(record.get("rsi14")),
-            "distance_to_sma20_pct": _to_float(record.get("distance_to_sma20_pct")),
-            "volume_buzz_ratio": _to_float(record.get("volume_buzz_ratio")),
-            "df_index": None,
-            "df": None,
-        }
+        latest = latest_by_symbol.get(symbol)
+        if latest is None:
+            yf_symbol = str(record.get("yf_symbol") or symbol).strip()
+            price_df = enriched_by_yf_symbol.get(yf_symbol)
+            if (price_df is None or price_df.empty) and yf_symbol != symbol:
+                price_df = enriched_by_yf_symbol.get(symbol)
+
+            enriched_close = None
+            if price_df is not None and not price_df.empty:
+                try:
+                    if "Close" in price_df.columns:
+                        enriched_close = _to_float(price_df["Close"].iloc[-1])
+                except Exception:  # noqa: BLE001
+                    enriched_close = None
+
+            latest = {
+                "current_close": enriched_close,
+                "rsi14": _to_float(record.get("rsi14")),
+                "distance_to_sma20_pct": _to_float(record.get("distance_to_sma20_pct")),
+                "volume_buzz_ratio": _to_float(record.get("volume_buzz_ratio")),
+                "df_index": price_df.index if price_df is not None and not price_df.empty else None,
+                "df": price_df if price_df is not None and not price_df.empty else None,
+            }
         updated = _refresh_record(record, latest=latest, current_date=current_date)
         if str(updated.get("position_state") or "active").lower() == "inactive":
             refreshed_inactive.append(updated)
