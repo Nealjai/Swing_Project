@@ -1,233 +1,231 @@
 # US Market Regime Dual-Engine Stock Screener
 
-## Overview
-A V1 stock screening and research dashboard for U.S. equities. A Python pipeline fetches daily end-of-day data, detects the current market regime using SPY versus the 200-day SMA, runs the appropriate screening engine, and exports static JSON and CSV files. A static HTML/CSS/JS frontend reads the latest JSON and renders a ranked candidates dashboard.
+Static, research-focused U.S. equity screener with:
+- regime-aware dual-engine candidate selection,
+- normalized scoring and ranking,
+- tracker lifecycle monitoring,
+- market condition diagnostics,
+- portfolio-style backtesting,
+- and a GitHub Pages dashboard served from `docs/`.
 
-## Confirmed V1 defaults
-- Universe: tickers from [`sp500.txt`](sp500.txt:1)
-- Regime benchmark: SPY
-- Regime rule: SPY close vs SMA200
-- Data: yfinance daily EOD
-- Outputs: JSON primary and CSV secondary
-- Cadence: automated daily GitHub Actions run + manual trigger + local manual run
-- Scope: screening and research only, no execution
+## What the project does (current state)
 
-## How It Works: The Dual-Engine System
+This project runs a Python pipeline that:
+1. Loads a U.S. stock universe (default: `sp500.txt`).
+2. Fetches EOD OHLCV/fundamental context from Yahoo Finance (`yfinance`).
+3. Detects market regime from SPY vs SMA200.
+4. Activates one engine (`bull` or `weak`) for candidate generation.
+5. Applies normalized scoring + ranking.
+6. Exports static artifacts (`JSON` + `CSV`) for the dashboard.
+7. Updates tracker and market condition artifacts.
+8. Exports 3-year per-symbol daily files for dashboard charting.
 
-The screener's core logic is built around a dual-engine system that adapts to the current market environment. It first determines the market's health (the "regime") and then deploys the appropriate engine to find high-potential trading candidates.
+The frontend (`docs/index.html` + `docs/app.js`) reads those files directly (no backend server).
 
-### 1. Market Regime Determination
+---
 
-The screener's first and most crucial step is to classify the overall market regime. This determines which scanning engine will be used.
+## Core modules
 
-*   **Criteria**: The regime is determined by comparing the closing price of the **SPY (S&P 500 ETF)** to its **200-day Simple Moving Average (SMA)**.
-    *   If `SPY Close > 200-day SMA`, the regime is **"Bull"**.
-    *   If `SPY Close <= 200-day SMA`, the regime is **"Weak"**.
+- `scripts/run_daily.py`: daily screener pipeline + artifact generation.
+- `scripts/run_backtest.py`: backtest runner + portfolio simulation + run history artifacts.
+- `src/screener/engines/bull.py`: bull regime candidate logic.
+- `src/screener/engines/weak.py`: weak regime candidate logic.
+- `src/screener/engines/scoring.py`: robust normalization/scoring helpers.
+- `src/screener/tracker.py`: tracker lifecycle engine (active/inactive records).
+- `src/screener/market_condition.py`: market condition metrics and chart payload.
+- `src/screener/backtest/*`: backtest engine, portfolio simulator, stats, output writers.
+- `docs/*`: static dashboard UI.
 
-This simple but effective rule ensures that the screener is always aligned with the market's primary trend.
+---
 
-### 2. The Scanning Engines
+## Screening logic summary
 
-Based on the detected regime, one of two specialized engines is activated.
+### Regime detection
+- Benchmark: `SPY`
+- Rule: `Bull` if SPY close > SMA200, else `Weak`
 
-#### a. The Bull Engine: Finding Market Leaders
+### Engine routing
+- `Bull` regime -> bull engine
+- `Weak` regime -> weak engine
 
-*   **Objective**: To identify stocks in strong uptrends that are consolidating and poised for a breakout.
-*   **Core Logic**:
-    1.  **Uptrend Confirmation**: The stock must be trading above its own 200-day SMA.
-    2.  **Pattern Recognition**: It looks for classic bullish patterns like the "Cup with Handle" (CWH) or "Volatility Contraction Pattern" (VCP).
-    3.  **Scoring**:
-        *   **Leadership Score**: Measures the stock's Relative Strength (RS) against the SPY. A high score means the stock is already outperforming the market.
-        *   **Actionability Score**: Measures the quality of the setup. It rewards stocks that are close to a breakout point ("pivot"), show tight price consolidation, and have supportive volume patterns.
+### Hard filters (shared)
+- minimum price
+- minimum market cap
+- minimum beta (1y)
+- minimum volume
+- minimum average dollar volume (20d)
 
-#### b. The Weak Engine: Spotting Rebound Opportunities
+### Normalized scoring model
+Scoring uses robust cross-sectional normalization (median/MAD + sigmoid) and outputs normalized sub-scores.
 
-*   **Objective**: To identify fundamentally sound but oversold stocks that are due for a potential short-term rebound.
-*   **Core Logic**:
-    1.  **Oversold Condition**: The primary filter is a 14-day Relative Strength Index (RSI) below 30, indicating the stock is potentially oversold.
-    2.  **Scoring**:
-        *   **Leadership Score**: Even in a weak market, this score prioritizes stocks with better long-term trends and liquidity.
-        *   **Actionability Score**: Measures the quality of the oversold setup by rewarding:
-            *   **Extreme RSI**: Lower RSI values get a higher score.
-            *   **Price Extension**: How far the stock has fallen below its recent trading range (Lower Bollinger Band).
-            *   **Capitulation Volume**: A spike in volume that suggests seller exhaustion.
+- Bull:
+  - leadership = RS + trend blend
+  - actionability = breakout + compression + volume + stage blend
+  - final score = weighted leadership/actionability blend (scaled to 0-100)
 
-### 3. Scoring Formulas (High-Level)
+- Weak:
+  - leadership = trend + liquidity blend
+  - actionability = reversal + extension + capitulation blend
+  - final score = weighted leadership/actionability blend (scaled to 0-100)
 
-The final score for each stock is a weighted average of its Leadership and Actionability scores.
+### Candidate tags
+Dashboard tags are threshold-based:
+- 🏆 leadership when `leadership_score >= 0.90`
+- ⚡ actionable when `actionability_score >= 0.58`
+- 👀 watchlist when `0.50 <= actionability_score < 0.58`
 
-*   **Final Score** = (Leadership Score * Leadership Weight) + (Actionability Score * Actionability Weight)
+---
 
-#### Bull Engine Formulas:
+## Dashboard features (`docs/`)
 
-*   **Leadership Score** = `f(Relative Strength, Trend Strength)`
-*   **Actionability Score** = `f(Proximity to Pivot, Price Volatility, Volume Contraction)`
+Tabs currently available:
+- **Screener Result**
+  - List View + Chart View
+  - ranked table, candidate details, fundamentals, 3Y chart
+  - indicator toggles (SMA10/20/50/100/200, volume)
+- **Market Condition**
+  - market regime/SPY/VIX/DD/FTD cards
+  - SPY condition chart
+- **How It Works**
+  - strategy and scoring explanation panels
+- **Backtesting**
+  - fixed active scenario switch: `10k` and `30k`
+  - KPI cards, equity/drawdown chart, strategy-vs-SPY chart
+  - monthly and annual breakdown tables
+  - methodology + diagnostics sections
+- **Tracker**
+  - 2-week lifecycle tracker for qualified bull discoveries
+  - active/inactive states, lifecycle tags, per-symbol chart with controls
 
-#### Weak Engine Formulas:
+---
 
-*   **Leadership Score** = `f(Long-Term Trend, Liquidity)`
-*   **Actionability Score** = `f(RSI Level, Price Extension from Bollinger Band, Volume Spike)`
+## Output artifacts
 
-### 4. The Result: A Filtered, Actionable Idea
+### Daily screener outputs
+Generated by `python scripts/run_daily.py`:
+- `docs/data/latest.json`
+- `docs/data/latest.csv`
+- `docs/data/tracker.json`
+- `docs/data/market_condition.json`
+- `docs/data/daily/<SYMBOL>.json` (3Y OHLCV series per symbol, including SPY)
 
-A stock that appears in the screener results is not a "buy" signal. It is a high-potential, filtered idea that has passed a rigorous, data-driven set of rules based on the current market regime. The next step is for you to perform your own due diligence on the candidates that interest you.
+### Backtest outputs
+Generated by `python scripts/run_backtest.py`:
+- `docs/data/backtest_summary.json` (latest summary for dashboard consumption; appears after a local run)
+- `docs/data/backtest_runs/index.json` (run registry)
+- `docs/data/backtest_runs/backtest_summary_<run_id>.json`
+- `docs/data/backtest_runs/run_config_<run_id>.json`
+- `docs/data/backtest_runs/symbols_<run_id>.json`
+- `docs/data/backtest_runs/candidates_<run_id>.csv`
+- `data/backtests/trades_<timestamp>.csv` (local trade log, gitignored)
 
-## Local install and run
+Backtesting tab also reads fixed active datasets:
+- `docs/data/backtest_active_10k.json`
+- `docs/data/backtest_active_30k.json`
 
-### 1) Create and activate a Python virtual environment
-Windows (`cmd.exe`):
-```bat
-python -m venv .venv
-.venv\Scripts\activate
-```
+---
 
+## Local setup
+
+### 1) Create virtual environment
 macOS/Linux:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
+Windows (cmd):
+```bat
+python -m venv .venv
+.venv\Scripts\activate
+```
+
 ### 2) Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
-Dependencies are defined in [`requirements.txt`](requirements.txt:1).
 
-### 3) Run the daily pipeline locally
+---
+
+## Run commands
+
+### Daily screener pipeline
 ```bash
 python scripts/run_daily.py
 ```
-This regenerates static artifacts, including [`docs/data/latest.json`](docs/data/latest.json:1) and [`docs/data/latest.csv`](docs/data/latest.csv:1).
 
-The JSON now also includes:
-- Candidate `risk` (SL/TP based on ATR14 and bb_lower/high_20d)
-- Candidate `fundamentals` (ROE, P/E, Revenue Growth QoQ/YoY when available)
-- `charts` (1Y chart series for top 20 candidates + SPY benchmark)
-
-## Backtesting module (local run)
-
-Run backtests via [`scripts/run_backtest.py`](scripts/run_backtest.py:1):
-
+### Backtest pipeline
 ```bash
 python scripts/run_backtest.py
 ```
 
-### CLI arguments (with defaults)
-- `--engine` (default: `both`): `bull`, `weak`, or `both`
-- `--symbol-mode` (default: `test`): `test` (curated 21-symbol set) or `full` (full universe from [`sp500.txt`](sp500.txt:1))
-- `--start-date` (default: `2020-01-01`)
-- `--end-date` (default: `2024-12-31`)
+Key CLI options (current defaults):
+- `--engine` = `both` (`bull`, `weak`, `both`)
+- `--symbol-mode` = `full` (`full`, `test`)
+- `--years` = `10` (used when `--start-date` omitted)
+- `--start-date`, `--end-date` optional explicit window
+- `--initial-capital` = `10000`
+- `--max-positions` = `10`
+- `--slippage-pct` = `0.0005`
+- `--commission-per-side` = `0.32`
+- `--monthly-dd-limit-pct` = `6.0`
+- `--monthly-risk-per-trade-pct` = `1.0`
+- `--risk-free-rate-annual` = `0.0`
+- `--trading-days-per-year` = `252`
+- `--run-name`, `--run-description`, `--run-id`
+- `--reuse-candidates-csv` (portfolio rerun using prior candidates)
+- `--force-refresh`
+- `--disable-market-aware-refresh`
 
-Portfolio simulator assumptions / controls:
-- `--initial-capital` (default: `10000`)
-- `--max-positions` (default: `5`)
-- `--slippage-pct` (default: `0.0005` = 0.05% each side)
-- `--commission-per-side` (default: `0.32` dollars)
-- `--monthly-dd-limit-pct` (default: `6.0`)
-- `--monthly-risk-per-trade-pct` (default: `1.0`)
-- `--risk-free-rate-annual` (default: `0.0`) for Sharpe/Sortino
-- `--trading-days-per-year` (default: `252`) for Sharpe/Sortino annualization
-
-Example explicit run matching defaults:
-
+Example explicit run:
 ```bash
-python scripts/run_backtest.py --engine both --symbol-mode test --start-date 2020-01-01 --end-date 2024-12-31
+python scripts/run_backtest.py --engine both --symbol-mode full --years 10
 ```
 
-### Backtest outputs
-- Committed summary artifact: [`docs/data/backtest_summary.json`](docs/data/backtest_summary.json:1)
-- Local-only trade logs: `data/backtests/trades_YYYYMMDD_HHMM.csv`
-  - Generated by [`write_trade_log()`](src/screener/backtest/output.py:11)
-  - Kept out of git by [`data/backtests/`](.gitignore:5)
+---
 
-[`docs/data/backtest_summary.json`](docs/data/backtest_summary.json:1) now includes:
-- `portfolio.assumptions`
-- `portfolio.metrics` (Total Return, CAGR, Max Drawdown, Exposure, Months Halted, Sharpe, Sortino, etc.)
-- `portfolio.curve` (daily `dates`, `equity`, `drawdown_pct`)
-- `portfolio.monthly_returns`
+## Local dashboard preview
 
-### Backtest integrity rules (implementation summary)
-- Entry timing: signal on day *t*, entry at next session open (*t+1*) via [`_simulate_symbol()`](src/screener/backtest/engine.py:58)
-- Regime gating: bull/weak signals are only valid when benchmark regime for that date matches via [`_regime_state_series()`](src/screener/backtest/engine.py:50)
-- Warmup: first 200 bars are excluded before simulation via [`BacktestConfig.warmup_bars`](src/screener/backtest/engine.py:23)
-- Price semantics: signal generation uses adjusted-close (`signal_close`) while realized P&L uses raw close/open execution fields (`Open`/`Close`) in [`_simulate_symbol()`](src/screener/backtest/engine.py:58)
-
-## Dashboard Backtesting tab
-- The **Backtesting** tab in [`docs/index.html`](docs/index.html:124) lazy-loads [`docs/data/backtest_summary.json`](docs/data/backtest_summary.json:1) on first click via [`loadBacktestSummaryIfNeeded()`](docs/app.js:923).
-- The equity chart is now a **real portfolio equity curve** from [`simulate_portfolio()`](src/screener/backtest/portfolio.py:158), not an expectancy-derived synthetic curve.
-- The tab includes:
-  - engine trade-stat cards,
-  - portfolio metric cards (including Sharpe/Sortino),
-  - portfolio equity + drawdown chart,
-  - monthly returns table,
-  - annual trade-stats breakdown table.
-- If no summary file is present (or it cannot be fetched), the empty-state/error message means local backtests have not been generated yet for this repo snapshot (or the page is not being served correctly over HTTP).
-- Generate/update summary first with [`scripts/run_backtest.py`](scripts/run_backtest.py:1), then refresh the dashboard.
-
-## Local web UI testing
-
-### Option A (no installs): run a simple local server
-Serve [`docs/`](docs/:1) as a static site:
-
+Serve static files over HTTP (recommended):
 ```bash
 python -m http.server 5500 --directory docs
 ```
 
-Then open:
-- `http://localhost:5500/`
+Open: `http://localhost:5500/`
 
-This is preferred over opening [`docs/index.html`](docs/index.html:1) directly because `fetch()` for local JSON works reliably over HTTP.
+Do not open `docs/index.html` directly with `file://` if you expect `fetch()` data loading to work reliably.
 
-UI-only changes:
-- Save changes under [`docs/`](docs/:1)
-- Refresh browser
+---
 
-Logic/data changes:
-- Re-run [`scripts/run_daily.py`](scripts/run_daily.py:1) to regenerate [`docs/data/latest.json`](docs/data/latest.json:1)
-- Refresh browser
+## GitHub Actions automation
 
-### Option B (optional): VS Code Live Server (auto-reload)
-If you want **save → browser auto-refresh**:
-1. Install the **Live Server** VS Code extension
-2. Right-click [`docs/index.html`](docs/index.html:1) → **Open with Live Server**
+Workflow: `.github/workflows/daily_screener.yml`
 
-Notes:
-- Live Server only auto-reloads when files change.
-- It does **not** automatically re-run Python; for logic changes you still run [`scripts/run_daily.py`](scripts/run_daily.py:1), then the browser will reload once the JSON changes.
+Current workflow behavior:
+- scheduled + manual trigger
+- installs dependencies
+- runs `python scripts/run_daily.py`
+- commits/pushes updated static artifacts when changed
 
-## GitHub Pages deployment (serve from `/docs`)
-1. Open repository **Settings** → **Pages**.
-2. Under **Build and deployment**, choose **Deploy from a branch**.
-3. Select your default branch and folder **`/docs`**, then save.
-4. Your site will publish from files in [`docs/`](docs/:1), including dashboard assets and generated data artifacts.
+Currently staged in workflow commit step:
+- `docs/data/latest.json`
+- `docs/data/latest.csv`
+- `docs/data/tracker.json`
+- `docs/data/daily/`
 
-## Automated data regeneration and publish
-- Workflow file: [`.github/workflows/daily_screener.yml`](.github/workflows/daily_screener.yml:1)
-- Triggers:
-  - Daily schedule (UTC cron tuned for U.S. EOD availability)
-  - Manual run via `workflow_dispatch`
-- Pipeline steps:
-  1. Checkout repository
-  2. Setup Python 3.11
-  3. Install dependencies from [`requirements.txt`](requirements.txt:1)
-  4. Run [`scripts/run_daily.py`](scripts/run_daily.py:1)
-  5. Commit and push updated artifacts in [`docs/data/`](docs/data/:1), only when content changed
-- Current committed publish targets include:
-  - [`docs/data/latest.json`](docs/data/latest.json:1)
-  - [`docs/data/latest.csv`](docs/data/latest.csv:1)
+---
 
-## Manual workflow trigger
-1. Open the **Actions** tab in GitHub.
-2. Select **Daily Screener Publish**.
-3. Click **Run workflow** on the default branch.
-4. After completion, refreshed artifacts are available under [`docs/data/`](docs/data/:1).
+## Important notes
 
-## Cache behavior
-- [`data/cache/`](data/cache/:1) is not committed and is ignored by git.
-- Workflow commit step stages only static publish artifacts in [`docs/data/`](docs/data/:1).
+- Research/screening tool only; no brokerage integration or auto-execution.
+- Results are candidate ideas, not buy/sell advice.
+- Enforce your own risk management and due diligence.
 
-## Documentation
-- Spec: [`spec.md`](spec.md:1)
-- Implementation checklist: [`todolist.md`](todolist.md:1)
-- Progress log: [`report.md`](report.md:1)
-- Lessons and preferences: [`lessons.md`](lessons.md:1)
+---
+
+## Project docs
+
+- Spec: `spec.md`
+- Task list: `todolist.md`
+- Progress log: `report.md`
+- Lessons learned: `lessons.md`
