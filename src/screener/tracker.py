@@ -340,7 +340,7 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
         capture_date_raw=out.get("entry_date_utc"),
         current_date=current_date,
     )
-    out["days_tracked_trading"] = int(days_tracked)
+    out["days_tracked_trading"] = min(int(days_tracked), 15)
     out["expiry_date_utc"] = expiry_date
 
     out["distance_to_sma20_pct"] = _to_float(latest.get("distance_to_sma20_pct"))
@@ -455,6 +455,18 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
     out["exit_reason"] = exit_reason
     out["exit_date_utc"] = exit_date_utc
     out["exit_price"] = exit_price
+
+    # Freeze days tracked for inactive positions at exit date and cap at 15.
+    if out["position_state"] == "inactive":
+        entry_for_count = _extract_date(out.get("entry_date_utc"))
+        exit_for_count = _extract_date(out.get("exit_date_utc"))
+        if entry_for_count is not None and exit_for_count is not None:
+            frozen_days, _ = _compute_trading_day_stats(
+                index=latest.get("df_index"),
+                capture_date_raw=entry_for_count,
+                current_date=exit_for_count,
+            )
+            out["days_tracked_trading"] = min(int(frozen_days), 15)
 
     out["capture_date_utc"] = _normalize_iso_date(out.get("capture_date_utc"))
     out["entry_date_utc"] = _normalize_iso_date(out.get("entry_date_utc"))
