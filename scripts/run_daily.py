@@ -271,29 +271,34 @@ def main() -> int:
             )
 
     regime = detect_regime(benchmark_enriched)
+
+    print("Generating market condition data...")
+    market_condition = get_market_condition()
+    regime_label = str(market_condition.get("regime_label") or "Bull")
+
     rows = _build_rows(universe, enriched, info_by_symbol, logger)
 
-    if regime.regime == "bull":
-        raw_candidates = bull_candidates(
-            rows,
-            min_price=settings.min_price,
-            min_market_cap=settings.min_market_cap,
-            min_beta_1y=settings.min_beta_1y,
-            min_volume=settings.min_volume,
-            min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
-        )
-        engine_name = "bull"
-    else:
-        raw_candidates = weak_candidates(
-            rows,
-            min_price=settings.min_price,
-            min_market_cap=settings.min_market_cap,
-            min_beta_1y=settings.min_beta_1y,
-            min_volume=settings.min_volume,
-            weak_rsi_threshold=settings.weak_rsi_threshold,
-            min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
-        )
-        engine_name = "weak"
+    bull_raw_candidates = bull_candidates(
+        rows,
+        min_price=settings.min_price,
+        min_market_cap=settings.min_market_cap,
+        min_beta_1y=settings.min_beta_1y,
+        min_volume=settings.min_volume,
+        min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
+        regime_label=regime_label,
+    )
+    weak_raw_candidates = weak_candidates(
+        rows,
+        min_price=settings.min_price,
+        min_market_cap=settings.min_market_cap,
+        min_beta_1y=settings.min_beta_1y,
+        min_volume=settings.min_volume,
+        weak_rsi_threshold=settings.weak_rsi_threshold,
+        min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
+    )
+
+    raw_candidates = bull_raw_candidates + weak_raw_candidates
+    engine_name = "both"
 
     ranked = rank_candidates(raw_candidates, settings.max_candidates)
 
@@ -316,6 +321,8 @@ def main() -> int:
             "missing_or_skipped_count": len(skipped),
             "rows_with_metrics": len(rows),
             "raw_candidates_count": len(raw_candidates),
+            "raw_bull_candidates_count": len(bull_raw_candidates),
+            "raw_weak_candidates_count": len(weak_raw_candidates),
             "ranked_candidates_count": len(ranked),
         },
         "skipped_tickers": skipped,
@@ -360,7 +367,7 @@ def main() -> int:
         benchmark=benchmark_snapshot,
         candidates=ranked,
         diagnostics=diagnostics,
-        regime=regime.regime,
+        regime=regime_label,
         engine=engine_name,
         universe_size=len(universe),
         json_path=settings.output_json,
@@ -374,9 +381,6 @@ def main() -> int:
         enriched_by_yf_symbol=enriched,
     )
 
-    print("Generating market condition data...")
-    market_condition = get_market_condition()
-
     market_condition_path = Path("docs/data/market_condition.json")
     market_condition_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -385,7 +389,7 @@ def main() -> int:
 
     logger.info(
         "Finished run: regime=%s engine=%s candidates=%s universe=%s tracker_active=%s tracker_dropped=%s",
-        regime.regime,
+        regime_label,
         engine_name,
         len(ranked),
         len(universe),

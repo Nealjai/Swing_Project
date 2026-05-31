@@ -321,40 +321,43 @@
               The market is currently in a <span id="howItWorksHeroRegime" class="regime-badge neutral">-</span> regime.
             </h2>
             <p id="howItWorksHeroSubheadline" class="muted">
-              The <strong id="howItWorksHeroEngine">-</strong> engine is active. Here’s what that means.
+              Both engines run daily. Bull results are labelled by <strong id="howItWorksHeroEngine">-</strong> based on regime-aware gates.
             </p>
           </section>
 
           <section id="howItWorksRegime" class="card" aria-labelledby="howItWorksRegimeTitle">
             <h2 id="howItWorksRegimeTitle">How We Classify the Market</h2>
             <p class="muted">
-              The scanner’s first job is to determine the overall market health. We do this by comparing SPY’s close
-              with its 200-day simple moving average.
+              The scanner first evaluates SPY using three signals (close vs SMA200, close vs SMA50, and SMA50 slope)
+              and classifies the market as Bull, Choppy, or Bear.
             </p>
             <div class="how-it-works-diagram" role="img" aria-label="Regime decision flow">
-              <div class="how-it-works-node">SPY Price</div>
+              <div class="how-it-works-node">SPY regime signals</div>
               <div class="how-it-works-arrow">→</div>
-              <div class="how-it-works-node">Compare with 200-Day Average</div>
+              <div class="how-it-works-node">3-vote classifier</div>
               <div class="how-it-works-arrow">→</div>
               <div class="how-it-works-split">
-                <div class="how-it-works-branch bull">If SPY > SMA200 → Bull Regime</div>
-                <div class="how-it-works-branch weak">If SPY ≤ SMA200 → Weak Regime</div>
+                <div class="how-it-works-branch bull">3/3 bullish votes → Bull</div>
+                <div class="how-it-works-branch weak">0/3 bullish votes → Bear</div>
+                <div class="how-it-works-branch neutral">1–2 bullish votes → Choppy</div>
               </div>
             </div>
           </section>
 
           <section id="howItWorksEngineActivation" class="card" aria-labelledby="howItWorksEngineActivationTitle">
-            <h2 id="howItWorksEngineActivationTitle">One Regime, One Engine</h2>
+            <h2 id="howItWorksEngineActivationTitle">Policy B+: Regime-Aware Two-Tier Outputs</h2>
             <p class="muted">
-              Based on regime, the scanner activates exactly one engine designed for that environment.
+              Both Bull and Weak engines run daily. Bull candidates are then assigned an intent of trade or watchlist using regime-aware gates.
             </p>
-            <div class="how-it-works-diagram" role="img" aria-label="Engine activation flow">
-              <div class="how-it-works-node">Market Regime</div>
+            <div class="how-it-works-diagram" role="img" aria-label="Policy B+ flow">
+              <div class="how-it-works-node">Run Bull + Weak engines</div>
               <div class="how-it-works-arrow">→</div>
               <div class="how-it-works-split">
-                <div class="how-it-works-branch bull">Bull Regime → Activate Bull Engine</div>
-                <div class="how-it-works-branch weak">Weak Regime → Activate Weak Engine</div>
+                <div class="how-it-works-branch bull">Bull/Choppy: Bull candidates can remain trade-intent</div>
+                <div class="how-it-works-branch weak">Bear: Bull candidates default to watchlist intent (exceptions can stay trade)</div>
               </div>
+              <div class="how-it-works-arrow">→</div>
+              <div class="how-it-works-node">Tracker enforces intent == trade</div>
             </div>
           </section>
 
@@ -379,7 +382,7 @@
             <div class="explanation-grid">
               <div class="explanation-column">
                 <h3>Active Engine</h3>
-                <p class="muted">The screener adapts to market regime by activating one engine. The active engine is highlighted below.</p>
+                <p class="muted">The screener always runs both engines. Regime controls Bull intent (trade/watchlist) and tracker eligibility.</p>
                 <div class="engine-logic-selector" aria-label="Active screener engine">
                   <span class="engine-logic-tag bull" data-engine-tag="bull">Bull Engine</span>
                   <span class="engine-logic-tag weak" data-engine-tag="weak">Weak Engine</span>

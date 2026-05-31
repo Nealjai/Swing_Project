@@ -123,6 +123,12 @@ def _is_tracker_eligible(candidate: Dict[str, Any]) -> bool:
     if str(candidate.get("engine") or "").lower() != "bull":
         return False
 
+    # Policy B+: in Bear regime, bull engine can still emit watchlist candidates;
+    # tracker only accepts trade-intent candidates.
+    intent = str(candidate.get("intent") or "trade").strip().lower()
+    if intent != "trade":
+        return False
+
     rank = _to_float(candidate.get("rank"))
     if rank is None or rank > 10:
         return False
@@ -260,6 +266,9 @@ def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: D
 
     return {
         "symbol": _symbol_from_candidate(candidate),
+        "regime_label": str(candidate.get("regime_label") or "").strip() or None,
+        "intent": str(candidate.get("intent") or "trade").strip().lower(),
+        "regime_reason": str(candidate.get("regime_reason") or "").strip() or None,
         "capture_date_utc": current_date.isoformat(),
         "entry_date_utc": entry_date_utc,
         "entry_price": entry_price,
@@ -599,6 +608,7 @@ def update_tracker_file(
                 "engine": "bull",
                 "max_rank": 10,
                 "require_tags": ["🏆", "⚡"],
+                "intent": "trade_only (watchlist intents are excluded)",
                 "position_state": "active until stop-loss/trailing-stop/time-stop; inactive after exit",
             },
             "counts": {

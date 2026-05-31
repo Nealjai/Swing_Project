@@ -328,15 +328,16 @@ function normalizeRegimeKey(rawRegime, spyClose = null, sma200 = null) {
     .toLowerCase();
 
   if (regime === 'bull' || regime === 'risk-on' || regime === 'uptrend') return 'bull';
-  if (regime === 'weak' || regime === 'bear' || regime === 'risk-off' || regime === 'downtrend') return 'weak';
+  if (regime === 'choppy' || regime === 'neutral' || regime === 'sideways') return 'choppy';
+  if (regime === 'weak' || regime === 'bear' || regime === 'risk-off' || regime === 'downtrend') return 'bear';
 
   const close = Number(spyClose);
   const sma = Number(sma200);
   if (Number.isFinite(close) && Number.isFinite(sma)) {
-    return close > sma ? 'bull' : 'weak';
+    return close > sma ? 'bull' : 'bear';
   }
 
-  return 'weak';
+  return 'choppy';
 }
 
 function getHowItWorksEngineCards() {
@@ -348,9 +349,9 @@ function getHowItWorksEngineCards() {
       purpose:
         'This engine looks for stocks in strong uptrends that are consolidating and getting ready for their next major price move.',
       checks: [
-        'Strong Uptrend: Stock is already outperforming the market.',
-        'Price Consolidation: Looks for classic Cup with Handle or Volatility Contraction patterns.',
-        'Breakout Readiness: Scores proximity to pivot with volume confirmation.',
+        'Leadership Quality: Uses relative, absolute, and excess return diagnostics vs SPY.',
+        'Price Consolidation: Looks for Cup-with-Handle / Volatility Contraction structures.',
+        'Intent Layer: In Bear regime, candidates are usually watchlist unless strict exception gates pass.',
       ],
     },
     {
@@ -408,28 +409,27 @@ function renderHowItWorks(payload, marketPayload = null) {
     market.spy_sma200 ?? benchmark.sma200,
   );
 
-  const regimeLabel = derivedRegimeKey === 'bull' ? 'Bull' : 'Weak';
-  const engineFromMarket = String(market.engine || '')
-    .trim()
-    .toLowerCase();
-  const engineFromMeta = String(meta.engine || '')
-    .trim()
-    .toLowerCase();
-  const resolvedEngine = engineFromMarket || engineFromMeta || derivedRegimeKey;
-  const activeEngine = resolvedEngine === 'bull' || resolvedEngine === 'weak' ? resolvedEngine : derivedRegimeKey;
-  const engineLabel = activeEngine === 'bull' ? 'Bull Engine' : 'Weak Engine';
+  const regimeLabel =
+    derivedRegimeKey === 'bull' ? 'Bull' : derivedRegimeKey === 'bear' ? 'Bear' : 'Choppy';
+  const intentPolicyLabel =
+    derivedRegimeKey === 'bear'
+      ? 'watchlist-first in Bear'
+      : derivedRegimeKey === 'bull'
+      ? 'trade-first in Bull'
+      : 'mixed trade/watchlist in Choppy';
 
   const heroRegime = document.getElementById('howItWorksHeroRegime');
   const heroEngine = document.getElementById('howItWorksHeroEngine');
   if (heroRegime) {
     heroRegime.textContent = `${regimeLabel} Regime`;
-    heroRegime.className = `regime-badge ${derivedRegimeKey}`;
+    heroRegime.className = `regime-badge ${derivedRegimeKey === 'bear' ? 'weak' : derivedRegimeKey}`;
   }
-  if (heroEngine) heroEngine.textContent = engineLabel;
+  if (heroEngine) heroEngine.textContent = intentPolicyLabel;
 
   const heroSubheadline = document.getElementById('howItWorksHeroSubheadline');
   if (heroSubheadline) {
-    heroSubheadline.innerHTML = `The <strong>${esc(engineLabel)}</strong> engine is active. Here’s what that means.`;
+    heroSubheadline.innerHTML =
+      'Both engines run daily. Bull candidates are labeled <strong>trade</strong> or <strong>watchlist</strong> using regime-aware gates.';
   }
 
   const logicCards = Array.from(document.querySelectorAll('.screener-logic-card'));
@@ -439,32 +439,30 @@ function renderHowItWorks(payload, marketPayload = null) {
     const engineLogicExplanation = card.querySelector('.engine-logic-explanation');
 
     if (engineLogicBull) {
-      engineLogicBull.classList.toggle('active', activeEngine === 'bull');
-      engineLogicBull.setAttribute('aria-current', activeEngine === 'bull' ? 'true' : 'false');
+      engineLogicBull.classList.toggle('active', true);
+      engineLogicBull.setAttribute('aria-current', 'true');
     }
     if (engineLogicWeak) {
-      engineLogicWeak.classList.toggle('active', activeEngine === 'weak');
-      engineLogicWeak.setAttribute('aria-current', activeEngine === 'weak' ? 'true' : 'false');
+      engineLogicWeak.classList.toggle('active', true);
+      engineLogicWeak.setAttribute('aria-current', 'true');
     }
     if (engineLogicExplanation) {
       engineLogicExplanation.textContent =
-        activeEngine === 'bull'
-          ? 'Bull Engine is active: Leadership = 0.60×RS + 0.40×Trend, and Actionability = 0.40×Breakout + 0.25×Compression + 0.20×Volume + 0.15×Stage.'
-          : 'Weak Engine is active: Leadership = 0.70×Trend + 0.30×Liquidity, and Actionability = 0.45×Reversal + 0.35×Extension + 0.20×Capitulation.';
+        'Both engines run daily. Policy B+ applies regime-aware intent to Bull candidates (trade/watchlist), and tracker only admits trade-intent names.';
     }
   }
 
-  renderHowItWorksEngineCards(getHowItWorksEngineCards(), activeEngine);
+  renderHowItWorksEngineCards(getHowItWorksEngineCards(), '');
 
   const workflowEl = document.getElementById('howItWorksWorkflowSteps');
   if (workflowEl) {
     const steps = [
-      'Check SPY close versus 200-day SMA.',
-      'Classify market regime as Bull or Weak.',
-      'Activate the matching scanning engine.',
-      'Filter and scan the stock universe.',
-      'Score candidates for leadership and actionability.',
-      'Rank and display top results for review.',
+      'Evaluate SPY regime signals and classify market as Bull, Choppy, or Bear.',
+      'Run both Bull and Weak engines across the universe.',
+      'Compute normalized leadership/actionability scores and rank candidates.',
+      'Apply Policy B+ intent on Bull outputs (trade vs watchlist) using regime-aware gates.',
+      'Keep watchlist candidates visible while restricting tracker eligibility to trade intent.',
+      'Review ranked candidates with risk levels and intent context.',
     ];
     workflowEl.innerHTML = steps.map((step) => `<li>${esc(step)}</li>`).join('');
   }
@@ -472,7 +470,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const interpretationEl = document.getElementById('howItWorksInterpretationText');
   if (interpretationEl) {
     interpretationEl.innerHTML =
-      'A scanner result is <strong>not</strong> a buy signal. It is a filtered, high-potential idea that passed the active engine’s checks. Use it to focus your due diligence and risk planning.';
+      'A scanner result is <strong>not</strong> a buy signal. It is a regime-aware candidate where Bull names also include intent context (<strong>trade</strong> or <strong>watchlist</strong>). Tracker monitoring is enforced for trade-intent only.';
   }
 }
 

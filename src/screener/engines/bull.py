@@ -193,6 +193,14 @@ def _compute_rs_block(close: Sequence[float], spy_close: Sequence[float], row: D
     rs_return_90d = _to_float(row.get("rs_return_90d"))
     rs_trending_up = bool(row.get("rs_trending_up", False))
 
+    stock_return_20d = _to_float(row.get("stock_return_20d"))
+    stock_return_60d = _to_float(row.get("stock_return_60d"))
+    stock_return_90d = _to_float(row.get("stock_return_90d"))
+
+    excess_return_20d = _to_float(row.get("excess_return_20d"))
+    excess_return_60d = _to_float(row.get("excess_return_60d"))
+    excess_return_90d = _to_float(row.get("excess_return_90d"))
+
     rs_line: List[float] = []
     if close and spy_close and len(close) == len(spy_close):
         rs_line = [(c / s) * 100.0 for c, s in zip(close, spy_close) if s > 0]
@@ -204,11 +212,22 @@ def _compute_rs_block(close: Sequence[float], spy_close: Sequence[float], row: D
             spy_60 = _returns(spy_close, 60)
             spy_90 = _returns(spy_close, 90)
 
-            if stock_20 is not None and spy_20 not in (None, 0.0):
+            stock_return_20d = stock_20
+            stock_return_60d = stock_60
+            stock_return_90d = stock_90
+
+            if stock_20 is not None and spy_20 is not None:
+                excess_return_20d = stock_20 - spy_20
+            if stock_60 is not None and spy_60 is not None:
+                excess_return_60d = stock_60 - spy_60
+            if stock_90 is not None and spy_90 is not None:
+                excess_return_90d = stock_90 - spy_90
+
+            if stock_20 is not None and spy_20 is not None and abs(float(spy_20)) > 1e-6:
                 rs_return_20d = (stock_20 / float(spy_20)) - 1.0
-            if stock_60 is not None and spy_60 not in (None, 0.0):
+            if stock_60 is not None and spy_60 is not None and abs(float(spy_60)) > 1e-6:
                 rs_return_60d = (stock_60 / float(spy_60)) - 1.0
-            if stock_90 is not None and spy_90 not in (None, 0.0):
+            if stock_90 is not None and spy_90 is not None and abs(float(spy_90)) > 1e-6:
                 rs_return_90d = (stock_90 / float(spy_90)) - 1.0
 
             rs_line_sma_short = _sma(rs_line, 10)[-1]
@@ -220,18 +239,18 @@ def _compute_rs_block(close: Sequence[float], spy_close: Sequence[float], row: D
             )
 
     rs_score = 0
-    if rs_return_20d is not None and rs_return_20d > 0:
+    if excess_return_20d is not None and excess_return_20d > 0:
         rs_score += 1
-    if rs_return_60d is not None and rs_return_60d > 0:
+    if excess_return_60d is not None and excess_return_60d > 0:
         rs_score += 1
-    if rs_return_90d is not None and rs_return_90d > 0:
+    if excess_return_90d is not None and excess_return_90d > 0:
         rs_score += 1
     if rs_trending_up:
         rs_score += 2
 
     rs_pass = bool(
-        (rs_return_20d is not None and rs_return_20d > 0)
-        and (rs_return_60d is not None and rs_return_60d > 0)
+        (excess_return_20d is not None and excess_return_20d > 0)
+        and (excess_return_60d is not None and excess_return_60d > 0)
         and rs_trending_up
     )
 
@@ -240,6 +259,12 @@ def _compute_rs_block(close: Sequence[float], spy_close: Sequence[float], row: D
         "rs_return_20d": rs_return_20d,
         "rs_return_60d": rs_return_60d,
         "rs_return_90d": rs_return_90d,
+        "stock_return_20d": stock_return_20d,
+        "stock_return_60d": stock_return_60d,
+        "stock_return_90d": stock_return_90d,
+        "excess_return_20d": excess_return_20d,
+        "excess_return_60d": excess_return_60d,
+        "excess_return_90d": excess_return_90d,
         "rs_trending_up": rs_trending_up,
         "rs_score": float(rs_score),
         "rs_pass": rs_pass,
@@ -711,9 +736,17 @@ def bull_candidates(
     min_beta_1y: float,
     min_volume: float,
     min_avg_dollar_volume_20d: float = 0.0,
+    regime_label: str | None = None,
 ) -> List[Dict]:
     candidates: List[Dict] = []
     logger = logging.getLogger("screener")
+
+    regime_key = str(regime_label or "Bull").strip().lower()
+    if regime_key == "weak":
+        regime_key = "bear"
+    if regime_key not in {"bull", "choppy", "bear"}:
+        regime_key = "bull"
+    canonical_regime_label = regime_key.capitalize()
 
     stats = {
         "total_rows": 0,
@@ -726,6 +759,8 @@ def bull_candidates(
         "cwh_candidate_count": 0,
         "vcp_candidate_count": 0,
         "accepted": 0,
+        "watchlist": 0,
+        "trade": 0,
     }
 
     prepared: List[Dict] = []
@@ -832,8 +867,21 @@ def bull_candidates(
         rs20 = _to_float(rs.get("rs_return_20d"))
         rs60 = _to_float(rs.get("rs_return_60d"))
         rs90 = _to_float(rs.get("rs_return_90d"))
+        excess20 = _to_float(rs.get("excess_return_20d"))
+        excess60 = _to_float(rs.get("excess_return_60d"))
+        excess90 = _to_float(rs.get("excess_return_90d"))
+        stock20 = _to_float(rs.get("stock_return_20d"))
+        stock60 = _to_float(rs.get("stock_return_60d"))
+        stock90 = _to_float(rs.get("stock_return_90d"))
+
         rs_returns = [x for x in [rs20, rs60, rs90] if x is not None]
         rs_returns_mean = (sum(rs_returns) / float(len(rs_returns))) if rs_returns else 0.0
+
+        excess_returns = [x for x in [excess20, excess60, excess90] if x is not None]
+        excess_returns_mean = (sum(excess_returns) / float(len(excess_returns))) if excess_returns else 0.0
+
+        stock_returns = [x for x in [stock20, stock60, stock90] if x is not None]
+        stock_returns_mean = (sum(stock_returns) / float(len(stock_returns))) if stock_returns else 0.0
 
         high_20d = _to_float(row.get("high_20d"))
         breakout_proximity_raw = (close_latest / high_20d) if high_20d is not None and high_20d > 0 else None
@@ -851,7 +899,18 @@ def bull_candidates(
         }.get(pattern_stage, 0.35)
 
         trend_raw = ((close_latest / sma200) - 1.0) if sma200 not in (None, 0.0) else None
-        rs_strength_raw = rs_returns_mean + (0.05 if bool(rs.get("rs_trending_up")) else -0.05)
+        rs_strength_raw = (0.60 * excess_returns_mean) + (0.40 * stock_returns_mean) + (
+            0.05 if bool(rs.get("rs_trending_up")) else -0.05
+        )
+
+        bear_watchlist_gate = bool((excess20 is not None and excess20 > 0.0) and bool(rs.get("rs_trending_up")))
+        bear_trade_gate = bool(
+            bear_watchlist_gate
+            and (
+                (stock20 is not None and stock20 > 0.0)
+                or (stock60 is not None and stock60 > 0.0)
+            )
+        )
 
         prepared.append(
             {
@@ -891,7 +950,16 @@ def bull_candidates(
                     "distance_to_sma20_pct": pullback["distance_to_sma20_pct"],
                     "pullback_volume_ratio": pullback["pullback_volume_ratio"],
                     "support_rebound_flag": pullback["support_rebound_flag"],
+                    "stock_return_20d": rs.get("stock_return_20d"),
+                    "stock_return_60d": rs.get("stock_return_60d"),
+                    "stock_return_90d": rs.get("stock_return_90d"),
+                    "excess_return_20d": rs.get("excess_return_20d"),
+                    "excess_return_60d": rs.get("excess_return_60d"),
+                    "excess_return_90d": rs.get("excess_return_90d"),
                     "legacy_score": float(legacy_score),
+                    "regime_label": canonical_regime_label,
+                    "bear_watchlist_gate": bear_watchlist_gate,
+                    "bear_trade_gate": bear_trade_gate,
                 },
                 "raw_features": {
                     "rs_strength": rs_strength_raw,
@@ -901,6 +969,9 @@ def bull_candidates(
                     "volume_quality": float(volume_block["volume_quality_score"]),
                     "stage": stage_score_raw,
                 },
+                "regime_label": canonical_regime_label,
+                "bear_watchlist_gate": bear_watchlist_gate,
+                "bear_trade_gate": bear_trade_gate,
             }
         )
 
@@ -941,8 +1012,25 @@ def bull_candidates(
         else:
             setup_tag = "Watchlist"
 
+        intent = "trade"
+        regime_reason = "regime_allows_bull_execution"
+
+        if canonical_regime_label == "Bear":
+            if not bool(item.get("bear_watchlist_gate")):
+                continue
+            intent = "watchlist"
+            regime_reason = "bear_regime_watchlist_only"
+            if bool(item.get("bear_trade_gate")) and leadership_score >= 0.70 and actionability_score >= 0.70:
+                intent = "trade"
+                regime_reason = "bear_regime_exception_absolute_and_relative_strength"
+        elif canonical_regime_label == "Choppy":
+            if not bool(item.get("bear_watchlist_gate")):
+                intent = "watchlist"
+                regime_reason = "choppy_regime_requires_relative_strength"
+
         reasons = [
             f"Setup tag: {setup_tag}",
+            f"Intent: {intent} ({regime_reason})",
             f"Actionability={actionability_score:.3f} (breakout={breakout_component:.3f}, compression={compression_component:.3f}, volume={volume_component:.3f}, stage={stage_component:.3f})",
             f"Leadership={leadership_score:.3f} (RS={rs_component:.3f}, trend={trend_component:.3f})",
             f"Legacy score={item['legacy_score']:.2f} kept in debug for comparison",
@@ -1005,12 +1093,17 @@ def bull_candidates(
         }
 
         stats["accepted"] += 1
+        stats[intent] += 1
 
         candidates.append(
             {
                 **item["row"],
                 "engine": "bull",
                 "score": float(score),
+                "regime_label": canonical_regime_label,
+                "intent": intent,
+                "regime_policy": "Policy B+",
+                "regime_reason": regime_reason,
                 "setup_tag": setup_tag,
                 "leadership_score": float(leadership_score),
                 "actionability_score": float(actionability_score),
@@ -1048,7 +1141,8 @@ def bull_candidates(
         )
 
     logger.info(
-        "Bull engine diagnostics (v2): total=%s missing_snapshot=%s static_threshold=%s missing_history=%s short_history=%s uptrend_pass=%s uptrend_fail=%s cwh_true=%s vcp_true=%s accepted=%s",
+        "Bull engine diagnostics (v2): regime=%s total=%s missing_snapshot=%s static_threshold=%s missing_history=%s short_history=%s uptrend_pass=%s uptrend_fail=%s cwh_true=%s vcp_true=%s accepted=%s trade=%s watchlist=%s",
+        canonical_regime_label,
         stats["total_rows"],
         stats["reject_missing_snapshot_fields"],
         stats["reject_static_thresholds"],
@@ -1059,6 +1153,8 @@ def bull_candidates(
         stats["cwh_candidate_count"],
         stats["vcp_candidate_count"],
         stats["accepted"],
+        stats["trade"],
+        stats["watchlist"],
     )
 
     candidates.sort(key=lambda x: -float(_to_float(x.get("score")) or 0.0))

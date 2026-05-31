@@ -50,3 +50,9 @@
 - Preserve legacy score formulas under debug fields during refactors to make before/after comparisons auditable.
 - Include explainability artifacts (`setup_tag`, component scores, reason strings) directly in candidate payloads so UI and model diagnostics stay aligned.
 - Keep backtest eligibility logic synchronized with live scanner hard filters; otherwise results drift and are difficult to trust.
+
+## Regime-aware bull scanning lessons (2026-05-31)
+- In bear regimes, suppressing bull scans entirely loses valuable early-leader information; a two-tier output (`trade` vs `watchlist`) preserves signal visibility while protecting execution quality.
+- Relative RS alone is insufficient for bear-tape decisioning; pair it with absolute stock returns and excess returns (`stock - benchmark`) to avoid promoting “slower losers” to trade intent.
+- Regime decisions must be passed explicitly into engines rather than inferred indirectly, otherwise behavior drifts between orchestrator, ranking, tracker, and backtest layers.
+- Tracker contracts should encode intent/regime metadata so downstream monitoring reflects execution policy, not just rank/tag thresholds.

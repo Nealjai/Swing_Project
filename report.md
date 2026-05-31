@@ -1,5 +1,28 @@
 # Project Report
 
+## 2026-05-31
+
+### Policy B+ regime-aware bull pipeline + tracker enforcement
+- Implemented Policy B+ in [`bull_candidates()`](src/screener/engines/bull.py:758): bull engine now accepts `regime_label` and emits `intent` as `trade` or `watchlist` instead of blindly treating all bull outputs as trade-ready.
+- Added absolute/excess RS features in [`_compute_rs_block()`](src/screener/engines/bull.py:189):
+  - `stock_return_20d/60d/90d`
+  - `excess_return_20d/60d/90d` (stock minus SPY)
+  - retained ratio-style RS returns with safer near-zero denominator guard.
+- Updated bull scoring inputs to blend relative + absolute strength so bear-tape “slower losers” are surfaced as watchlist leaders without being promoted to trade intent by default.
+- Added regime policy fields to bull outputs in [`bull_candidates()`](src/screener/engines/bull.py:1037):
+  - `regime_label`, `intent`, `regime_policy`, `regime_reason`
+  - plus debug gates `bear_watchlist_gate` and `bear_trade_gate`.
+- Updated daily orchestration in [`main()`](scripts/run_daily.py:273):
+  - compute market condition once via [`get_market_condition()`](src/screener/market_condition.py:198)
+  - pass `regime_label` into bull engine
+  - run bull + weak engines together and rank a combined list
+  - diagnostics now include per-engine raw candidate counts.
+- Enforced tracker gating for Policy B+ in [`_is_tracker_eligible()`](src/screener/tracker.py:122): watchlist-intent bull candidates are excluded from tracker; only trade-intent bull candidates can be tracked.
+- Persisted regime context in tracker records via [`_new_tracker_record()`](src/screener/tracker.py:261): now stores `regime_label`, `intent`, `regime_reason`.
+- Validation completed:
+  - `python3 -m py_compile src/screener/engines/bull.py scripts/run_daily.py src/screener/tracker.py`
+  - `python3 -m unittest tests/test_scoring.py tests/test_bull_policy_b_plus.py`
+
 ## 2026-04-25
 
 ### Tracker tab + 10-trading-day post-discovery tracker (additive, deployment-safe)
