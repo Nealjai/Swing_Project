@@ -1,8 +1,24 @@
 data/cache/
 reference/
-docs/data/latest.json
-docs/data/latest.csv
 data/backtests/
 .venv/
+venv/
 .tools/
+
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# OS/editor artifacts
+.DS_Store
+.vscode/
+
+# Generated dashboard artifacts are workflow-owned.
+# Local commits should contain code/docs only.
+docs/data/*.json
+docs/data/*.csv
 docs/data/daily/

@@ -211,7 +211,37 @@ Currently staged in workflow commit step:
 - `docs/data/latest.json`
 - `docs/data/latest.csv`
 - `docs/data/tracker.json`
+- `docs/data/market_condition.json`
 - `docs/data/daily/`
+
+### Local Git workflow (code-only commits)
+
+This repository is configured so generated dashboard artifacts are **workflow-owned**.
+
+Ignored locally via [`.gitignore`](.gitignore):
+- `docs/data/*.json`
+- `docs/data/*.csv`
+- `docs/data/daily/`
+
+Recommended cycle before every push to `main`:
+```bash
+git checkout main
+git pull --rebase origin main
+git status
+# edit code/docs only
+git add <code_or_docs_files>
+git commit -m "<message>"
+git push origin main
+```
+
+Local safety guard:
+- Pre-commit hook at [`.githooks/pre-commit`](.githooks/pre-commit:1) blocks accidental commits of `docs/data/*` artifacts.
+- If needed on a fresh clone, enable it once:
+
+```bash
+chmod +x .githooks/pre-commit
+git config core.hooksPath .githooks
+```
 
 ---
 

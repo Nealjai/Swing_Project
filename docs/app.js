@@ -3137,7 +3137,7 @@ function trackerStatusClass(status) {
 function trackerTagClass(tag) {
   const normalized = String(tag || '').toLowerCase();
   if (normalized.includes('stop_loss')) return 'tracker-tag stop-loss';
-  if (normalized.includes('trail_stop')) return 'tracker-tag trail-stop';
+  if (normalized.includes('trailing_stop') || normalized.includes('trail_stop')) return 'tracker-tag trail-stop';
   if (normalized.includes('time_stop')) return 'tracker-tag time-stop';
   if (normalized.includes('entry_pending')) return 'tracker-tag entry-pending';
   return 'tracker-tag watching';
@@ -3150,7 +3150,7 @@ function renderTrackerTable(items) {
   const rows = toArray(items);
   tableBody.innerHTML = '';
   if (!rows.length) {
-    tableBody.innerHTML = '<tr><td colspan="13">No tracked symbols yet.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="16">No tracked symbols yet.</td></tr>';
     return;
   }
 
@@ -3170,17 +3170,32 @@ function renderTrackerTable(items) {
   for (let i = 0; i < rows.length; i += 1) {
     const r = toObject(rows[i]);
     const stateLabel = String(r.position_state || r.status || '-');
+    const normalizedState = stateLabel.trim().toLowerCase();
+    const isActive = normalizedState === 'active';
     const primaryTag = String(r.status_tag || toArray(r.status_tags)[0] || 'watching');
+    const normalizedTag = primaryTag.trim().toLowerCase();
+    const isStopLossTag = normalizedTag === 'stop_loss' || normalizedTag.includes('stop_loss') || normalizedTag.includes('sl_');
+    const isTimeStopTag = normalizedTag === 'time_stop' || normalizedTag.includes('time_stop');
+    const isTrailingStopTag = normalizedTag === 'trailing_stop' || normalizedTag === 'trail_stop' || normalizedTag.includes('trailing_stop') || normalizedTag.includes('trail_stop');
+    const hasValidExitTag = isStopLossTag || isTimeStopTag || isTrailingStopTag;
     const exitReason = r.exit_reason ? String(r.exit_reason) : '-';
 
     const entryDate = r.entry_date_utc ? String(r.entry_date_utc) : null;
     const entryPrice = toFiniteNumber(r.entry_price);
     const currentClose = toFiniteNumber(r.current_close);
+    const exitPrice = toFiniteNumber(r.exit_price);
 
     const hasEntryDate = !!entryDate;
     const hasEntryPrice = entryPrice !== null;
+    const canComputeReturn = hasEntryPrice && entryPrice !== 0;
 
-    const returnPct = hasEntryPrice && currentClose !== null && entryPrice !== 0 ? ((currentClose - entryPrice) / entryPrice) * 100 : null;
+    const unrealizedReturnPct = isActive && canComputeReturn && currentClose !== null
+      ? ((currentClose - entryPrice) / entryPrice) * 100
+      : null;
+
+    const realizedReturnPct = !isActive && hasValidExitTag && canComputeReturn && exitPrice !== null
+      ? ((exitPrice - entryPrice) / entryPrice) * 100
+      : null;
 
     const daysTrackedRaw = hasEntryDate ? (r.days_tracked_trading ?? r.days_tracked ?? computeDaysTracked(entryDate, r)) : null;
 
@@ -3196,7 +3211,10 @@ function renderTrackerTable(items) {
       <td>${fmtNumber(r.stop_loss)}</td>
       <td>${fmtNumber(r.activation_level)}</td>
       <td>${hasEntryPrice ? fmtNumber(r.trail_stop_price) : '-'}</td>
-      <td>${hasEntryPrice ? fmtSignedPctPoints(returnPct, 2) : '-'}</td>
+      <td>${isActive && canComputeReturn ? fmtSignedPctPoints(unrealizedReturnPct, 2) : '-'}</td>
+      <td>${!isActive ? fmtSignedPctPoints(realizedReturnPct, 2) : '-'}</td>
+      <td>${!isActive && exitPrice !== null ? fmtNumber(exitPrice) : '-'}</td>
+      <td>${!isActive && r.exit_date_utc ? esc(r.exit_date_utc) : '-'}</td>
       <td>${hasEntryDate ? fmtInt(daysTrackedRaw) : '-'}</td>
       <td><span class="${trackerStatusClass(stateLabel)}">${esc(stateLabel)}</span></td>
       <td><span class="${trackerTagClass(primaryTag)}">${esc(primaryTag)}</span></td>

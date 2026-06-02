@@ -382,6 +382,7 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
 
     activated = bool(out.get("activated"))
     activation_date_utc = _normalize_iso_date(out.get("activation_date_utc"))
+    activation_date = _extract_date(activation_date_utc)
     activation_price = _to_float(out.get("activation_price"))
     highest_close = _to_float(out.get("highest_close_since_entry"))
 
@@ -424,18 +425,39 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
                 if activation_level is not None and close_px is not None and close_px >= activation_level:
                     activated = True
                     activation_date_utc = d.isoformat()
+                    activation_date = d
                     activation_price = close_px
                     status_tags.append("trail_stop")
             else:
-                if trailing_stop_offset is not None and highest_close is not None and close_px is not None:
+                trailing_eligible_start = activation_date if activation_date is not None else entry_date
+                if (
+                    trailing_stop_offset is not None
+                    and highest_close is not None
+                    and trailing_eligible_start is not None
+                    and d > trailing_eligible_start
+                ):
                     trail_stop = highest_close - trailing_stop_offset
                     out["trail_stop_price"] = trail_stop
-                    if close_px <= trail_stop:
+                    if open_px is not None and open_px <= trail_stop:
+                        position_state = "inactive"
+                        exit_reason = "trailing_stop_gap_open"
+                        exit_date_utc = d.isoformat()
+                        exit_price = open_px
+                        status_tags.append("trailing_stop")
+                        break
+                    if low_px is not None and low_px <= trail_stop:
+                        position_state = "inactive"
+                        exit_reason = "trailing_stop_intraday"
+                        exit_date_utc = d.isoformat()
+                        exit_price = trail_stop
+                        status_tags.append("trailing_stop")
+                        break
+                    if close_px is not None and close_px <= trail_stop:
                         position_state = "inactive"
                         exit_reason = "trailing_stop_close"
                         exit_date_utc = d.isoformat()
                         exit_price = close_px
-                        status_tags.append("trail_stop_hit")
+                        status_tags.append("trailing_stop")
                         break
 
             if trade_days >= max_hold_days:
@@ -447,10 +469,22 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
                     status_tags.append("time_stop")
                 break
 
-    if activated and "trail_stop" not in status_tags:
+    if activated and position_state == "active" and "trail_stop" not in status_tags:
         status_tags.append("trail_stop")
 
-    if position_state == "active" and not status_tags:
+    if position_state == "inactive":
+        reason = str(exit_reason or "").lower()
+        if "time_stop" in reason:
+            status_tags = ["time_stop"]
+        elif "trail" in reason:
+            status_tags = ["trailing_stop"]
+        elif "sl_" in reason or "stop_loss" in reason:
+            status_tags = ["stop_loss"]
+        elif status_tags:
+            status_tags = [str(status_tags[0])]
+        else:
+            status_tags = ["time_stop"]
+    elif not status_tags:
         status_tags.append("watching")
 
     out["activated"] = activated
