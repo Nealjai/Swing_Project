@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T06:46:53.298358+00:00",
+  "generated_at": "2026-06-05T12:01:00.402957+00:00",
   "regime_label": "Bull",
   "signals": {
     "spy_close_above_sma200": true,
@@ -7,7 +7,7 @@
     "sma50_up_10d": true
   },
   "spy_close": 757.0900268554688,
-  "vix_close": 15.399999618530273,
+  "vix_close": 15.649999618530273,
   "distribution_day_count_25d": 4,
   "distribution_day_count_25d_series": [
     0,
