@@ -357,13 +357,13 @@ function getHowItWorksEngineCards() {
     {
       key: 'weak',
       title: 'Weak Engine',
-      tagline: 'Spotting Potential Rebounds',
+      tagline: 'Playbook-Based Weak Regime Entries',
       purpose:
-        'This engine looks for fundamentally sound stocks that have been sold off too aggressively and may be ready for a short-term bounce.',
+        'This engine classifies each candidate into a weak-regime playbook (Defensive RS, Capitulation→Reclaim, or Leader Pullback), then scores leadership and entry readiness with risk-first gates.',
       checks: [
-        'Oversold Condition: RSI(14) below 30.',
-        'Price Extension: Trading below the lower Bollinger Band region.',
-        'Seller Exhaustion: Volume spike suggests capitulation may be near completion.',
+        'Playbook Routing: DEF_RS, CAP_RECLAIM, and LEADER_PB are selected from price/structure context.',
+        'Reclaim Gate: Actionability is capped unless reclaim/turn confirmation is present.',
+        'Safety Layer: ATR% and liquidity are blended to prioritize tradable, lower-chaos setups.',
       ],
     },
   ];
@@ -410,13 +410,13 @@ function renderHowItWorks(payload, marketPayload = null) {
   );
 
   const regimeLabel =
-    derivedRegimeKey === 'bull' ? 'Bull' : derivedRegimeKey === 'bear' ? 'Bear' : 'Choppy';
+    derivedRegimeKey === 'bull' ? 'Bull' : derivedRegimeKey === 'bear' ? 'Weak' : 'Choppy';
   const intentPolicyLabel =
     derivedRegimeKey === 'bear'
-      ? 'watchlist-first in Bear'
+      ? 'risk-first in Weak regime'
       : derivedRegimeKey === 'bull'
-      ? 'trade-first in Bull'
-      : 'mixed trade/watchlist in Choppy';
+      ? 'trade-first in Bull regime'
+      : 'mixed trade/watchlist in Choppy regime';
 
   const heroRegime = document.getElementById('howItWorksHeroRegime');
   const heroEngine = document.getElementById('howItWorksHeroEngine');
@@ -429,7 +429,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const heroSubheadline = document.getElementById('howItWorksHeroSubheadline');
   if (heroSubheadline) {
     heroSubheadline.innerHTML =
-      'Both engines run daily. Bull candidates are labeled <strong>trade</strong> or <strong>watchlist</strong> using regime-aware gates.';
+      'Both engines run daily. Candidates are scored, tagged (🏆/⚡/👀), and assigned <strong>trade</strong> or <strong>watchlist</strong>. Weak results also include a playbook label for review.';
   }
 
   const logicCards = Array.from(document.querySelectorAll('.screener-logic-card'));
@@ -448,21 +448,22 @@ function renderHowItWorks(payload, marketPayload = null) {
     }
     if (engineLogicExplanation) {
       engineLogicExplanation.textContent =
-        'Both engines run daily. Policy B+ applies regime-aware intent to Bull candidates (trade/watchlist), and tracker only admits trade-intent names.';
+        'Both engines run daily. Weak candidates are routed into DEF_RS / CAP_RECLAIM / LEADER_PB, then scored with reclaim and safety gates. Tracker admits only top-ranked trade-intent names that meet 🏆 and ⚡ thresholds.';
     }
   }
 
-  renderHowItWorksEngineCards(getHowItWorksEngineCards(), '');
+  const activeEngineKey = derivedRegimeKey === 'bull' ? 'bull' : 'weak';
+  renderHowItWorksEngineCards(getHowItWorksEngineCards(), activeEngineKey);
 
   const workflowEl = document.getElementById('howItWorksWorkflowSteps');
   if (workflowEl) {
     const steps = [
-      'Evaluate SPY regime signals and classify market as Bull, Choppy, or Bear.',
-      'Run both Bull and Weak engines across the universe.',
-      'Compute normalized leadership/actionability scores and rank candidates.',
-      'Apply Policy B+ intent on Bull outputs (trade vs watchlist) using regime-aware gates.',
-      'Keep watchlist candidates visible while restricting tracker eligibility to trade intent.',
-      'Review ranked candidates with risk levels and intent context.',
+      'Evaluate SPY regime signals and classify market as Bull, Choppy, or Weak.',
+      'Run both Bull and Weak engines across the liquid universe.',
+      'Compute normalized leadership/actionability scores and rank all candidates.',
+      'Attach tags from thresholds: 🏆 leadership, ⚡ actionable, 👀 near-actionable watchlist.',
+      'Assign intent (trade/watchlist); Weak rows also carry a playbook label.',
+      'Tracker admits only top-ranked trade-intent names that pass both 🏆 and ⚡ thresholds.',
     ];
     workflowEl.innerHTML = steps.map((step) => `<li>${esc(step)}</li>`).join('');
   }
@@ -470,7 +471,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const interpretationEl = document.getElementById('howItWorksInterpretationText');
   if (interpretationEl) {
     interpretationEl.innerHTML =
-      'A scanner result is <strong>not</strong> a buy signal. It is a regime-aware candidate where Bull names also include intent context (<strong>trade</strong> or <strong>watchlist</strong>). Tracker monitoring is enforced for trade-intent only.';
+      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, regime-aware setup with score context, tags, intent, and (for Weak) a playbook label. Tracker is reserved for strict trade-intent candidates that satisfy both 🏆 and ⚡.';
   }
 }
 
@@ -514,7 +515,7 @@ function renderCandidateTable(candidates) {
   const safeCandidates = toArray(candidates);
   if (!safeCandidates.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="8">No candidates produced in this run.</td>';
+    tr.innerHTML = '<td colspan="9">No candidates produced in this run.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -526,6 +527,7 @@ function renderCandidateTable(candidates) {
       <td>${fmtInt(c.rank)}</td>
       <td>${esc(c.symbol)}</td>
       <td>${esc(c.engine)}</td>
+      <td>${esc(c.playbook_label || '-')}</td>
       <td>${fmtNumber(c.score, 4)}</td>
       <td class="candidate-tag-cell">${buildCandidateTagCell(c)}</td>
       <td>${fmtNumber(c.close)}</td>
@@ -3150,7 +3152,7 @@ function renderTrackerTable(items) {
   const rows = toArray(items);
   tableBody.innerHTML = '';
   if (!rows.length) {
-    tableBody.innerHTML = '<tr><td colspan="16">No tracked symbols yet.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="18">No tracked symbols yet.</td></tr>';
     return;
   }
 
@@ -3204,6 +3206,8 @@ function renderTrackerTable(items) {
     tr.dataset.symbol = symbol;
     tr.innerHTML = `
       <td>${esc(r.symbol || '-')}</td>
+      <td>${esc(r.engine || '-')}</td>
+      <td>${esc(r.playbook_label || '-')}</td>
       <td>${esc(r.capture_date_utc || '-')}</td>
       <td>${hasEntryDate ? esc(entryDate) : '-'}</td>
       <td>${hasEntryPrice ? fmtNumber(entryPrice) : '-'}</td>
