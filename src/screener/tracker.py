@@ -120,11 +120,11 @@ def _symbol_from_candidate(candidate: Dict[str, Any]) -> str:
 
 
 def _is_tracker_eligible(candidate: Dict[str, Any]) -> bool:
-    if str(candidate.get("engine") or "").lower() != "bull":
+    engine = str(candidate.get("engine") or "").strip().lower()
+    if engine not in {"bull", "weak"}:
         return False
 
-    # Policy B+: in Bear regime, bull engine can still emit watchlist candidates;
-    # tracker only accepts trade-intent candidates.
+    # Tracker only accepts trade-intent candidates from active engine output.
     intent = str(candidate.get("intent") or "trade").strip().lower()
     if intent != "trade":
         return False
@@ -266,6 +266,9 @@ def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: D
 
     return {
         "symbol": _symbol_from_candidate(candidate),
+        "engine": str(candidate.get("engine") or "").strip().lower() or None,
+        "playbook_id": str(candidate.get("playbook_id") or "").strip() or None,
+        "playbook_label": str(candidate.get("playbook_label") or "").strip() or None,
         "regime_label": str(candidate.get("regime_label") or "").strip() or None,
         "intent": str(candidate.get("intent") or "trade").strip().lower(),
         "regime_reason": str(candidate.get("regime_reason") or "").strip() or None,
@@ -639,7 +642,7 @@ def update_tracker_file(
         "meta": {
             "generated_at_utc": _iso_now_utc(),
             "rules": {
-                "engine": "bull",
+                "engine": "bull_or_weak",
                 "max_rank": 10,
                 "require_tags": ["🏆", "⚡"],
                 "intent": "trade_only (watchlist intents are excluded)",

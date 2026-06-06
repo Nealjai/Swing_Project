@@ -514,7 +514,7 @@ function renderCandidateTable(candidates) {
   const safeCandidates = toArray(candidates);
   if (!safeCandidates.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="8">No candidates produced in this run.</td>';
+    tr.innerHTML = '<td colspan="9">No candidates produced in this run.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -526,6 +526,7 @@ function renderCandidateTable(candidates) {
       <td>${fmtInt(c.rank)}</td>
       <td>${esc(c.symbol)}</td>
       <td>${esc(c.engine)}</td>
+      <td>${esc(c.playbook_label || '-')}</td>
       <td>${fmtNumber(c.score, 4)}</td>
       <td class="candidate-tag-cell">${buildCandidateTagCell(c)}</td>
       <td>${fmtNumber(c.close)}</td>
@@ -3150,7 +3151,7 @@ function renderTrackerTable(items) {
   const rows = toArray(items);
   tableBody.innerHTML = '';
   if (!rows.length) {
-    tableBody.innerHTML = '<tr><td colspan="16">No tracked symbols yet.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="18">No tracked symbols yet.</td></tr>';
     return;
   }
 
@@ -3204,6 +3205,8 @@ function renderTrackerTable(items) {
     tr.dataset.symbol = symbol;
     tr.innerHTML = `
       <td>${esc(r.symbol || '-')}</td>
+      <td>${esc(r.engine || '-')}</td>
+      <td>${esc(r.playbook_label || '-')}</td>
       <td>${esc(r.capture_date_utc || '-')}</td>
       <td>${hasEntryDate ? esc(entryDate) : '-'}</td>
       <td>${hasEntryPrice ? fmtNumber(entryPrice) : '-'}</td>
