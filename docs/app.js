@@ -219,11 +219,33 @@ function renderBanner(regime, engine) {
   banner.textContent = `Regime: ${String(regime || '-').toUpperCase()} | Active Engine: ${String(engine || '-').toUpperCase()}`;
 }
 
-function renderSummary(meta, diagnostics) {
+function inferActiveEngine(candidates, fallbackEngine = null) {
+  const safeCandidates = toArray(candidates);
+  const counts = safeCandidates.reduce(
+    (acc, row) => {
+      const key = String(row?.engine || '').trim().toLowerCase();
+      if (key === 'bull' || key === 'weak') {
+        acc[key] = (acc[key] || 0) + 1;
+      }
+      return acc;
+    },
+    { bull: 0, weak: 0 },
+  );
+
+  if (counts.bull > 0 && counts.weak === 0) return 'bull';
+  if (counts.weak > 0 && counts.bull === 0) return 'weak';
+  if (counts.bull > counts.weak) return 'bull';
+  if (counts.weak > counts.bull) return 'weak';
+  if (counts.bull > 0 && counts.weak > 0) return 'both';
+
+  return fallbackEngine || '-';
+}
+
+function renderSummary(meta, diagnostics, activeEngine = null) {
   const generated = meta.generated_at || '-';
   const counts = toObject(toObject(diagnostics).counts);
   document.getElementById('generatedAt').textContent = `Generated (UTC): ${generated}`;
-  document.getElementById('engineName').textContent = meta.engine || '-';
+  document.getElementById('engineName').textContent = activeEngine || meta.engine || '-';
   document.getElementById('regimeName').textContent = meta.regime || '-';
   document.getElementById('universeSize').textContent = fmtInt(meta.universe_size);
 
@@ -513,6 +535,19 @@ function renderCandidateTable(candidates) {
   tbody.innerHTML = '';
 
   const safeCandidates = toArray(candidates);
+  const engineCounts = safeCandidates.reduce(
+    (acc, row) => {
+      const key = String(row?.engine || 'unknown').toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    },
+    {},
+  );
+  console.info('[screener-debug] candidate engine distribution', {
+    total: safeCandidates.length,
+    engineCounts,
+  });
+
   if (!safeCandidates.length) {
     const tr = document.createElement('tr');
     tr.innerHTML = '<td colspan="9">No candidates produced in this run.</td>';
@@ -3346,9 +3381,28 @@ async function boot() {
     window.screenerData = payload;
 
     const meta = toObject(payload.meta);
+    const candidates = toArray(payload.candidates);
+    const payloadEngineCounts = candidates.reduce(
+      (acc, row) => {
+        const key = String(row?.engine || 'unknown').toLowerCase();
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
 
-    renderBanner(meta.regime, meta.engine);
-    renderSummary(meta, payload.diagnostics || {});
+    const activeEngine = inferActiveEngine(candidates, meta.engine);
+
+    console.info('[screener-debug] payload meta vs candidates', {
+      metaRegime: meta.regime,
+      metaEngine: meta.engine,
+      candidateCount: candidates.length,
+      payloadEngineCounts,
+      derivedActiveEngine: activeEngine,
+    });
+
+    renderBanner(meta.regime, activeEngine);
+    renderSummary(meta, payload.diagnostics || {}, activeEngine);
     renderFilterFunnel(meta, payload.diagnostics || {});
     renderStrategy(payload);
     renderCandidateTable(payload.candidates || []);
