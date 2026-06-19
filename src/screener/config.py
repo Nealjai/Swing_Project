@@ -19,6 +19,7 @@ class Settings:
     min_beta_1y: float = 1.0
     min_volume: float = 500_000.0
     min_avg_dollar_volume_20d: float = 20_000_000.0
+    max_atr_pct: float = 0.08
 
     sma_regime_length: int = 200
     breakout_lookback: int = 20
@@ -26,6 +27,15 @@ class Settings:
     bb_length: int = 20
     bb_std: float = 2.0
     weak_rsi_threshold: float = 30.0
+
+    initial_capital: float = 10_000.0
+    max_positions: int = 6
+    max_position_exposure_pct: float = 0.25
+    risk_per_trade_bull: float = 0.005
+    risk_per_trade_choppy: float = 0.0025
+    risk_per_trade_bear: float = 0.001
+    monthly_drawdown_soft: float = 0.03
+    monthly_drawdown_hard: float = 0.06
 
     max_candidates: int = 50
 

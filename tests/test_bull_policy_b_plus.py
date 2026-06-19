@@ -87,21 +87,46 @@ class PolicyBPlusBullEngineTests(unittest.TestCase):
 class PolicyBPlusTrackerTests(unittest.TestCase):
     def test_tracker_rejects_watchlist_intent(self) -> None:
         candidate = {
-            "engine": "bull",
+            "engine": "playbook",
             "intent": "watchlist",
             "rank": 1,
             "leadership_score": 0.95,
             "actionability_score": 0.70,
+            "risk": {"position_sizing": {"max_shares": 10}},
         }
         self.assertFalse(_is_tracker_eligible(candidate))
 
-    def test_tracker_accepts_trade_intent_if_other_rules_pass(self) -> None:
+    def test_tracker_rejects_zero_max_shares(self) -> None:
         candidate = {
-            "engine": "bull",
+            "engine": "playbook",
             "intent": "trade",
             "rank": 1,
             "leadership_score": 0.95,
             "actionability_score": 0.70,
+            "risk": {"position_sizing": {"max_shares": 0}},
+        }
+        self.assertFalse(_is_tracker_eligible(candidate))
+
+    def test_tracker_accepts_trade_intent_on_strict_trophy_lightning_route(self) -> None:
+        candidate = {
+            "engine": "playbook",
+            "intent": "trade",
+            "rank": 1,
+            "leadership_score": 0.95,
+            "actionability_score": 0.70,
+            "risk": {"position_sizing": {"max_shares": 10}},
+        }
+        self.assertTrue(_is_tracker_eligible(candidate))
+
+    def test_tracker_accepts_trade_intent_on_relaxed_pullback_route(self) -> None:
+        candidate = {
+            "engine": "playbook",
+            "playbook_id": "PULLBACK_ENTRY",
+            "intent": "trade",
+            "rank": 2,
+            "leadership_score": 0.86,
+            "actionability_score": 0.56,
+            "risk": {"position_sizing": {"max_shares": 7}},
         }
         self.assertTrue(_is_tracker_eligible(candidate))
 

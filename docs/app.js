@@ -212,11 +212,19 @@ let state = {
   },
 };
 
-function renderBanner(regime, engine) {
+function renderBanner(regime, engine, tradePolicy = {}) {
   const banner = document.getElementById('regimeBanner');
   const safeRegime = String(regime || 'unknown').toLowerCase();
   banner.className = `banner ${safeRegime === 'bull' ? 'bull' : safeRegime === 'weak' ? 'weak' : 'neutral'}`;
-  banner.textContent = `Regime: ${String(regime || '-').toUpperCase()} | Active Engine: ${String(engine || '-').toUpperCase()}`;
+
+  const policy = toObject(tradePolicy);
+  const tradeAllowed = Boolean(policy.trade_allowed);
+  const qualifiedCount = fmtInt(policy.qualified_trade_count ?? 0);
+  const cashReason = String(policy.cash_reason || '').trim();
+
+  const modeText = tradeAllowed ? 'TRADE MODE' : 'HOLD CASH';
+  const reasonText = !tradeAllowed && cashReason ? ` | Reason: ${cashReason}` : '';
+  banner.textContent = `${modeText} | Regime: ${String(regime || '-').toUpperCase()} | Active Engine: ${String(engine || '-').toUpperCase()} | Qualified Trades: ${qualifiedCount}${reasonText}`;
 }
 
 function inferActiveEngine(candidates, fallbackEngine = null) {
@@ -373,19 +381,19 @@ function getHowItWorksEngineCards() {
       checks: [
         'Leadership Quality: Uses relative, absolute, and excess return diagnostics vs SPY.',
         'Price Consolidation: Looks for Cup-with-Handle / Volatility Contraction structures.',
-        'Intent Layer: In Bear regime, candidates are usually watchlist unless strict exception gates pass.',
+        'Intent layer is cash-first: if no setup survives playbook gates, the system stays in HOLD CASH.',
       ],
     },
     {
       key: 'weak',
       title: 'Weak Engine',
-      tagline: 'Playbook-Based Weak Regime Entries',
+      tagline: 'Playbook-Based Routing and Risk-First Validation',
       purpose:
         'This engine classifies each candidate into a weak-regime playbook (Defensive RS, Capitulation→Reclaim, or Leader Pullback), then scores leadership and entry readiness with risk-first gates.',
       checks: [
-        'Playbook Routing: DEF_RS, CAP_RECLAIM, and LEADER_PB are selected from price/structure context.',
-        'Reclaim Gate: Actionability is capped unless reclaim/turn confirmation is present.',
-        'Safety Layer: ATR% and liquidity are blended to prioritize tradable, lower-chaos setups.',
+        'Playbook Routing: candidates are mapped to setup archetypes (e.g. BREAKOUT / PULLBACK_ENTRY / TIGHT_BASE / CAPITULATION_RECLAIM).',
+        'Permission Layer: regime + absolute quality gates decide whether a setup can be trade-intent or only watchlist.',
+        'Safety Layer: ATR%, liquidity, and position-sizing constraints prioritize tradable setups.',
       ],
     },
   ];
@@ -451,7 +459,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const heroSubheadline = document.getElementById('howItWorksHeroSubheadline');
   if (heroSubheadline) {
     heroSubheadline.innerHTML =
-      'Both engines run daily. Candidates are scored, tagged (🏆/⚡/👀), and assigned <strong>trade</strong> or <strong>watchlist</strong>. Weak results also include a playbook label for review.';
+      'Both engines run daily, then pass through a playbook-first policy layer. Candidates are scored, tagged (🏆/⚡/👀), and assigned <strong>trade</strong> or <strong>watchlist</strong>. If no trade setup qualifies, the dashboard stays in <strong>HOLD CASH</strong> mode.';
   }
 
   const logicCards = Array.from(document.querySelectorAll('.screener-logic-card'));
@@ -470,7 +478,7 @@ function renderHowItWorks(payload, marketPayload = null) {
     }
     if (engineLogicExplanation) {
       engineLogicExplanation.textContent =
-        'Both engines run daily. Weak candidates are routed into DEF_RS / CAP_RECLAIM / LEADER_PB, then scored with reclaim and safety gates. Tracker admits only top-ranked trade-intent names that meet 🏆 and ⚡ thresholds.';
+        'Both engines run daily. Outputs are routed into playbooks, then filtered by regime permissioning and absolute quality gates. Tracker keeps only trade-intent, top-ranked, positionable names using strict/relaxed hybrid quality thresholds.';
     }
   }
 
@@ -482,10 +490,10 @@ function renderHowItWorks(payload, marketPayload = null) {
     const steps = [
       'Evaluate SPY regime signals and classify market as Bull, Choppy, or Weak.',
       'Run both Bull and Weak engines across the liquid universe.',
-      'Compute normalized leadership/actionability scores and rank all candidates.',
-      'Attach tags from thresholds: 🏆 leadership, ⚡ actionable, 👀 near-actionable watchlist.',
-      'Assign intent (trade/watchlist); Weak rows also carry a playbook label.',
-      'Tracker admits only top-ranked trade-intent names that pass both 🏆 and ⚡ thresholds.',
+      'Route candidates through playbook-first policy with absolute quality gates.',
+      'Compute normalized leadership/actionability scores and assign trade/watchlist intent.',
+      'If no trade setup is qualified, remain in HOLD CASH mode (no forced trades).',
+      'Size risk per setup and admit tracker names only when rank/positionability/quality rules pass.',
     ];
     workflowEl.innerHTML = steps.map((step) => `<li>${esc(step)}</li>`).join('');
   }
@@ -493,7 +501,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const interpretationEl = document.getElementById('howItWorksInterpretationText');
   if (interpretationEl) {
     interpretationEl.innerHTML =
-      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, regime-aware setup with score context, tags, intent, and (for Weak) a playbook label. Tracker is reserved for strict trade-intent candidates that satisfy both 🏆 and ⚡.';
+      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, policy-filtered setup with score context, tags, intent, playbook, and risk sizing. Tracker is reserved for trade-intent names that pass rank, positionability, and hybrid quality rules.';
   }
 }
 
@@ -550,7 +558,7 @@ function renderCandidateTable(candidates) {
 
   if (!safeCandidates.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="9">No candidates produced in this run.</td>';
+    tr.innerHTML = '<td colspan="11">No candidates produced in this run.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -562,10 +570,12 @@ function renderCandidateTable(candidates) {
       <td>${fmtInt(c.rank)}</td>
       <td>${esc(c.symbol)}</td>
       <td>${esc(c.engine)}</td>
-      <td>${esc(c.playbook_label || '-')}</td>
+      <td>${esc(c.playbook_id || c.playbook_label || '-')}</td>
+      <td>${esc(c.intent || '-')}</td>
       <td>${fmtNumber(c.score, 4)}</td>
       <td class="candidate-tag-cell">${buildCandidateTagCell(c)}</td>
       <td>${fmtNumber(c.close)}</td>
+      <td>${fmtInt(c.risk?.position_sizing?.max_shares)}</td>
       <td>${fmtNumber(c.risk?.stop_loss)}</td>
       <td>${fmtNumber(c.risk?.activation_level ?? c.risk?.take_profit)}</td>
     `;
@@ -3401,7 +3411,7 @@ async function boot() {
       derivedActiveEngine: activeEngine,
     });
 
-    renderBanner(meta.regime, activeEngine);
+    renderBanner(meta.regime, activeEngine, payload.trade_policy || payload);
     renderSummary(meta, payload.diagnostics || {}, activeEngine);
     renderFilterFunnel(meta, payload.diagnostics || {});
     renderStrategy(payload);

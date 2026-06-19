@@ -76,11 +76,13 @@
                       <th>Symbol</th>
                       <th>Engine</th>
                       <th>Playbook</th>
+                      <th>Intent</th>
                       <th>Score</th>
                       <th>Tag</th>
                       <th>Close</th>
-                      <th>SL (2×ATR)</th>
-                      <th>Activation (2×ATR)</th>
+                      <th>Max Shares</th>
+                      <th>Stop Loss</th>
+                      <th>Activation</th>
                     </tr>
                   </thead>
                   <tbody></tbody>
@@ -346,19 +348,22 @@
           </section>
 
           <section id="howItWorksEngineActivation" class="card" aria-labelledby="howItWorksEngineActivationTitle">
-            <h2 id="howItWorksEngineActivationTitle">Policy B+: Regime-Aware Ranking and Intent</h2>
+            <h2 id="howItWorksEngineActivationTitle">Playbook-First, Cash-First Flow</h2>
             <p class="muted">
-              Both Bull and Weak engines run daily. Candidates are ranked by normalized scores, tagged (🏆/⚡/👀), then assigned trade or watchlist intent.
+              Both Bull and Weak engines run daily, then a playbook router applies absolute quality gates and regime permissioning.
+              If no qualified trade survives, the system explicitly stays in <strong>HOLD CASH</strong> mode.
             </p>
-            <div class="how-it-works-diagram" role="img" aria-label="Policy B+ flow">
+            <div class="how-it-works-diagram" role="img" aria-label="Playbook-first cash-first flow">
               <div class="how-it-works-node">Run Bull + Weak engines</div>
               <div class="how-it-works-arrow">→</div>
+              <div class="how-it-works-node">Playbook routing + absolute gates</div>
+              <div class="how-it-works-arrow">→</div>
               <div class="how-it-works-split">
-                <div class="how-it-works-branch bull">Bull: continuation/breakout ranking + regime-aware intent</div>
-                <div class="how-it-works-branch weak">Weak: playbook routing (DEF_RS / CAP_RECLAIM / LEADER_PB) + reclaim gate</div>
+                <div class="how-it-works-branch bull">Qualified trade setups → TRADE MODE</div>
+                <div class="how-it-works-branch neutral">No qualified setups → HOLD CASH</div>
               </div>
               <div class="how-it-works-arrow">→</div>
-              <div class="how-it-works-node">Tracker admits top-ranked trade-intent names with 🏆 + ⚡</div>
+              <div class="how-it-works-node">Risk sizing + tracker shortlist</div>
             </div>
           </section>
 
@@ -378,17 +383,30 @@
             <p id="howItWorksInterpretationText" class="muted"></p>
           </section>
 
+          <details class="tracker-collapsible">
+            <summary>Rule details (thresholds)</summary>
+            <div class="tracker-legend-content">
+              <ul class="muted">
+                <li><strong>Cash-first policy:</strong> If <code>trade_allowed=false</code>, dashboard shows <code>HOLD CASH</code> with <code>cash_reason</code>.</li>
+                <li><strong>Tracker shortlist gate:</strong> <code>intent=trade</code>, <code>rank ≤ 10</code>, and <code>risk.position_sizing.max_shares > 0</code>.</li>
+                <li><strong>Quality gate (strict route):</strong> <code>leadership_score ≥ 0.90</code> and <code>actionability_score ≥ 0.58</code>.</li>
+                <li><strong>Quality gate (hybrid relaxed route):</strong> allowed for selected playbooks with slightly lower thresholds.</li>
+                <li><strong>Screener table fields:</strong> Playbook, Intent, Max Shares, Stop Loss, Activation are shown for execution readiness.</li>
+              </ul>
+            </div>
+          </details>
+
           <section class="card screener-logic-card" id="howitworks-screener-explanation" aria-labelledby="howItWorksScreenerLogicTitle">
             <h2 id="howItWorksScreenerLogicTitle">Understanding the Screener Logic</h2>
             <div class="explanation-grid">
               <div class="explanation-column">
                 <h3>Active Engine</h3>
-                <p class="muted">The screener always runs both engines. Regime provides context, Weak outputs include playbook labels, and tracker eligibility is strict.</p>
+                <p class="muted">The screener always runs both engines, then applies playbook-first filtering. Regime provides context, and trade activation is cash-first (no forced trades).</p>
                 <div class="engine-logic-selector" aria-label="Active screener engine">
                   <span class="engine-logic-tag bull" data-engine-tag="bull">Bull Engine</span>
                   <span class="engine-logic-tag weak" data-engine-tag="weak">Weak Engine</span>
                 </div>
-                <p class="muted engine-logic-explanation">Bull seeks continuation leaders. Weak routes each candidate into DEF_RS / CAP_RECLAIM / LEADER_PB, then uses reclaim + volatility safety gates before allowing high-actionability outcomes.</p>
+                <p class="muted engine-logic-explanation">Bull and Weak outputs are routed into playbooks (for example BREAKOUT / PULLBACK_ENTRY / TIGHT_BASE / CAPITULATION_RECLAIM), then validated by liquidity, volatility, and regime-permission rules before trade intent is allowed.</p>
               </div>
               <div class="explanation-column">
                 <h3>Tag Definitions</h3>
@@ -564,8 +582,8 @@
         </section>
 
         <section class="card">
-          <h2>2-Week Discovery Tracker (Top-10 🏆⚡)</h2>
-          <p class="muted">A 2-week log of Bull/Weak engine symbols captured only when they were Top-10 and tagged 🏆 + ⚡ at discovery. This tracker is for lifecycle monitoring (entry → activation → exit), not a buy/sell signal.</p>
+          <h2>2-Week Discovery Tracker (Hybrid shortlist)</h2>
+          <p class="muted">A 2-week log of trade-intent symbols captured only when they pass the tracker shortlist gate (Top-10, positionable via max_shares, plus strict or relaxed playbook quality route). This tracker is for lifecycle monitoring (entry → activation → exit), not a buy/sell signal.</p>
           <div id="trackerStatus" class="muted">Loading tracker...</div>
           <div class="table-wrap">
             <table id="trackerTable">

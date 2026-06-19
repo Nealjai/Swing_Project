@@ -120,11 +120,7 @@ def _symbol_from_candidate(candidate: Dict[str, Any]) -> str:
 
 
 def _is_tracker_eligible(candidate: Dict[str, Any]) -> bool:
-    engine = str(candidate.get("engine") or "").strip().lower()
-    if engine not in {"bull", "weak"}:
-        return False
-
-    # Tracker only accepts trade-intent candidates from active engine output.
+    # Tracker is execution-shortlist only (never watchlist).
     intent = str(candidate.get("intent") or "trade").strip().lower()
     if intent != "trade":
         return False
@@ -133,12 +129,32 @@ def _is_tracker_eligible(candidate: Dict[str, Any]) -> bool:
     if rank is None or rank > 10:
         return False
 
+    # Must be positionable under current risk policy.
+    risk = candidate.get("risk") if isinstance(candidate.get("risk"), dict) else {}
+    sizing = (risk or {}).get("position_sizing") if isinstance((risk or {}).get("position_sizing"), dict) else {}
+    max_shares = _to_float((sizing or {}).get("max_shares"))
+    if max_shares is None or max_shares <= 0:
+        return False
+
     leadership = _to_float(candidate.get("leadership_score"))
     actionability = _to_float(candidate.get("actionability_score"))
 
+    # Classic strict route (🏆 + ⚡)
     has_trophy = leadership is not None and leadership >= 0.90
     has_lightning = actionability is not None and actionability >= 0.58
-    return has_trophy and has_lightning
+    if has_trophy and has_lightning:
+        return True
+
+    # Hybrid relaxed-by-playbook route.
+    playbook_id = str(candidate.get("playbook_id") or "").strip().upper()
+
+    if playbook_id in {"PULLBACK_ENTRY", "TIGHT_BASE", "LEADER_PULLBACK"}:
+        return (leadership is not None and leadership >= 0.85) and (actionability is not None and actionability >= 0.55)
+
+    if playbook_id == "BREAKOUT":
+        return (leadership is not None and leadership >= 0.88) and (actionability is not None and actionability >= 0.58)
+
+    return False
 
 
 def _build_latest_metrics_map(rows: Iterable[Dict[str, Any]], enriched: Dict[str, pd.DataFrame]) -> Dict[str, Dict[str, Any]]:
@@ -642,10 +658,11 @@ def update_tracker_file(
         "meta": {
             "generated_at_utc": _iso_now_utc(),
             "rules": {
-                "engine": "bull_or_weak",
+                "engine": "playbook_first_hybrid",
                 "max_rank": 10,
-                "require_tags": ["🏆", "⚡"],
+                "positionability": "require risk.position_sizing.max_shares > 0",
                 "intent": "trade_only (watchlist intents are excluded)",
+                "quality_gate": "(leadership>=0.90 and actionability>=0.58) OR playbook_relaxed_thresholds",
                 "position_state": "active until stop-loss/trailing-stop/time-stop; inactive after exit",
             },
             "counts": {

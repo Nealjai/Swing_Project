@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -15,13 +16,12 @@ if str(SRC) not in sys.path:
 
 from screener.config import Settings
 from screener.data import fetch_prices, get_daily_data
-from screener.engines import bull_candidates, weak_candidates
+from screener.engines import bull_candidates, select_playbook_candidates, weak_candidates
 from screener.export import export_outputs
 from screener.fundamentals import fetch_fundamentals, fetch_ticker_info
 from screener.indicators import add_indicators, latest_metrics
-from screener.ranking import rank_candidates
-from screener.regime import detect_regime
 from screener.market_condition import get_market_condition
+from screener.ranking import rank_candidates
 from screener.tracker import update_tracker_file
 from screener.universe import UniverseItem, load_universe
 
@@ -110,11 +110,75 @@ def _build_chart_series(df, window: int = 252) -> Dict[str, Any]:
     }
 
 
+def _regime_risk_fraction(regime_label: str, settings: Settings) -> float:
+    regime = str(regime_label or "Bull").strip().capitalize()
+    if regime == "Bear":
+        return float(settings.risk_per_trade_bear)
+    if regime == "Choppy":
+        return float(settings.risk_per_trade_choppy)
+    return float(settings.risk_per_trade_bull)
+
+
+def _compute_stop_loss(row: Dict[str, Any], signal_close: float | None, atr14: float | None) -> tuple[float | None, str]:
+    if signal_close is None or signal_close <= 0:
+        return None, "no_signal_close"
+
+    playbook_id = str(row.get("playbook_id") or "").strip().upper()
+
+    atr_stop = None
+    if atr14 is not None and atr14 > 0:
+        if playbook_id == "BREAKOUT":
+            atr_stop = signal_close - (1.8 * atr14)
+        elif playbook_id == "PULLBACK_ENTRY":
+            atr_stop = signal_close - (1.6 * atr14)
+        elif playbook_id == "TIGHT_BASE":
+            atr_stop = signal_close - (2.0 * atr14)
+        elif playbook_id == "CAPITULATION_RECLAIM":
+            atr_stop = signal_close - (1.2 * atr14)
+        else:
+            atr_stop = signal_close - (2.0 * atr14)
+
+    structure_stop = None
+    if playbook_id == "BREAKOUT":
+        pivot_price = _num(row.get("pivot_price"))
+        if pivot_price is not None and pivot_price > 0:
+            structure_stop = pivot_price * 0.995
+    elif playbook_id == "PULLBACK_ENTRY":
+        entry_triangle_price = _num(row.get("entry_triangle_price"))
+        sma20 = _num(row.get("sma20"))
+        values = [x for x in [entry_triangle_price, sma20] if x is not None and x > 0]
+        if values:
+            structure_stop = min(values)
+    elif playbook_id == "TIGHT_BASE":
+        pivot_price = _num(row.get("pivot_price"))
+        if pivot_price is not None and pivot_price > 0:
+            structure_stop = pivot_price * 0.96
+    elif playbook_id == "CAPITULATION_RECLAIM":
+        bb_lower = _num(row.get("bb_lower"))
+        if bb_lower is not None and bb_lower > 0:
+            structure_stop = bb_lower
+
+    choices = [x for x in [atr_stop, structure_stop] if x is not None and x > 0]
+    if not choices:
+        return None, "no_stop_available"
+
+    return min(choices), "playbook_structure_plus_atr"
+
+
 def _enrich_candidates(
     candidates: List[Dict],
     fundamentals_by_symbol: Dict[str, Dict],
+    *,
+    settings: Settings,
+    regime_label: str,
+    trade_policy: Dict[str, Any],
 ) -> List[Dict]:
     out: List[Dict] = []
+
+    trade_allowed = bool(trade_policy.get("trade_allowed", True))
+    equity = float(settings.initial_capital)
+    max_exposure_value = equity * float(settings.max_position_exposure_pct)
+    risk_fraction = _regime_risk_fraction(regime_label, settings)
 
     for c in candidates:
         row = dict(c)
@@ -125,13 +189,35 @@ def _enrich_candidates(
             signal_close = _num(row.get("close"))
 
         entry_reference = signal_close
-        stop_loss = None
+        stop_loss, stop_method = _compute_stop_loss(row, signal_close, atr14)
+
         activation_level = None
         trailing_stop_offset = None
         if atr14 is not None and signal_close is not None and atr14 > 0 and signal_close > 0:
-            stop_loss = signal_close - (2.0 * atr14)
             activation_level = entry_reference + (2.0 * atr14)
             trailing_stop_offset = 1.5 * atr14
+
+        risk_per_trade_value = equity * risk_fraction
+        per_share_risk = None
+        shares_by_risk = 0
+        shares_by_exposure = 0
+        max_shares = 0
+
+        if signal_close is not None and signal_close > 0:
+            shares_by_exposure = int(max(0, math.floor(max_exposure_value / signal_close)))
+
+        if stop_loss is not None and signal_close is not None and signal_close > stop_loss:
+            per_share_risk = signal_close - stop_loss
+            shares_by_risk = int(max(0, math.floor(risk_per_trade_value / per_share_risk)))
+
+        if shares_by_risk > 0 and shares_by_exposure > 0:
+            max_shares = min(shares_by_risk, shares_by_exposure)
+        else:
+            max_shares = shares_by_exposure
+
+        intent = str(row.get("intent") or "watchlist").strip().lower()
+        if (not trade_allowed) or intent != "trade":
+            max_shares = 0
 
         row["risk"] = {
             "signal_close": signal_close,
@@ -142,7 +228,20 @@ def _enrich_candidates(
             "take_profit": activation_level,
             "trailing_stop_offset": trailing_stop_offset,
             "max_hold_days": 15,
-            "method": "backtest-aligned: sl=signal_close-2*atr14; activation=entry+2*atr14; trailing=highest_close-1.5*atr14 after activation; time_stop=15 trading days",
+            "method": stop_method,
+            "position_sizing": {
+                "equity": equity,
+                "regime": str(regime_label or "Bull").capitalize(),
+                "risk_per_trade_fraction": risk_fraction,
+                "risk_per_trade_value": risk_per_trade_value,
+                "max_position_exposure_pct": float(settings.max_position_exposure_pct),
+                "max_position_value": max_exposure_value,
+                "per_share_risk": per_share_risk,
+                "shares_by_risk": shares_by_risk,
+                "shares_by_exposure": shares_by_exposure,
+                "max_shares": max_shares,
+                "trade_allowed": trade_allowed,
+            },
         }
 
         yf_symbol = str(row.get("yf_symbol") or "")
@@ -270,11 +369,9 @@ def main() -> int:
                 }
             )
 
-    regime = detect_regime(benchmark_enriched)
-
     print("Generating market condition data...")
     market_condition = get_market_condition()
-    regime_label = str(market_condition.get("regime_label") or "Bull")
+    regime_label = str(market_condition.get("regime_label") or "Bull").strip().capitalize()
 
     rows = _build_rows(universe, enriched, info_by_symbol, logger)
 
@@ -298,13 +395,28 @@ def main() -> int:
     )
 
     raw_candidates = bull_raw_candidates + weak_raw_candidates
-    engine_name = "both"
 
-    ranked = rank_candidates(raw_candidates, settings.max_candidates)
+    playbook_candidates, trade_policy = select_playbook_candidates(
+        raw_candidates,
+        regime_label=regime_label,
+        min_price=settings.min_price,
+        min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
+        max_atr_pct=settings.max_atr_pct,
+    )
+
+    engine_name = "playbook"
+
+    ranked = rank_candidates(playbook_candidates, settings.max_candidates)
 
     top20_yf_symbols = sorted({str(c.get("yf_symbol")) for c in ranked[:20] if c.get("yf_symbol")})
     fundamentals_by_symbol = fetch_fundamentals(top20_yf_symbols, logger, info_by_symbol=info_by_symbol)
-    ranked = _enrich_candidates(ranked, fundamentals_by_symbol)
+    ranked = _enrich_candidates(
+        ranked,
+        fundamentals_by_symbol,
+        settings=settings,
+        regime_label=regime_label,
+        trade_policy=trade_policy,
+    )
 
     charts_by_symbol = {}
     for c in ranked[:20]:
@@ -323,8 +435,12 @@ def main() -> int:
             "raw_candidates_count": len(raw_candidates),
             "raw_bull_candidates_count": len(bull_raw_candidates),
             "raw_weak_candidates_count": len(weak_raw_candidates),
+            "playbook_candidates_count": len(playbook_candidates),
             "ranked_candidates_count": len(ranked),
+            "qualified_trade_count": int(trade_policy.get("qualified_trade_count", 0)),
+            "watchlist_count": int(trade_policy.get("watchlist_count", 0)),
         },
+        "playbook_policy": trade_policy,
         "skipped_tickers": skipped,
         "warnings": [],
         "errors": [],
@@ -336,11 +452,17 @@ def main() -> int:
         "rows_with_metrics": len(rows),
     }
 
+    latest_benchmark_close = _num(benchmark_enriched["Close"].iloc[-1]) if "Close" in benchmark_enriched.columns else None
+    latest_benchmark_sma200 = _num(benchmark_enriched["sma200"].iloc[-1]) if "sma200" in benchmark_enriched.columns else None
     benchmark_snapshot = {
         "symbol": settings.benchmark_symbol,
-        "close": regime.benchmark_close,
-        "sma200": regime.benchmark_sma200,
-        "above_sma200": regime.benchmark_above_sma200,
+        "close": latest_benchmark_close,
+        "sma200": latest_benchmark_sma200,
+        "above_sma200": bool(
+            latest_benchmark_close is not None
+            and latest_benchmark_sma200 is not None
+            and latest_benchmark_close > latest_benchmark_sma200
+        ),
     }
 
     chart_data = {
@@ -373,6 +495,21 @@ def main() -> int:
         json_path=settings.output_json,
         csv_path=settings.output_csv,
         chart_data=chart_data,
+        trade_policy=trade_policy,
+        risk_policy={
+            "initial_capital": float(settings.initial_capital),
+            "max_positions": int(settings.max_positions),
+            "max_position_exposure_pct": float(settings.max_position_exposure_pct),
+            "risk_per_trade": {
+                "bull": float(settings.risk_per_trade_bull),
+                "choppy": float(settings.risk_per_trade_choppy),
+                "bear": float(settings.risk_per_trade_bear),
+            },
+            "monthly_drawdown_circuit_breaker": {
+                "soft": float(settings.monthly_drawdown_soft),
+                "hard": float(settings.monthly_drawdown_hard),
+            },
+        },
     )
 
     tracker_payload = update_tracker_file(
