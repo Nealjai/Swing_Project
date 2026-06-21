@@ -45,15 +45,18 @@ def add_indicators(
     out["signal_close"] = signal_close
 
     roll20 = signal_close.rolling(20)
+    roll50 = signal_close.rolling(50)
+    roll_regime = signal_close.rolling(sma_regime_length)
+    roll_breakout = signal_close.rolling(breakout_lookback)
     roll_bb = signal_close.rolling(bb_length)
 
     out["ema9"] = signal_close.ewm(span=9, adjust=False).mean()
     out["ema21"] = signal_close.ewm(span=21, adjust=False).mean()
     out["sma20"] = roll20.mean()
-    out["sma50"] = signal_close.rolling(50).mean()
-    out["sma200"] = signal_close.rolling(sma_regime_length).mean()
+    out["sma50"] = roll50.mean()
+    out["sma200"] = roll_regime.mean()
 
-    out["high_20d"] = signal_close.rolling(breakout_lookback).max()
+    out["high_20d"] = roll_breakout.max()
     out["rsi14"] = compute_rsi(signal_close, rsi_length)
 
     bb_mid = roll_bb.mean()
@@ -64,8 +67,10 @@ def add_indicators(
 
     out["atr14"] = compute_atr(out["High"], out["Low"], out["Close"], length=14)
 
-    out["dollar_volume"] = out["Close"] * out["Volume"]
-    out["avg_dollar_volume_20d"] = out["dollar_volume"].rolling(20).mean()
+    dollar_volume = out["Close"] * out["Volume"]
+    out["dollar_volume"] = dollar_volume
+    out["avg_dollar_volume_20d"] = dollar_volume.rolling(20).mean()
+    out["median_dollar_volume_20d"] = dollar_volume.rolling(20).median()
 
     return out
 
@@ -87,4 +92,5 @@ def latest_metrics(df: pd.DataFrame) -> Dict[str, float]:
         "ema21": float(row.get("ema21", np.nan)),
         "atr14": float(row.get("atr14", np.nan)),
         "avg_dollar_volume_20d": float(row.get("avg_dollar_volume_20d", np.nan)),
+        "median_dollar_volume_20d": float(row.get("median_dollar_volume_20d", np.nan)),
     }

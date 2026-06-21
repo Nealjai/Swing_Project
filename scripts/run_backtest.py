@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -80,9 +81,9 @@ def parse_args() -> argparse.Namespace:
         "--symbol-mode",
         choices=["test", "full"],
         default="full",
-        help="Universe mode: 'full' uses universe file (default sp500.txt), 'test' uses the 21-symbol smoke-test list.",
+        help="Universe mode: 'full' uses universe file (default universe.txt), 'test' uses the 21-symbol smoke-test list.",
     )
-    parser.add_argument("--universe-file", default="sp500.txt", help="Universe text file path (one ticker per line)")
+    parser.add_argument("--universe-file", default="universe.txt", help="Universe text file path (one ticker per line)")
     parser.add_argument("--benchmark-symbol", default="SPY", help="Benchmark symbol used for regime filter/calendar")
 
     # Human-readable run metadata
@@ -423,6 +424,8 @@ def _compute_spy_benchmark_metrics(
 def main() -> int:
     args = parse_args()
     logger = setup_logger()
+    run_started_at_utc = datetime.now(timezone.utc)
+    run_started_perf = time.perf_counter()
 
     resolved_start_date, resolved_end_date = _resolve_backtest_window(args.start_date, args.end_date, args.years)
 
@@ -546,6 +549,17 @@ def main() -> int:
         fills_log=portfolio_result.fills_log,
     )
 
+    run_finished_at_utc = datetime.now(timezone.utc)
+    run_duration_seconds = max(0.0, time.perf_counter() - run_started_perf)
+    run_timing = {
+        "started_at_utc": run_started_at_utc.isoformat(),
+        "finished_at_utc": run_finished_at_utc.isoformat(),
+        "duration_seconds": round(run_duration_seconds, 3),
+    }
+    counts["run_duration_seconds"] = float(run_timing["duration_seconds"])
+    diagnostics["counts"] = counts
+    diagnostics["run_timing"] = run_timing
+
     run_id = str(args.run_id).strip() if args.run_id else datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
     run_config = _build_run_config(
@@ -639,6 +653,7 @@ def main() -> int:
     print(f"Run Summary JSON: {run_summary_json}")
     print(f"Candidates CSV: {candidates_csv}")
     print(f"Runs Index JSON: {runs_index_json}")
+    print(f"Runtime (seconds): {run_timing['duration_seconds']}")
     print("Summary JSON: docs/data/backtest_summary.json")
 
     return 0

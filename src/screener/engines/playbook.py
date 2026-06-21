@@ -77,24 +77,84 @@ def _allowed_in_regime(playbook_id: str, regime_label: str) -> bool:
     return playbook_id in allowed.get(regime, set())
 
 
+def _regime_liquidity_floor(
+    regime_label: str,
+    *,
+    min_avg_dollar_volume_20d: float,
+    min_avg_dollar_volume_20d_bull: float,
+    min_avg_dollar_volume_20d_choppy: float,
+    min_avg_dollar_volume_20d_bear: float,
+) -> float:
+    regime = str(regime_label or "Bull").strip().capitalize()
+    if regime == "Bear":
+        return float(max(min_avg_dollar_volume_20d, min_avg_dollar_volume_20d_bear))
+    if regime == "Choppy":
+        return float(max(min_avg_dollar_volume_20d, min_avg_dollar_volume_20d_choppy))
+    return float(max(min_avg_dollar_volume_20d, min_avg_dollar_volume_20d_bull))
+
+
+def _tiered_max_atr_pct(
+    close: float,
+    *,
+    atr_pct_tier_lt_20: float,
+    atr_pct_tier_20_to_100: float,
+    atr_pct_tier_gt_100: float,
+) -> float:
+    if close < 20.0:
+        return float(atr_pct_tier_lt_20)
+    if close <= 100.0:
+        return float(atr_pct_tier_20_to_100)
+    return float(atr_pct_tier_gt_100)
+
+
 def _absolute_quality_gate(
     candidate: Dict,
     *,
+    regime_label: str,
     playbook_id: str,
     min_price: float,
     min_avg_dollar_volume_20d: float,
+    min_avg_dollar_volume_20d_bull: float,
+    min_avg_dollar_volume_20d_choppy: float,
+    min_avg_dollar_volume_20d_bear: float,
+    min_atr_dollars: float,
+    atr_pct_tier_lt_20: float,
+    atr_pct_tier_20_to_100: float,
+    atr_pct_tier_gt_100: float,
     max_atr_pct: float,
 ) -> Tuple[bool, str]:
     close = _to_float(candidate.get("close"))
     avg_dv = _to_float(candidate.get("avg_dollar_volume_20d"))
+    median_dv = _to_float(candidate.get("median_dollar_volume_20d"))
     atr14 = _to_float(candidate.get("atr14"))
 
     if close is None or close <= min_price:
         return False, "failed_min_price"
-    if avg_dv is None or avg_dv < min_avg_dollar_volume_20d:
-        return False, "failed_min_avg_dollar_volume_20d"
 
-    atr_pct = (atr14 / close) if atr14 not in (None, 0.0) and close > 0 else None
+    regime_floor = _regime_liquidity_floor(
+        regime_label,
+        min_avg_dollar_volume_20d=min_avg_dollar_volume_20d,
+        min_avg_dollar_volume_20d_bull=min_avg_dollar_volume_20d_bull,
+        min_avg_dollar_volume_20d_choppy=min_avg_dollar_volume_20d_choppy,
+        min_avg_dollar_volume_20d_bear=min_avg_dollar_volume_20d_bear,
+    )
+    if avg_dv is None or avg_dv < regime_floor:
+        return False, "failed_regime_min_avg_dollar_volume_20d"
+    if median_dv is None or median_dv < regime_floor:
+        return False, "failed_median_dollar_volume_20d_stability"
+
+    if atr14 is None or atr14 < min_atr_dollars:
+        return False, "failed_min_atr_dollars"
+
+    atr_pct = (atr14 / close) if close > 0 else None
+    tiered_max_atr_pct = _tiered_max_atr_pct(
+        close,
+        atr_pct_tier_lt_20=atr_pct_tier_lt_20,
+        atr_pct_tier_20_to_100=atr_pct_tier_20_to_100,
+        atr_pct_tier_gt_100=atr_pct_tier_gt_100,
+    )
+    if atr_pct is not None and atr_pct > tiered_max_atr_pct:
+        return False, "failed_tiered_max_atr_pct"
     if atr_pct is not None and atr_pct > max_atr_pct:
         return False, "failed_max_atr_pct"
 
@@ -158,6 +218,13 @@ def select_playbook_candidates(
     min_price: float,
     min_avg_dollar_volume_20d: float,
     max_atr_pct: float,
+    min_avg_dollar_volume_20d_bull: float = 30_000_000.0,
+    min_avg_dollar_volume_20d_choppy: float = 75_000_000.0,
+    min_avg_dollar_volume_20d_bear: float = 100_000_000.0,
+    min_atr_dollars: float = 0.50,
+    atr_pct_tier_lt_20: float = 0.12,
+    atr_pct_tier_20_to_100: float = 0.10,
+    atr_pct_tier_gt_100: float = 0.08,
 ) -> Tuple[List[Dict], Dict]:
     regime = str(regime_label or "Bull").strip().capitalize()
 
@@ -176,9 +243,17 @@ def select_playbook_candidates(
 
         passed_gate, gate_reason = _absolute_quality_gate(
             row,
+            regime_label=regime,
             playbook_id=playbook_id,
             min_price=min_price,
             min_avg_dollar_volume_20d=min_avg_dollar_volume_20d,
+            min_avg_dollar_volume_20d_bull=min_avg_dollar_volume_20d_bull,
+            min_avg_dollar_volume_20d_choppy=min_avg_dollar_volume_20d_choppy,
+            min_avg_dollar_volume_20d_bear=min_avg_dollar_volume_20d_bear,
+            min_atr_dollars=min_atr_dollars,
+            atr_pct_tier_lt_20=atr_pct_tier_lt_20,
+            atr_pct_tier_20_to_100=atr_pct_tier_20_to_100,
+            atr_pct_tier_gt_100=atr_pct_tier_gt_100,
             max_atr_pct=max_atr_pct,
         )
         if not passed_gate:
@@ -225,6 +300,26 @@ def select_playbook_candidates(
         "rejected_by_absolute_gate": int(rejected_gate),
         "watchlist_for_regime_count": int(rejected_regime),
         "playbook_distribution": dict(playbook_counter),
+        "liquidity_policy": {
+            "regime": regime,
+            "min_avg_dollar_volume_20d": _regime_liquidity_floor(
+                regime,
+                min_avg_dollar_volume_20d=min_avg_dollar_volume_20d,
+                min_avg_dollar_volume_20d_bull=min_avg_dollar_volume_20d_bull,
+                min_avg_dollar_volume_20d_choppy=min_avg_dollar_volume_20d_choppy,
+                min_avg_dollar_volume_20d_bear=min_avg_dollar_volume_20d_bear,
+            ),
+            "stability_rule": "median_dollar_volume_20d >= regime_floor",
+        },
+        "volatility_policy": {
+            "min_atr_dollars": float(min_atr_dollars),
+            "atr_pct_tiers": {
+                "lt_20": float(atr_pct_tier_lt_20),
+                "between_20_and_100": float(atr_pct_tier_20_to_100),
+                "gt_100": float(atr_pct_tier_gt_100),
+            },
+            "global_max_atr_pct": float(max_atr_pct),
+        },
     }
 
     return selected, policy

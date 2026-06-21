@@ -16,8 +16,9 @@ class PlaybookSelectionTests(unittest.TestCase):
                 "engine": "bull",
                 "symbol": "AAA",
                 "close": 120.0,
-                "avg_dollar_volume_20d": 80_000_000.0,
+                "avg_dollar_volume_20d": 120_000_000.0,
                 "atr14": 3.0,
+                "median_dollar_volume_20d": 121_000_000.0,
                 "leadership_score": 0.82,
                 "actionability_score": 0.80,
                 "pattern_stage": "breakout",
@@ -47,6 +48,7 @@ class PlaybookSelectionTests(unittest.TestCase):
                 "close": 4.0,
                 "avg_dollar_volume_20d": 5_000_000.0,
                 "atr14": 0.8,
+                "median_dollar_volume_20d": 5_000_000.0,
                 "leadership_score": 0.95,
                 "actionability_score": 0.95,
                 "playbook_id": "CAP_RECLAIM",
@@ -80,6 +82,13 @@ class ExportPayloadTests(unittest.TestCase):
                     "min_beta_1y": 1.0,
                     "min_volume": 500_000.0,
                     "min_avg_dollar_volume_20d": 20_000_000.0,
+                    "min_avg_dollar_volume_20d_bull": 30_000_000.0,
+                    "min_avg_dollar_volume_20d_choppy": 75_000_000.0,
+                    "min_avg_dollar_volume_20d_bear": 100_000_000.0,
+                    "min_atr_dollars": 0.50,
+                    "atr_pct_tier_lt_20": 0.12,
+                    "atr_pct_tier_20_to_100": 0.10,
+                    "atr_pct_tier_gt_100": 0.08,
                     "sma_regime_length": 200,
                     "breakout_lookback": 20,
                     "rsi_length": 14,
@@ -91,7 +100,14 @@ class ExportPayloadTests(unittest.TestCase):
                 },
                 benchmark={"symbol": "SPY", "close": 500.0, "sma200": 480.0, "above_sma200": True},
                 candidates=[{"symbol": "AAA", "score": 88.0}],
-                diagnostics={"counts": {"ranked_candidates_count": 1}},
+                diagnostics={
+                    "counts": {"ranked_candidates_count": 1, "run_duration_seconds": 12.345},
+                    "run_timing": {
+                        "started_at_utc": "2026-01-01T00:00:00+00:00",
+                        "finished_at_utc": "2026-01-01T00:00:12+00:00",
+                        "duration_seconds": 12.345,
+                    },
+                },
                 regime="Bull",
                 engine="playbook",
                 universe_size=1200,
@@ -114,6 +130,16 @@ class ExportPayloadTests(unittest.TestCase):
             self.assertFalse(payload.get("trade_allowed"))
             self.assertEqual(payload.get("cash_reason"), "no_candidates_passed_absolute_gates")
             self.assertEqual(payload.get("qualified_trade_count"), 0)
+            self.assertEqual(payload.get("diagnostics", {}).get("counts", {}).get("run_duration_seconds"), 12.345)
+            self.assertEqual(payload.get("diagnostics", {}).get("run_timing", {}).get("duration_seconds"), 12.345)
+            scanner_settings = payload.get("scanner_settings", {})
+            self.assertEqual(scanner_settings.get("min_avg_dollar_volume_20d_bull"), 30_000_000.0)
+            self.assertEqual(scanner_settings.get("min_avg_dollar_volume_20d_choppy"), 75_000_000.0)
+            self.assertEqual(scanner_settings.get("min_avg_dollar_volume_20d_bear"), 100_000_000.0)
+            self.assertEqual(scanner_settings.get("min_atr_dollars"), 0.50)
+            self.assertEqual(scanner_settings.get("atr_pct_tier_lt_20"), 0.12)
+            self.assertEqual(scanner_settings.get("atr_pct_tier_20_to_100"), 0.10)
+            self.assertEqual(scanner_settings.get("atr_pct_tier_gt_100"), 0.08)
 
 
 if __name__ == "__main__":

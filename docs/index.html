@@ -54,8 +54,11 @@
         </section>
 
         <div id="screener">
-          <div id="diagnosticsSummary"></div>
-          <pre id="diagnostics"></pre>
+          <section id="diagnosticsSummary" class="card"></section>
+          <details id="diagnosticsDetails" class="card diagnostics-details">
+            <summary>Technical diagnostics (optional)</summary>
+            <pre id="diagnostics"></pre>
+          </details>
         </div>
 
         <section class="view-switcher" aria-label="Screener result view switcher">
@@ -94,7 +97,6 @@
               <section class="card" id="selectedCard">
                 <h2 id="selectedSymbolTitle">Selected stock details</h2>
                 <div id="selectedSymbolMeta" class="selected-meta"></div>
-                <div id="selectedFundamentals" class="fundamentals-grid"></div>
               </section>
 
               <section class="card">
@@ -181,20 +183,8 @@
                     <strong class="detail-value" id="chartDetailAtr14">-</strong>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-label">ROE</span>
-                    <strong class="detail-value" id="chartDetailRoe">-</strong>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">P/E</span>
-                    <strong class="detail-value" id="chartDetailPe">-</strong>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Revenue Growth QoQ</span>
-                    <strong class="detail-value" id="chartDetailRevGrowthQoq">-</strong>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Revenue Growth YoY</span>
-                    <strong class="detail-value" id="chartDetailRevGrowthYoy">-</strong>
+                    <span class="detail-label">Beta (1Y)</span>
+                    <strong class="detail-value" id="chartDetailBeta">-</strong>
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">Engine</span>
@@ -712,6 +702,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=20260420a"></script>
+    <script src="app.js?v=20260621a"></script>
   </body>
 </html>

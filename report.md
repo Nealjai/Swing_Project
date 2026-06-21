@@ -145,7 +145,7 @@
 - Added ignore rule for [`data/cache/`](data/cache/:1) via [`.gitignore`](.gitignore:1) so local cache files remain untracked.
 
 ### Confirmed V1 defaults encoded
-- Universe: [`sp500.txt`](sp500.txt:1)
+- Universe: [`universe.txt`](universe.txt:1)
 - Regime benchmark: SPY
 - Regime rule: close vs SMA200
 - Data: yfinance daily EOD

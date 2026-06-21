@@ -9,8 +9,8 @@ import pandas as pd
 
 from screener.config import Settings
 from screener.data import fetch_prices
-from screener.fundamentals import fetch_ticker_info
 from screener.indicators import add_indicators
+from screener.quote_metrics import fetch_quote_metrics
 
 EngineSelection = Literal["bull", "weak", "both"]
 
@@ -542,7 +542,14 @@ def run_backtest(
         force_refresh=force_refresh,
         market_aware_refresh=market_aware_refresh,
     )
-    info_by_symbol = fetch_ticker_info(unique_symbols, logger)
+    quote_metrics_by_symbol, quote_metrics_diag = fetch_quote_metrics(
+        unique_symbols,
+        prices,
+        logger,
+        settings=settings,
+        benchmark_symbol=settings.benchmark_symbol,
+    )
+    quote_metrics_coverage = quote_metrics_diag.get("coverage") or {}
 
     benchmark_df = prices.get(settings.benchmark_symbol)
     if benchmark_df is None or benchmark_df.empty:
@@ -587,11 +594,11 @@ def run_backtest(
             skipped.append({"yf_symbol": yf_symbol, "reason": "insufficient_history"})
             continue
 
-        info = info_by_symbol.get(yf_symbol) or {}
-        market_cap = _to_float(info.get("marketCap"))
-        beta_1y = _to_float(info.get("beta"))
+        quote_metrics = quote_metrics_by_symbol.get(yf_symbol) or {}
+        market_cap = _to_float(quote_metrics.get("market_cap"))
+        beta_1y = _to_float(quote_metrics.get("beta_1y"))
         if market_cap is None or beta_1y is None:
-            skipped.append({"yf_symbol": yf_symbol, "reason": "missing_market_cap_or_beta"})
+            skipped.append({"yf_symbol": yf_symbol, "reason": "missing_market_cap_or_beta_1y"})
             continue
 
         symbol_candidates = _generate_symbol_candidates(
@@ -637,7 +644,15 @@ def run_backtest(
             "skipped_symbols": len(skipped),
             "trades": int(len(trades_df)),
             "candidates": int(len(candidates_df)),
+            "quote_metrics_attempted_count": int(quote_metrics_coverage.get("attempted_count", 0)),
+            "quote_metrics_success_count": int(quote_metrics_coverage.get("success_count", 0)),
+            "quote_metrics_missing_market_cap_count": int(quote_metrics_coverage.get("missing_market_cap_count", 0)),
+            "quote_metrics_missing_beta_1y_count": int(quote_metrics_coverage.get("missing_beta_1y_count", 0)),
+            "quote_metrics_missing_both_count": int(quote_metrics_coverage.get("missing_both_count", 0)),
+            "quote_metrics_success_rate": float(quote_metrics_coverage.get("success_rate", 0.0)),
         },
+        "quote_metrics": quote_metrics_diag,
+        "quote_metrics_coverage": quote_metrics_coverage,
         "skipped_symbols": skipped,
         "config": {
             "start_date": config.start_date,

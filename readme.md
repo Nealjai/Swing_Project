@@ -13,21 +13,24 @@ Static, research-focused U.S. equity screener with:
 ## What the project does (current state)
 
 This project runs a Python pipeline that:
-1. Loads a U.S. stock universe (default: `sp500.txt`).
+1. Loads a U.S. stock universe (default: `universe.txt`).
 2. Fetches EOD OHLCV/fundamental context from Yahoo Finance (`yfinance`).
-3. Detects market regime from SPY market-condition signals.
-4. Runs both engines (`bull` + `weak`) to create raw candidates.
-5. Routes candidates through a playbook-first policy layer:
+3. Retrieves quote metrics with reliability-first split sources:
+   - `market_cap`: `Ticker.fast_info.market_cap` (cached, with last-resort fallback paths).
+   - `beta_1y`: computed from daily **Adj Close** returns vs benchmark (`SPY` by default), cached and reused.
+4. Detects market regime from SPY market-condition signals.
+5. Runs both engines (`bull` + `weak`) to create raw candidates.
+6. Routes candidates through a playbook-first policy layer:
    - infer playbook,
    - apply absolute quality gates,
    - apply regime permissioning,
    - assign `intent` (`trade` / `watchlist`).
-6. Enforces cash-first behavior:
+7. Enforces cash-first behavior:
    - if no qualified trade remains, output `trade_allowed=false` with `cash_reason`.
-7. Computes risk fields (stop, activation, and max shares using account constraints).
-8. Exports static artifacts (`JSON` + `CSV`) for the dashboard.
-9. Updates tracker and market condition artifacts.
-10. Exports per-symbol 3Y daily files for dashboard charting.
+8. Computes risk fields (stop, activation, and max shares using account constraints).
+9. Exports static artifacts (`JSON` + `CSV`) for the dashboard.
+10. Updates tracker and market condition artifacts.
+11. Exports per-symbol 3Y daily files for dashboard charting.
 
 The frontend (`docs/index.html` + `docs/app.js`) reads those files directly (no backend server).
 
@@ -44,6 +47,7 @@ The frontend (`docs/index.html` + `docs/app.js`) reads those files directly (no 
 - `src/screener/tracker.py`: tracker lifecycle engine and hybrid shortlist admission rules.
 - `src/screener/market_condition.py`: market condition metrics and chart payload.
 - `src/screener/backtest/*`: backtest engine, portfolio simulator, stats, output writers.
+- `src/screener/quote_metrics.py`: reliability-first market-cap and beta retrieval/caching.
 - `docs/*`: static dashboard UI.
 
 ---
@@ -99,6 +103,16 @@ Required:
 Quality route:
 - strict route (🏆 + ⚡) OR
 - relaxed playbook route for selected playbooks.
+
+### Quote-metrics reliability policy
+- `Ticker.info` is **not** the primary dependency for `market_cap` and `beta_1y`.
+- `market_cap` primary source: `Ticker.fast_info.market_cap`.
+- `beta_1y` primary source: computed 1-year beta from daily **Adj Close** returns:
+  - `beta_1y = cov(stock_returns, benchmark_returns) / var(benchmark_returns)`
+  - benchmark defaults to `SPY`
+  - 252-trading-day window with minimum-observation guardrail.
+- Cached quote metrics are reused to reduce repeated API pressure and improve run stability.
+- `Ticker.info` remains only as last-resort fallback for compatibility.
 
 ---
 
@@ -171,11 +185,17 @@ python -m venv .venv
 ```
 
 ### 2) Install dependencies
+Runtime only:
 ```bash
 pip install -r requirements.txt
 ```
 
-`requirements.txt` uses version ranges for better portability across machines while reducing break risk.
+Runtime + test tooling:
+```bash
+pip install -r requirements-dev.txt
+```
+
+`requirements.txt` is kept minimal for production/runtime execution. `requirements-dev.txt` layers on dev/test tools (e.g., `pytest`).
 
 ---
 
@@ -194,13 +214,26 @@ python scripts/run_backtest.py
 ### Unit tests
 Run from `Swing_Project/` root:
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'
+python3 -m pytest -q
 ```
 
 Example backtest run:
 ```bash
 python scripts/run_backtest.py --engine both --symbol-mode full --years 10
 ```
+
+### Scalability knobs for large universes (e.g., 3000+ symbols)
+You can tune these in `src/screener/config.py`:
+- `download_batch_size`: yfinance batch width for OHLCV downloads.
+- `yfinance_max_retries`: retry count for transient yfinance failures.
+- `cache_max_age_days`: acceptable age for cached OHLCV files.
+- `ticker_info_max_workers`: concurrent workers for ticker info fetches.
+- `ticker_info_cache_max_age_days`: cache TTL for ticker info JSON files.
+
+Operational recommendation for 3000+ symbols:
+- Keep `market_aware_refresh` enabled for daily runs.
+- Use incremental cache refresh (already built into `fetch_prices`).
+- Avoid forcing full refresh except when changing lookback assumptions.
 
 ---
 

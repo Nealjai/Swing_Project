@@ -4,6 +4,8 @@ import json
 import logging
 import math
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -15,11 +17,11 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from screener.config import Settings
-from screener.data import fetch_prices, get_daily_data
+from screener.data import fetch_prices
 from screener.engines import bull_candidates, select_playbook_candidates, weak_candidates
 from screener.export import export_outputs
-from screener.fundamentals import fetch_fundamentals, fetch_ticker_info
 from screener.indicators import add_indicators, latest_metrics
+from screener.quote_metrics import fetch_quote_metrics
 from screener.market_condition import get_market_condition
 from screener.ranking import rank_candidates
 from screener.tracker import update_tracker_file
@@ -31,6 +33,10 @@ def setup_logger() -> logging.Logger:
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(message)s",
     )
+    # yfinance can emit non-fatal "possibly delisted; no price data found" errors
+    # during quote metadata probes (e.g., fast_info/history internals).
+    # Keep screener logs clean while preserving runtime behavior.
+    logging.getLogger("yfinance").setLevel(logging.CRITICAL)
     return logging.getLogger("screener")
 
 
@@ -49,7 +55,7 @@ def _num(value: Any) -> float | None:
 def _build_rows(
     items: List[UniverseItem],
     enriched: Dict[str, object],
-    info_by_symbol: Dict[str, Dict],
+    quote_metrics_by_symbol: Dict[str, Dict[str, Any]],
     logger: logging.Logger,
 ) -> List[Dict]:
     rows: List[Dict] = []
@@ -63,8 +69,8 @@ def _build_rows(
                 "symbol": item.symbol,
                 "yf_symbol": item.yf_symbol,
                 **metrics,
-                "market_cap": _num((info_by_symbol.get(item.yf_symbol) or {}).get("marketCap")),
-                "beta_1y": _num((info_by_symbol.get(item.yf_symbol) or {}).get("beta")),
+                "market_cap": _num((quote_metrics_by_symbol.get(item.yf_symbol) or {}).get("market_cap")),
+                "beta_1y": _num((quote_metrics_by_symbol.get(item.yf_symbol) or {}).get("beta_1y")),
             }
             rows.append(row)
         except Exception as exc:  # noqa: BLE001
@@ -260,20 +266,19 @@ def _enrich_candidates(
     return out
 
 
-def export_daily_data(symbols: List[str], years: int = 3, logger: logging.Logger | None = None) -> None:
+def export_daily_data(
+    symbols: List[str],
+    prices_by_symbol: Dict[str, object] | None = None,
+    logger: logging.Logger | None = None,
+) -> None:
     out_dir = ROOT / "docs" / "data" / "daily"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     unique_symbols = sorted({str(s) for s in symbols if str(s).strip()})
     for symbol in unique_symbols:
-        try:
-            df = get_daily_data(symbol, years=years)
-        except Exception as exc:  # noqa: BLE001
-            if logger:
-                logger.warning("Failed to fetch %s daily data: %s", symbol, exc)
-            df = None
+        df = (prices_by_symbol or {}).get(symbol)
+        frame = df.copy() if hasattr(df, "copy") else None
 
-        frame = df.copy() if df is not None else None
         if frame is None or frame.empty:
             payload = {
                 "Date": [],
@@ -284,7 +289,7 @@ def export_daily_data(symbols: List[str], years: int = 3, logger: logging.Logger
                 "Volume": [],
             }
         else:
-            frame = frame.sort_index()
+            frame = frame.sort_index().tail(252 * 3)
             payload = {
                 "Date": [idx.strftime("%Y-%m-%d") for idx in frame.index],
                 "Open": [_num(v) for v in frame["Open"].tolist()] if "Open" in frame.columns else [],
@@ -307,16 +312,33 @@ def export_daily_data(symbols: List[str], years: int = 3, logger: logging.Logger
 def main() -> int:
     settings = Settings()
     logger = setup_logger()
+    run_started_at_utc = datetime.now(timezone.utc)
+    run_started_perf = time.perf_counter()
 
     universe = load_universe(settings.universe_file)
     yf_symbols = sorted({u.yf_symbol for u in universe})
     if settings.benchmark_symbol not in yf_symbols:
         yf_symbols.append(settings.benchmark_symbol)
 
-    export_daily_data(yf_symbols, years=3, logger=logger)
-
     prices, data_diag = fetch_prices(yf_symbols=yf_symbols, settings=settings, logger=logger)
-    info_by_symbol = fetch_ticker_info(yf_symbols, logger)
+    export_daily_data(yf_symbols, prices_by_symbol=prices, logger=logger)
+    quote_metrics_by_symbol, quote_metrics_diag = fetch_quote_metrics(
+        yf_symbols,
+        prices,
+        logger,
+        settings=settings,
+        benchmark_symbol=settings.benchmark_symbol,
+    )
+    quote_metrics_coverage = quote_metrics_diag.get("coverage") or {}
+    logger.info(
+        "Quote metrics coverage: success=%s missing_market_cap=%s missing_beta_1y=%s missing_both=%s attempted=%s success_rate=%.2f%%",
+        quote_metrics_coverage.get("success_count", 0),
+        quote_metrics_coverage.get("missing_market_cap_count", 0),
+        quote_metrics_coverage.get("missing_beta_1y_count", 0),
+        quote_metrics_coverage.get("missing_both_count", 0),
+        quote_metrics_coverage.get("attempted_count", 0),
+        float(quote_metrics_coverage.get("success_rate", 0.0)) * 100.0,
+    )
 
     benchmark_df = prices.get(settings.benchmark_symbol)
     if benchmark_df is None or benchmark_df.empty:
@@ -373,7 +395,7 @@ def main() -> int:
     market_condition = get_market_condition()
     regime_label = str(market_condition.get("regime_label") or "Bull").strip().capitalize()
 
-    rows = _build_rows(universe, enriched, info_by_symbol, logger)
+    rows = _build_rows(universe, enriched, quote_metrics_by_symbol, logger)
 
     bull_raw_candidates = bull_candidates(
         rows,
@@ -402,6 +424,13 @@ def main() -> int:
         min_price=settings.min_price,
         min_avg_dollar_volume_20d=settings.min_avg_dollar_volume_20d,
         max_atr_pct=settings.max_atr_pct,
+        min_avg_dollar_volume_20d_bull=settings.min_avg_dollar_volume_20d_bull,
+        min_avg_dollar_volume_20d_choppy=settings.min_avg_dollar_volume_20d_choppy,
+        min_avg_dollar_volume_20d_bear=settings.min_avg_dollar_volume_20d_bear,
+        min_atr_dollars=settings.min_atr_dollars,
+        atr_pct_tier_lt_20=settings.atr_pct_tier_lt_20,
+        atr_pct_tier_20_to_100=settings.atr_pct_tier_20_to_100,
+        atr_pct_tier_gt_100=settings.atr_pct_tier_gt_100,
     )
 
     engine_name = "playbook"
@@ -409,7 +438,7 @@ def main() -> int:
     ranked = rank_candidates(playbook_candidates, settings.max_candidates)
 
     top20_yf_symbols = sorted({str(c.get("yf_symbol")) for c in ranked[:20] if c.get("yf_symbol")})
-    fundamentals_by_symbol = fetch_fundamentals(top20_yf_symbols, logger, info_by_symbol=info_by_symbol)
+    fundamentals_by_symbol: Dict[str, Dict] = {s: {} for s in top20_yf_symbols}
     ranked = _enrich_candidates(
         ranked,
         fundamentals_by_symbol,
@@ -426,6 +455,14 @@ def main() -> int:
             continue
         charts_by_symbol[yf_symbol] = _build_chart_series(df, window=252)
 
+    run_finished_at_utc = datetime.now(timezone.utc)
+    run_duration_seconds = max(0.0, time.perf_counter() - run_started_perf)
+    run_timing = {
+        "started_at_utc": run_started_at_utc.isoformat(),
+        "finished_at_utc": run_finished_at_utc.isoformat(),
+        "duration_seconds": round(run_duration_seconds, 3),
+    }
+
     diagnostics = {
         "counts": {
             "downloaded_symbols": data_diag.downloaded_symbols,
@@ -439,7 +476,17 @@ def main() -> int:
             "ranked_candidates_count": len(ranked),
             "qualified_trade_count": int(trade_policy.get("qualified_trade_count", 0)),
             "watchlist_count": int(trade_policy.get("watchlist_count", 0)),
+            "quote_metrics_attempted_count": int(quote_metrics_coverage.get("attempted_count", 0)),
+            "quote_metrics_success_count": int(quote_metrics_coverage.get("success_count", 0)),
+            "quote_metrics_missing_market_cap_count": int(quote_metrics_coverage.get("missing_market_cap_count", 0)),
+            "quote_metrics_missing_beta_1y_count": int(quote_metrics_coverage.get("missing_beta_1y_count", 0)),
+            "quote_metrics_missing_both_count": int(quote_metrics_coverage.get("missing_both_count", 0)),
+            "quote_metrics_success_rate": float(quote_metrics_coverage.get("success_rate", 0.0)),
+            "run_duration_seconds": float(run_timing["duration_seconds"]),
         },
+        "run_timing": run_timing,
+        "quote_metrics": quote_metrics_diag,
+        "quote_metrics_coverage": quote_metrics_coverage,
         "playbook_policy": trade_policy,
         "skipped_tickers": skipped,
         "warnings": [],
@@ -525,13 +572,14 @@ def main() -> int:
     market_condition_path.write_text(json.dumps(market_condition, indent=2), encoding="utf-8")
 
     logger.info(
-        "Finished run: regime=%s engine=%s candidates=%s universe=%s tracker_active=%s tracker_dropped=%s",
+        "Finished run: regime=%s engine=%s candidates=%s universe=%s tracker_active=%s tracker_dropped=%s runtime=%.3fs",
         regime_label,
         engine_name,
         len(ranked),
         len(universe),
         len(tracker_payload.get("active", [])),
         len(tracker_payload.get("dropped", [])),
+        run_timing["duration_seconds"],
     )
     return 0
 

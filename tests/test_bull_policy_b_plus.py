@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from src.screener.engines.bull import bull_candidates
-from src.screener.tracker import _is_tracker_eligible
+from src.screener.tracker import _compute_leadership_thresholds, _is_tracker_eligible
 
 
 def _build_row(symbol: str, close: list[float], spy_close: list[float]) -> dict:
@@ -85,6 +85,13 @@ class PolicyBPlusBullEngineTests(unittest.TestCase):
 
 
 class PolicyBPlusTrackerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.leadership_thresholds = {
+            "strict": 0.90,
+            "pullback": 0.85,
+            "breakout": 0.88,
+        }
+
     def test_tracker_rejects_watchlist_intent(self) -> None:
         candidate = {
             "engine": "playbook",
@@ -94,7 +101,7 @@ class PolicyBPlusTrackerTests(unittest.TestCase):
             "actionability_score": 0.70,
             "risk": {"position_sizing": {"max_shares": 10}},
         }
-        self.assertFalse(_is_tracker_eligible(candidate))
+        self.assertFalse(_is_tracker_eligible(candidate, leadership_thresholds=self.leadership_thresholds))
 
     def test_tracker_rejects_zero_max_shares(self) -> None:
         candidate = {
@@ -105,7 +112,7 @@ class PolicyBPlusTrackerTests(unittest.TestCase):
             "actionability_score": 0.70,
             "risk": {"position_sizing": {"max_shares": 0}},
         }
-        self.assertFalse(_is_tracker_eligible(candidate))
+        self.assertFalse(_is_tracker_eligible(candidate, leadership_thresholds=self.leadership_thresholds))
 
     def test_tracker_accepts_trade_intent_on_strict_trophy_lightning_route(self) -> None:
         candidate = {
@@ -116,7 +123,7 @@ class PolicyBPlusTrackerTests(unittest.TestCase):
             "actionability_score": 0.70,
             "risk": {"position_sizing": {"max_shares": 10}},
         }
-        self.assertTrue(_is_tracker_eligible(candidate))
+        self.assertTrue(_is_tracker_eligible(candidate, leadership_thresholds=self.leadership_thresholds))
 
     def test_tracker_accepts_trade_intent_on_relaxed_pullback_route(self) -> None:
         candidate = {
@@ -128,7 +135,21 @@ class PolicyBPlusTrackerTests(unittest.TestCase):
             "actionability_score": 0.56,
             "risk": {"position_sizing": {"max_shares": 7}},
         }
-        self.assertTrue(_is_tracker_eligible(candidate))
+        self.assertTrue(_is_tracker_eligible(candidate, leadership_thresholds=self.leadership_thresholds))
+
+    def test_compute_leadership_thresholds_returns_quantiles(self) -> None:
+        candidates = [
+            {"leadership_score": 0.60},
+            {"leadership_score": 0.70},
+            {"leadership_score": 0.80},
+            {"leadership_score": 0.90},
+            {"leadership_score": 1.00},
+        ]
+        thresholds = _compute_leadership_thresholds(candidates)
+
+        self.assertGreaterEqual(thresholds["strict"], thresholds["breakout"])
+        self.assertGreaterEqual(thresholds["breakout"], thresholds["pullback"])
+        self.assertGreaterEqual(thresholds["pullback"], 0.80)
 
 
 if __name__ == "__main__":

@@ -517,20 +517,96 @@ function renderDiagnostics(stats) {
     return;
   }
 
-  if (summary) {
-    const safeStats = toObject(stats);
-    const missingSymbols = toArray(safeStats.missingSymbols);
-    const oldSymbols = toArray(safeStats.oldSymbols);
+  const safeStats = toObject(stats);
+  const counts = toObject(safeStats.counts);
+  const skipped = toArray(safeStats.skipped);
 
+  const downloaded = toFiniteNumber(counts.downloaded_symbols ?? safeStats.downloaded_symbols) ?? 0;
+  const cached = toFiniteNumber(counts.cached_symbols ?? safeStats.cached_symbols) ?? 0;
+  const failed = toFiniteNumber(counts.missing_or_skipped_count ?? safeStats.missing_or_skipped_count ?? skipped.length) ?? skipped.length;
+
+  const attemptedFromMeta = toFiniteNumber(counts.initial_universe ?? counts.ticker_info_attempted_count);
+  const attempted = Math.max(0, Math.round(attemptedFromMeta ?? downloaded + cached + failed));
+  const success = Math.max(0, downloaded + cached);
+  const successRate = attempted > 0 ? success / attempted : null;
+
+  const rowsWithMetrics = toFiniteNumber(counts.rows_with_metrics);
+  const rankedCandidates = toFiniteNumber(counts.ranked_candidates_count ?? counts.raw_candidates_count);
+  const runSeconds = toFiniteNumber(counts.run_duration_seconds ?? toObject(safeStats.run_timing).duration_seconds);
+
+  const reasonCounts = skipped.reduce((acc, row) => {
+    const reason = String(toObject(row).reason || 'unknown').trim();
+    if (!reason) return acc;
+    acc[reason] = (acc[reason] || 0) + 1;
+    return acc;
+  }, {});
+
+  const topReasons = Object.entries(reasonCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([reason, count]) => `<li><span>${esc(reason)}</span><strong>${fmtInt(count)}</strong></li>`)
+    .join('');
+
+  if (summary) {
     summary.innerHTML = `
-      <p>Total Symbols: ${fmtInt(safeStats.totalSymbols)}</p>
-      <p>Missing Symbols: ${missingSymbols.length}</p>
-      <p>Old Symbols (not updated in > 5 days): ${oldSymbols.length}</p>
+      <h3>Data Health Summary (OHLCV)</h3>
+      <div class="diagnostics-summary-grid">
+        <article class="diagnostics-metric-card">
+          <p class="diagnostics-label">Attempted Symbols</p>
+          <p class="diagnostics-value">${fmtInt(attempted)}</p>
+        </article>
+        <article class="diagnostics-metric-card success">
+          <p class="diagnostics-label">OHLCV Success</p>
+          <p class="diagnostics-value">${fmtInt(success)}</p>
+        </article>
+        <article class="diagnostics-metric-card failure">
+          <p class="diagnostics-label">OHLCV Failed/Skipped</p>
+          <p class="diagnostics-value">${fmtInt(failed)}</p>
+        </article>
+        <article class="diagnostics-metric-card">
+          <p class="diagnostics-label">Success Rate</p>
+          <p class="diagnostics-value">${fmtPct(successRate, 2)}</p>
+        </article>
+      </div>
+
+      <div class="diagnostics-subgrid">
+        <article class="diagnostics-subcard">
+          <h4>Data Source Split</h4>
+          <p>Downloaded this run: <strong>${fmtInt(downloaded)}</strong></p>
+          <p>Loaded from cache: <strong>${fmtInt(cached)}</strong></p>
+        </article>
+        <article class="diagnostics-subcard">
+          <h4>Pipeline Coverage</h4>
+          <p>Rows with metrics: <strong>${fmtInt(rowsWithMetrics)}</strong></p>
+          <p>Ranked candidates: <strong>${fmtInt(rankedCandidates)}</strong></p>
+          <p>Run duration: <strong>${runSeconds === null ? '-' : `${fmtNumber(runSeconds, 3)}s`}</strong></p>
+        </article>
+        <article class="diagnostics-subcard">
+          <h4>Top Skip Reasons</h4>
+          ${topReasons ? `<ul class="diagnostics-reason-list">${topReasons}</ul>` : '<p>No skips reported.</p>'}
+        </article>
+      </div>
     `;
   }
 
   if (diagnosticsEl) {
-    diagnosticsEl.textContent = JSON.stringify(stats, null, 2);
+    diagnosticsEl.textContent = JSON.stringify(
+      {
+        ohlcv_health: {
+          attempted_symbols: attempted,
+          success_symbols: success,
+          failed_or_skipped_symbols: failed,
+          success_rate: successRate,
+          downloaded_symbols: downloaded,
+          cached_symbols: cached,
+          top_skip_reasons: reasonCounts,
+        },
+        counts,
+        run_timing: toObject(safeStats.run_timing),
+      },
+      null,
+      2,
+    );
   }
 }
 
@@ -719,14 +795,23 @@ function renderCompressedSymbolList(candidates) {
   highlightCompressedSymbolRow();
 }
 
+function getCandidateBeta(candidate) {
+  const c = toObject(candidate);
+  return c.beta_1y ?? c.beta ?? null;
+}
+
 function renderSelectedDetails(candidate) {
   const c = toObject(candidate);
   const risk = toObject(c.risk);
-  const fundamentals = toObject(c.fundamentals);
 
-  document.getElementById('selectedSymbolTitle').textContent = `${String(c.symbol || '-')} details`;
+  const titleEl = document.getElementById('selectedSymbolTitle');
+  if (titleEl) {
+    titleEl.textContent = `${String(c.symbol || '-')} details`;
+  }
 
   const meta = document.getElementById('selectedSymbolMeta');
+  if (!meta) return;
+
   meta.innerHTML = `
     <div class="meta-item">
       <div class="meta-label">Current Price (Close)</div>
@@ -744,33 +829,20 @@ function renderSelectedDetails(candidate) {
       <div class="meta-label">ATR14</div>
       <div class="meta-value">${fmtNumber(risk.atr14)}</div>
     </div>
+    <div class="meta-item">
+      <div class="meta-label">Beta (1Y)</div>
+      <div class="meta-value">${fmtNumber(getCandidateBeta(c))}</div>
+    </div>
   `;
 
-  const fundamentalsEl = document.getElementById('selectedFundamentals');
-  fundamentalsEl.innerHTML = `
-    <div class="fund-item">
-      <div class="fund-label">ROE</div>
-      <div class="fund-value">${fmtPct(fundamentals.roe)}</div>
+  meta.innerHTML += `
+    <div class="meta-item">
+      <div class="meta-label">Engine</div>
+      <div class="meta-value">${esc(c.engine || '-')}</div>
     </div>
-    <div class="fund-item">
-      <div class="fund-label">P/E</div>
-      <div class="fund-value">${fmtNumber(fundamentals.pe)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Revenue Growth QoQ</div>
-      <div class="fund-value">${fmtPct(fundamentals.revenue_growth_qoq)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Revenue Growth YoY</div>
-      <div class="fund-value">${fmtPct(fundamentals.revenue_growth_yoy)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Engine</div>
-      <div class="fund-value">${esc(c.engine || '-')}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Score</div>
-      <div class="fund-value">${fmtNumber(c.score, 4)}</div>
+    <div class="meta-item">
+      <div class="meta-label">Score</div>
+      <div class="meta-value">${fmtNumber(c.score, 4)}</div>
     </div>
   `;
 }
@@ -791,7 +863,6 @@ function updateScreenerDetailsPanel(symbol) {
 
   const c = toObject(candidate);
   const risk = toObject(c.risk);
-  const fundamentals = toObject(c.fundamentals);
 
   panel.dataset.symbol = String(c.symbol || c.yf_symbol || normalized || '');
 
@@ -799,10 +870,7 @@ function updateScreenerDetailsPanel(symbol) {
   setScreenerDetailField('chartDetailStopLoss', fmtNumber(risk.stop_loss));
   setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.activation_level ?? risk.take_profit));
   setScreenerDetailField('chartDetailAtr14', fmtNumber(risk.atr14));
-  setScreenerDetailField('chartDetailRoe', fmtPct(fundamentals.roe));
-  setScreenerDetailField('chartDetailPe', fmtNumber(fundamentals.pe));
-  setScreenerDetailField('chartDetailRevGrowthQoq', fmtPct(fundamentals.revenue_growth_qoq));
-  setScreenerDetailField('chartDetailRevGrowthYoy', fmtPct(fundamentals.revenue_growth_yoy));
+  setScreenerDetailField('chartDetailBeta', fmtNumber(getCandidateBeta(c)));
   setScreenerDetailField('chartDetailEngine', String(c.engine || '-'));
   setScreenerDetailField('chartDetailScore', fmtNumber(c.score, 4));
 }

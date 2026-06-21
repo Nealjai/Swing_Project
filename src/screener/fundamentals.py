@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import json
 import logging
-from typing import Dict, Iterable
+from typing import Any, Dict, Iterable
 
 import numpy as np
 import yfinance as yf
-
 
 def _safe_float(value) -> float | None:
     try:
@@ -17,6 +17,10 @@ def _safe_float(value) -> float | None:
         return num
     except Exception:  # noqa: BLE001
         return None
+
+
+def _safe_symbol(value: str) -> str:
+    return str(value or "").strip().upper().replace("/", "_")
 
 
 def _extract_quarterly_revenue_growth(ticker: yf.Ticker) -> tuple[float | None, float | None]:
@@ -58,20 +62,44 @@ def _extract_quarterly_revenue_growth(ticker: yf.Ticker) -> tuple[float | None, 
     return _safe_float(qoq), _safe_float(yoy)
 
 
-def fetch_ticker_info(yf_symbols: Iterable[str], logger: logging.Logger) -> Dict[str, Dict]:
-    out: Dict[str, Dict] = {}
+def fetch_ticker_info(
+    yf_symbols: Iterable[str],
+    logger: logging.Logger,
+    settings: object | None = None,
+) -> Dict[str, Dict]:
+    symbols = sorted({str(s).strip().upper() for s in yf_symbols if str(s).strip()})
+    if symbols:
+        logger.info("Ticker info fetching is disabled in no-info mode; returning empty payloads for %s symbols", len(symbols))
+    return {s: {} for s in symbols}
 
-    for yf_symbol in yf_symbols:
-        info: Dict = {}
-        try:
-            ticker = yf.Ticker(yf_symbol)
-            info = ticker.info or {}
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Ticker info fetch failed for %s: %s", yf_symbol, exc)
 
-        out[yf_symbol] = info
+def summarize_ticker_info_coverage(
+    yf_symbols: Iterable[str],
+    info_by_symbol: Dict[str, Dict] | None,
+) -> Dict[str, Any]:
+    symbols = sorted({str(s).strip().upper() for s in yf_symbols if str(s).strip()})
+    info_map = info_by_symbol or {}
 
-    return out
+    success_symbols = [s for s in symbols if isinstance(info_map.get(s), dict) and bool(info_map.get(s))]
+    empty_symbols = [s for s in symbols if s in info_map and not bool(info_map.get(s))]
+    missing_symbols = [s for s in symbols if s not in info_map]
+
+    attempted_count = len(symbols)
+    success_count = len(success_symbols)
+    empty_count = len(empty_symbols)
+    missing_count = len(missing_symbols)
+    success_rate = (success_count / attempted_count) if attempted_count else 0.0
+
+    return {
+        "attempted_count": attempted_count,
+        "success_count": success_count,
+        "empty_count": empty_count,
+        "missing_count": missing_count,
+        "success_rate": success_rate,
+        "successful_symbols": success_symbols,
+        "empty_symbols": empty_symbols,
+        "missing_symbols": missing_symbols,
+    }
 
 
 def fetch_fundamentals(
@@ -91,18 +119,9 @@ def fetch_fundamentals(
 
         try:
             ticker = yf.Ticker(yf_symbol)
-            info = (info_by_symbol or {}).get(yf_symbol) or {}
-
-            fundamentals["roe"] = _safe_float(info.get("returnOnEquity"))
-            fundamentals["pe"] = _safe_float(info.get("trailingPE"))
-
             qoq, yoy = _extract_quarterly_revenue_growth(ticker)
             fundamentals["revenue_growth_qoq"] = qoq
             fundamentals["revenue_growth_yoy"] = yoy
-
-            if fundamentals["revenue_growth_yoy"] is None:
-                fundamentals["revenue_growth_yoy"] = _safe_float(info.get("revenueGrowth"))
-
         except Exception as exc:  # noqa: BLE001
             logger.warning("Fundamentals fetch failed for %s: %s", yf_symbol, exc)
 
