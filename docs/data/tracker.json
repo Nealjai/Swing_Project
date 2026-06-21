@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-06-21T09:24:38.341992+00:00",
+    "generated_at_utc": "2026-06-21T11:39:58.396156+00:00",
     "rules": {
       "engine": "playbook_first_hybrid",
       "max_rank": 10,
@@ -56,7 +56,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.273852+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.295984+00:00"
     },
     {
       "symbol": "SYRE",
@@ -98,7 +98,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.257035+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.316393+00:00"
     },
     {
       "symbol": "NTAP",
@@ -140,7 +140,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.325372+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.336446+00:00"
     },
     {
       "symbol": "FTNT",
@@ -167,7 +167,7 @@
       "rank_at_capture": 6,
       "score_at_capture": 78.53305905720494,
       "distance_to_sma20_pct": 0.023973822440022774,
-      "rsi14": 63.74406536197704,
+      "rsi14": 63.74406536197705,
       "volume_buzz_ratio": 2.8032825029997857,
       "signal_close": 144.72999572753906,
       "signal_atr14": 6.451430184500558,
@@ -182,7 +182,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.308346+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.356504+00:00"
     },
     {
       "symbol": "FLEX",
@@ -224,7 +224,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.341969+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.376372+00:00"
     },
     {
       "symbol": "CSCO",
@@ -266,7 +266,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.291632+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.396136+00:00"
     }
   ],
   "inactive": [],
@@ -312,7 +312,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.273852+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.295984+00:00"
     },
     {
       "symbol": "SYRE",
@@ -354,7 +354,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.257035+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.316393+00:00"
     },
     {
       "symbol": "NTAP",
@@ -396,7 +396,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.325372+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.336446+00:00"
     },
     {
       "symbol": "FTNT",
@@ -423,7 +423,7 @@
       "rank_at_capture": 6,
       "score_at_capture": 78.53305905720494,
       "distance_to_sma20_pct": 0.023973822440022774,
-      "rsi14": 63.74406536197704,
+      "rsi14": 63.74406536197705,
       "volume_buzz_ratio": 2.8032825029997857,
       "signal_close": 144.72999572753906,
       "signal_atr14": 6.451430184500558,
@@ -438,7 +438,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.308346+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.356504+00:00"
     },
     {
       "symbol": "FLEX",
@@ -480,7 +480,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.341969+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.376372+00:00"
     },
     {
       "symbol": "CSCO",
@@ -522,7 +522,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-21T09:24:38.291632+00:00"
+      "last_updated_utc": "2026-06-21T11:39:58.396136+00:00"
     }
   ]
 }
