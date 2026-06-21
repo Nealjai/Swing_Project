@@ -22,3 +22,7 @@ __pycache__/
 docs/data/*.json
 docs/data/*.csv
 docs/data/daily/
+docs/data/**/*.json
+docs/data/**/*.csv
+docs/data/daily/
+docs/data/backtest_runs/

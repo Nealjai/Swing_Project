@@ -15,6 +15,14 @@ TRACKING_WINDOW_TRADING_DAYS = 10
 MAX_DROPPED_HISTORY = 300
 NY_TZ = ZoneInfo("America/New_York")
 
+LEADERSHIP_QUANTILE_STRICT = 0.90
+LEADERSHIP_QUANTILE_PULLBACK = 0.85
+LEADERSHIP_QUANTILE_BREAKOUT = 0.88
+
+DEFAULT_LEADERSHIP_STRICT = 0.90
+DEFAULT_LEADERSHIP_PULLBACK = 0.85
+DEFAULT_LEADERSHIP_BREAKOUT = 0.88
+
 
 def _to_float(value: Any) -> float | None:
     try:
@@ -119,12 +127,30 @@ def _symbol_from_candidate(candidate: Dict[str, Any]) -> str:
     return str(candidate.get("symbol") or "").strip().upper()
 
 
-def _is_tracker_eligible(candidate: Dict[str, Any]) -> bool:
-    engine = str(candidate.get("engine") or "").strip().lower()
-    if engine not in {"bull", "weak"}:
-        return False
+def _compute_leadership_thresholds(candidates: Iterable[Dict[str, Any]]) -> Dict[str, float]:
+    leadership_values: list[float] = []
+    for candidate in candidates:
+        leadership = _to_float(candidate.get("leadership_score"))
+        if leadership is not None:
+            leadership_values.append(leadership)
 
-    # Tracker only accepts trade-intent candidates from active engine output.
+    if not leadership_values:
+        return {
+            "strict": DEFAULT_LEADERSHIP_STRICT,
+            "pullback": DEFAULT_LEADERSHIP_PULLBACK,
+            "breakout": DEFAULT_LEADERSHIP_BREAKOUT,
+        }
+
+    arr = np.array(leadership_values, dtype=float)
+    return {
+        "strict": float(np.quantile(arr, LEADERSHIP_QUANTILE_STRICT)),
+        "pullback": float(np.quantile(arr, LEADERSHIP_QUANTILE_PULLBACK)),
+        "breakout": float(np.quantile(arr, LEADERSHIP_QUANTILE_BREAKOUT)),
+    }
+
+
+def _is_tracker_eligible(candidate: Dict[str, Any], leadership_thresholds: Dict[str, float]) -> bool:
+    # Tracker is execution-shortlist only (never watchlist).
     intent = str(candidate.get("intent") or "trade").strip().lower()
     if intent != "trade":
         return False
@@ -133,12 +159,36 @@ def _is_tracker_eligible(candidate: Dict[str, Any]) -> bool:
     if rank is None or rank > 10:
         return False
 
+    # Must be positionable under current risk policy.
+    risk = candidate.get("risk") if isinstance(candidate.get("risk"), dict) else {}
+    sizing = (risk or {}).get("position_sizing") if isinstance((risk or {}).get("position_sizing"), dict) else {}
+    max_shares = _to_float((sizing or {}).get("max_shares"))
+    if max_shares is None or max_shares <= 0:
+        return False
+
     leadership = _to_float(candidate.get("leadership_score"))
     actionability = _to_float(candidate.get("actionability_score"))
 
-    has_trophy = leadership is not None and leadership >= 0.90
+    strict_leadership = _to_float((leadership_thresholds or {}).get("strict")) or DEFAULT_LEADERSHIP_STRICT
+    pullback_leadership = _to_float((leadership_thresholds or {}).get("pullback")) or DEFAULT_LEADERSHIP_PULLBACK
+    breakout_leadership = _to_float((leadership_thresholds or {}).get("breakout")) or DEFAULT_LEADERSHIP_BREAKOUT
+
+    # Strict route (dynamic leadership quantile + fixed actionability floor)
+    has_trophy = leadership is not None and leadership >= strict_leadership
     has_lightning = actionability is not None and actionability >= 0.58
-    return has_trophy and has_lightning
+    if has_trophy and has_lightning:
+        return True
+
+    # Hybrid relaxed-by-playbook route with dynamic leadership thresholds.
+    playbook_id = str(candidate.get("playbook_id") or "").strip().upper()
+
+    if playbook_id in {"PULLBACK_ENTRY", "TIGHT_BASE", "LEADER_PULLBACK"}:
+        return (leadership is not None and leadership >= pullback_leadership) and (actionability is not None and actionability >= 0.55)
+
+    if playbook_id == "BREAKOUT":
+        return (leadership is not None and leadership >= breakout_leadership) and (actionability is not None and actionability >= 0.58)
+
+    return False
 
 
 def _build_latest_metrics_map(rows: Iterable[Dict[str, Any]], enriched: Dict[str, pd.DataFrame]) -> Dict[str, Dict[str, Any]]:
@@ -571,7 +621,8 @@ def update_tracker_file(
         if str(r.get("symbol") or "").strip()
     }
 
-    eligible_candidates = [c for c in ranked_candidates if _is_tracker_eligible(c)]
+    leadership_thresholds = _compute_leadership_thresholds(ranked_candidates)
+    eligible_candidates = [c for c in ranked_candidates if _is_tracker_eligible(c, leadership_thresholds=leadership_thresholds)]
 
     for candidate in eligible_candidates:
         symbol = _symbol_from_candidate(candidate)
@@ -642,10 +693,11 @@ def update_tracker_file(
         "meta": {
             "generated_at_utc": _iso_now_utc(),
             "rules": {
-                "engine": "bull_or_weak",
+                "engine": "playbook_first_hybrid",
                 "max_rank": 10,
-                "require_tags": ["🏆", "⚡"],
+                "positionability": "require risk.position_sizing.max_shares > 0",
                 "intent": "trade_only (watchlist intents are excluded)",
+                "quality_gate": "leadership_quantile_gate(strict/pullback/breakout) + actionability_floor",
                 "position_state": "active until stop-loss/trailing-stop/time-stop; inactive after exit",
             },
             "counts": {

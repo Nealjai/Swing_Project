@@ -212,11 +212,19 @@ let state = {
   },
 };
 
-function renderBanner(regime, engine) {
+function renderBanner(regime, engine, tradePolicy = {}) {
   const banner = document.getElementById('regimeBanner');
   const safeRegime = String(regime || 'unknown').toLowerCase();
   banner.className = `banner ${safeRegime === 'bull' ? 'bull' : safeRegime === 'weak' ? 'weak' : 'neutral'}`;
-  banner.textContent = `Regime: ${String(regime || '-').toUpperCase()} | Active Engine: ${String(engine || '-').toUpperCase()}`;
+
+  const policy = toObject(tradePolicy);
+  const tradeAllowed = Boolean(policy.trade_allowed);
+  const qualifiedCount = fmtInt(policy.qualified_trade_count ?? 0);
+  const cashReason = String(policy.cash_reason || '').trim();
+
+  const modeText = tradeAllowed ? 'TRADE MODE' : 'HOLD CASH';
+  const reasonText = !tradeAllowed && cashReason ? ` | Reason: ${cashReason}` : '';
+  banner.textContent = `${modeText} | Regime: ${String(regime || '-').toUpperCase()} | Active Engine: ${String(engine || '-').toUpperCase()} | Qualified Trades: ${qualifiedCount}${reasonText}`;
 }
 
 function inferActiveEngine(candidates, fallbackEngine = null) {
@@ -373,19 +381,19 @@ function getHowItWorksEngineCards() {
       checks: [
         'Leadership Quality: Uses relative, absolute, and excess return diagnostics vs SPY.',
         'Price Consolidation: Looks for Cup-with-Handle / Volatility Contraction structures.',
-        'Intent Layer: In Bear regime, candidates are usually watchlist unless strict exception gates pass.',
+        'Intent layer is cash-first: if no setup survives playbook gates, the system stays in HOLD CASH.',
       ],
     },
     {
       key: 'weak',
       title: 'Weak Engine',
-      tagline: 'Playbook-Based Weak Regime Entries',
+      tagline: 'Playbook-Based Routing and Risk-First Validation',
       purpose:
         'This engine classifies each candidate into a weak-regime playbook (Defensive RS, Capitulation→Reclaim, or Leader Pullback), then scores leadership and entry readiness with risk-first gates.',
       checks: [
-        'Playbook Routing: DEF_RS, CAP_RECLAIM, and LEADER_PB are selected from price/structure context.',
-        'Reclaim Gate: Actionability is capped unless reclaim/turn confirmation is present.',
-        'Safety Layer: ATR% and liquidity are blended to prioritize tradable, lower-chaos setups.',
+        'Playbook Routing: candidates are mapped to setup archetypes (e.g. BREAKOUT / PULLBACK_ENTRY / TIGHT_BASE / CAPITULATION_RECLAIM).',
+        'Permission Layer: regime + absolute quality gates decide whether a setup can be trade-intent or only watchlist.',
+        'Safety Layer: ATR%, liquidity, and position-sizing constraints prioritize tradable setups.',
       ],
     },
   ];
@@ -451,7 +459,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const heroSubheadline = document.getElementById('howItWorksHeroSubheadline');
   if (heroSubheadline) {
     heroSubheadline.innerHTML =
-      'Both engines run daily. Candidates are scored, tagged (🏆/⚡/👀), and assigned <strong>trade</strong> or <strong>watchlist</strong>. Weak results also include a playbook label for review.';
+      'Both engines run daily, then pass through a playbook-first policy layer. Candidates are scored, tagged (🏆/⚡/👀), and assigned <strong>trade</strong> or <strong>watchlist</strong>. If no trade setup qualifies, the dashboard stays in <strong>HOLD CASH</strong> mode.';
   }
 
   const logicCards = Array.from(document.querySelectorAll('.screener-logic-card'));
@@ -470,7 +478,7 @@ function renderHowItWorks(payload, marketPayload = null) {
     }
     if (engineLogicExplanation) {
       engineLogicExplanation.textContent =
-        'Both engines run daily. Weak candidates are routed into DEF_RS / CAP_RECLAIM / LEADER_PB, then scored with reclaim and safety gates. Tracker admits only top-ranked trade-intent names that meet 🏆 and ⚡ thresholds.';
+        'Both engines run daily. Outputs are routed into playbooks, then filtered by regime permissioning and absolute quality gates. Tracker keeps only trade-intent, top-ranked, positionable names using strict/relaxed hybrid quality thresholds.';
     }
   }
 
@@ -482,10 +490,10 @@ function renderHowItWorks(payload, marketPayload = null) {
     const steps = [
       'Evaluate SPY regime signals and classify market as Bull, Choppy, or Weak.',
       'Run both Bull and Weak engines across the liquid universe.',
-      'Compute normalized leadership/actionability scores and rank all candidates.',
-      'Attach tags from thresholds: 🏆 leadership, ⚡ actionable, 👀 near-actionable watchlist.',
-      'Assign intent (trade/watchlist); Weak rows also carry a playbook label.',
-      'Tracker admits only top-ranked trade-intent names that pass both 🏆 and ⚡ thresholds.',
+      'Route candidates through playbook-first policy with absolute quality gates.',
+      'Compute normalized leadership/actionability scores and assign trade/watchlist intent.',
+      'If no trade setup is qualified, remain in HOLD CASH mode (no forced trades).',
+      'Size risk per setup and admit tracker names only when rank/positionability/quality rules pass.',
     ];
     workflowEl.innerHTML = steps.map((step) => `<li>${esc(step)}</li>`).join('');
   }
@@ -493,7 +501,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const interpretationEl = document.getElementById('howItWorksInterpretationText');
   if (interpretationEl) {
     interpretationEl.innerHTML =
-      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, regime-aware setup with score context, tags, intent, and (for Weak) a playbook label. Tracker is reserved for strict trade-intent candidates that satisfy both 🏆 and ⚡.';
+      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, policy-filtered setup with score context, tags, intent, playbook, and risk sizing. Tracker is reserved for trade-intent names that pass rank, positionability, and hybrid quality rules.';
   }
 }
 
@@ -509,20 +517,96 @@ function renderDiagnostics(stats) {
     return;
   }
 
-  if (summary) {
-    const safeStats = toObject(stats);
-    const missingSymbols = toArray(safeStats.missingSymbols);
-    const oldSymbols = toArray(safeStats.oldSymbols);
+  const safeStats = toObject(stats);
+  const counts = toObject(safeStats.counts);
+  const skipped = toArray(safeStats.skipped);
 
+  const downloaded = toFiniteNumber(counts.downloaded_symbols ?? safeStats.downloaded_symbols) ?? 0;
+  const cached = toFiniteNumber(counts.cached_symbols ?? safeStats.cached_symbols) ?? 0;
+  const failed = toFiniteNumber(counts.missing_or_skipped_count ?? safeStats.missing_or_skipped_count ?? skipped.length) ?? skipped.length;
+
+  const attemptedFromMeta = toFiniteNumber(counts.initial_universe ?? counts.ticker_info_attempted_count);
+  const attempted = Math.max(0, Math.round(attemptedFromMeta ?? downloaded + cached + failed));
+  const success = Math.max(0, downloaded + cached);
+  const successRate = attempted > 0 ? success / attempted : null;
+
+  const rowsWithMetrics = toFiniteNumber(counts.rows_with_metrics);
+  const rankedCandidates = toFiniteNumber(counts.ranked_candidates_count ?? counts.raw_candidates_count);
+  const runSeconds = toFiniteNumber(counts.run_duration_seconds ?? toObject(safeStats.run_timing).duration_seconds);
+
+  const reasonCounts = skipped.reduce((acc, row) => {
+    const reason = String(toObject(row).reason || 'unknown').trim();
+    if (!reason) return acc;
+    acc[reason] = (acc[reason] || 0) + 1;
+    return acc;
+  }, {});
+
+  const topReasons = Object.entries(reasonCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([reason, count]) => `<li><span>${esc(reason)}</span><strong>${fmtInt(count)}</strong></li>`)
+    .join('');
+
+  if (summary) {
     summary.innerHTML = `
-      <p>Total Symbols: ${fmtInt(safeStats.totalSymbols)}</p>
-      <p>Missing Symbols: ${missingSymbols.length}</p>
-      <p>Old Symbols (not updated in > 5 days): ${oldSymbols.length}</p>
+      <h3>Data Health Summary (OHLCV)</h3>
+      <div class="diagnostics-summary-grid">
+        <article class="diagnostics-metric-card">
+          <p class="diagnostics-label">Attempted Symbols</p>
+          <p class="diagnostics-value">${fmtInt(attempted)}</p>
+        </article>
+        <article class="diagnostics-metric-card success">
+          <p class="diagnostics-label">OHLCV Success</p>
+          <p class="diagnostics-value">${fmtInt(success)}</p>
+        </article>
+        <article class="diagnostics-metric-card failure">
+          <p class="diagnostics-label">OHLCV Failed/Skipped</p>
+          <p class="diagnostics-value">${fmtInt(failed)}</p>
+        </article>
+        <article class="diagnostics-metric-card">
+          <p class="diagnostics-label">Success Rate</p>
+          <p class="diagnostics-value">${fmtPct(successRate, 2)}</p>
+        </article>
+      </div>
+
+      <div class="diagnostics-subgrid">
+        <article class="diagnostics-subcard">
+          <h4>Data Source Split</h4>
+          <p>Downloaded this run: <strong>${fmtInt(downloaded)}</strong></p>
+          <p>Loaded from cache: <strong>${fmtInt(cached)}</strong></p>
+        </article>
+        <article class="diagnostics-subcard">
+          <h4>Pipeline Coverage</h4>
+          <p>Rows with metrics: <strong>${fmtInt(rowsWithMetrics)}</strong></p>
+          <p>Ranked candidates: <strong>${fmtInt(rankedCandidates)}</strong></p>
+          <p>Run duration: <strong>${runSeconds === null ? '-' : `${fmtNumber(runSeconds, 3)}s`}</strong></p>
+        </article>
+        <article class="diagnostics-subcard">
+          <h4>Top Skip Reasons</h4>
+          ${topReasons ? `<ul class="diagnostics-reason-list">${topReasons}</ul>` : '<p>No skips reported.</p>'}
+        </article>
+      </div>
     `;
   }
 
   if (diagnosticsEl) {
-    diagnosticsEl.textContent = JSON.stringify(stats, null, 2);
+    diagnosticsEl.textContent = JSON.stringify(
+      {
+        ohlcv_health: {
+          attempted_symbols: attempted,
+          success_symbols: success,
+          failed_or_skipped_symbols: failed,
+          success_rate: successRate,
+          downloaded_symbols: downloaded,
+          cached_symbols: cached,
+          top_skip_reasons: reasonCounts,
+        },
+        counts,
+        run_timing: toObject(safeStats.run_timing),
+      },
+      null,
+      2,
+    );
   }
 }
 
@@ -550,7 +634,7 @@ function renderCandidateTable(candidates) {
 
   if (!safeCandidates.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="9">No candidates produced in this run.</td>';
+    tr.innerHTML = '<td colspan="11">No candidates produced in this run.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -562,10 +646,12 @@ function renderCandidateTable(candidates) {
       <td>${fmtInt(c.rank)}</td>
       <td>${esc(c.symbol)}</td>
       <td>${esc(c.engine)}</td>
-      <td>${esc(c.playbook_label || '-')}</td>
+      <td>${esc(c.playbook_id || c.playbook_label || '-')}</td>
+      <td>${esc(c.intent || '-')}</td>
       <td>${fmtNumber(c.score, 4)}</td>
       <td class="candidate-tag-cell">${buildCandidateTagCell(c)}</td>
       <td>${fmtNumber(c.close)}</td>
+      <td>${fmtInt(c.risk?.position_sizing?.max_shares)}</td>
       <td>${fmtNumber(c.risk?.stop_loss)}</td>
       <td>${fmtNumber(c.risk?.activation_level ?? c.risk?.take_profit)}</td>
     `;
@@ -709,14 +795,23 @@ function renderCompressedSymbolList(candidates) {
   highlightCompressedSymbolRow();
 }
 
+function getCandidateBeta(candidate) {
+  const c = toObject(candidate);
+  return c.beta_1y ?? c.beta ?? null;
+}
+
 function renderSelectedDetails(candidate) {
   const c = toObject(candidate);
   const risk = toObject(c.risk);
-  const fundamentals = toObject(c.fundamentals);
 
-  document.getElementById('selectedSymbolTitle').textContent = `${String(c.symbol || '-')} details`;
+  const titleEl = document.getElementById('selectedSymbolTitle');
+  if (titleEl) {
+    titleEl.textContent = `${String(c.symbol || '-')} details`;
+  }
 
   const meta = document.getElementById('selectedSymbolMeta');
+  if (!meta) return;
+
   meta.innerHTML = `
     <div class="meta-item">
       <div class="meta-label">Current Price (Close)</div>
@@ -734,33 +829,20 @@ function renderSelectedDetails(candidate) {
       <div class="meta-label">ATR14</div>
       <div class="meta-value">${fmtNumber(risk.atr14)}</div>
     </div>
+    <div class="meta-item">
+      <div class="meta-label">Beta (1Y)</div>
+      <div class="meta-value">${fmtNumber(getCandidateBeta(c))}</div>
+    </div>
   `;
 
-  const fundamentalsEl = document.getElementById('selectedFundamentals');
-  fundamentalsEl.innerHTML = `
-    <div class="fund-item">
-      <div class="fund-label">ROE</div>
-      <div class="fund-value">${fmtPct(fundamentals.roe)}</div>
+  meta.innerHTML += `
+    <div class="meta-item">
+      <div class="meta-label">Engine</div>
+      <div class="meta-value">${esc(c.engine || '-')}</div>
     </div>
-    <div class="fund-item">
-      <div class="fund-label">P/E</div>
-      <div class="fund-value">${fmtNumber(fundamentals.pe)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Revenue Growth QoQ</div>
-      <div class="fund-value">${fmtPct(fundamentals.revenue_growth_qoq)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Revenue Growth YoY</div>
-      <div class="fund-value">${fmtPct(fundamentals.revenue_growth_yoy)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Engine</div>
-      <div class="fund-value">${esc(c.engine || '-')}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Score</div>
-      <div class="fund-value">${fmtNumber(c.score, 4)}</div>
+    <div class="meta-item">
+      <div class="meta-label">Score</div>
+      <div class="meta-value">${fmtNumber(c.score, 4)}</div>
     </div>
   `;
 }
@@ -781,7 +863,6 @@ function updateScreenerDetailsPanel(symbol) {
 
   const c = toObject(candidate);
   const risk = toObject(c.risk);
-  const fundamentals = toObject(c.fundamentals);
 
   panel.dataset.symbol = String(c.symbol || c.yf_symbol || normalized || '');
 
@@ -789,10 +870,7 @@ function updateScreenerDetailsPanel(symbol) {
   setScreenerDetailField('chartDetailStopLoss', fmtNumber(risk.stop_loss));
   setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.activation_level ?? risk.take_profit));
   setScreenerDetailField('chartDetailAtr14', fmtNumber(risk.atr14));
-  setScreenerDetailField('chartDetailRoe', fmtPct(fundamentals.roe));
-  setScreenerDetailField('chartDetailPe', fmtNumber(fundamentals.pe));
-  setScreenerDetailField('chartDetailRevGrowthQoq', fmtPct(fundamentals.revenue_growth_qoq));
-  setScreenerDetailField('chartDetailRevGrowthYoy', fmtPct(fundamentals.revenue_growth_yoy));
+  setScreenerDetailField('chartDetailBeta', fmtNumber(getCandidateBeta(c)));
   setScreenerDetailField('chartDetailEngine', String(c.engine || '-'));
   setScreenerDetailField('chartDetailScore', fmtNumber(c.score, 4));
 }
@@ -3401,7 +3479,7 @@ async function boot() {
       derivedActiveEngine: activeEngine,
     });
 
-    renderBanner(meta.regime, activeEngine);
+    renderBanner(meta.regime, activeEngine, payload.trade_policy || payload);
     renderSummary(meta, payload.diagnostics || {}, activeEngine);
     renderFilterFunnel(meta, payload.diagnostics || {});
     renderStrategy(payload);

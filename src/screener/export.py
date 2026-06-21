@@ -39,6 +39,8 @@ def export_outputs(
     csv_path: str,
     strategy: Dict | None = None,
     chart_data: Dict | None = None,
+    trade_policy: Dict | None = None,
+    risk_policy: Dict | None = None,
 ) -> None:
     scanner_settings = {
         "benchmark_symbol": settings_snapshot.get("benchmark_symbol"),
@@ -47,6 +49,13 @@ def export_outputs(
         "min_beta_1y": settings_snapshot.get("min_beta_1y"),
         "min_volume": settings_snapshot.get("min_volume"),
         "min_avg_dollar_volume_20d": settings_snapshot.get("min_avg_dollar_volume_20d"),
+        "min_avg_dollar_volume_20d_bull": settings_snapshot.get("min_avg_dollar_volume_20d_bull"),
+        "min_avg_dollar_volume_20d_choppy": settings_snapshot.get("min_avg_dollar_volume_20d_choppy"),
+        "min_avg_dollar_volume_20d_bear": settings_snapshot.get("min_avg_dollar_volume_20d_bear"),
+        "min_atr_dollars": settings_snapshot.get("min_atr_dollars"),
+        "atr_pct_tier_lt_20": settings_snapshot.get("atr_pct_tier_lt_20"),
+        "atr_pct_tier_20_to_100": settings_snapshot.get("atr_pct_tier_20_to_100"),
+        "atr_pct_tier_gt_100": settings_snapshot.get("atr_pct_tier_gt_100"),
         "sma_regime_length": settings_snapshot.get("sma_regime_length"),
         "breakout_lookback": settings_snapshot.get("breakout_lookback"),
         "rsi_length": settings_snapshot.get("rsi_length"),
@@ -54,6 +63,7 @@ def export_outputs(
         "bb_std": settings_snapshot.get("bb_std"),
         "weak_rsi_threshold": settings_snapshot.get("weak_rsi_threshold"),
         "max_candidates": settings_snapshot.get("max_candidates"),
+        "max_atr_pct": settings_snapshot.get("max_atr_pct"),
     }
 
     default_strategy = {
@@ -95,6 +105,9 @@ def export_outputs(
         "risk_notice": "Signals are for research only, not investment advice. Enforce stop-loss and position sizing discipline.",
     }
 
+    effective_trade_policy = trade_policy or {}
+    effective_risk_policy = risk_policy or {}
+
     payload = {
         "meta": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -107,6 +120,11 @@ def export_outputs(
         "benchmark": benchmark,
         "strategy": strategy or default_strategy,
         "scanner_settings": scanner_settings,
+        "trade_policy": effective_trade_policy,
+        "risk_policy": effective_risk_policy,
+        "trade_allowed": bool(effective_trade_policy.get("trade_allowed", True)),
+        "cash_reason": str(effective_trade_policy.get("cash_reason") or "qualified_trade_setups_available"),
+        "qualified_trade_count": int(effective_trade_policy.get("qualified_trade_count", len(candidates))),
         "candidates": candidates,
         "diagnostics": diagnostics,
         "charts": chart_data or {},

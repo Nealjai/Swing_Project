@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass
 from datetime import date, datetime, time as dt_time, timedelta, timezone
 from pathlib import Path
@@ -202,12 +203,44 @@ def _extract_symbol_frame(download_df: pd.DataFrame, symbol: str) -> pd.DataFram
     return _clean_ohlcv(download_df)
 
 
+def _yf_download_with_retry(*, retries: int, logger: logging.Logger, context: str, **kwargs) -> pd.DataFrame:
+    last_exc: Exception | None = None
+    safe_retries = max(0, int(retries))
+
+    for attempt in range(safe_retries + 1):
+        try:
+            return yf.download(**kwargs)
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            if attempt >= safe_retries:
+                break
+            sleep_s = min(2.0, 0.35 * (attempt + 1))
+            logger.warning(
+                "yfinance download retry %s/%s for %s after %s (%ss)",
+                attempt + 1,
+                safe_retries,
+                context,
+                exc.__class__.__name__,
+                sleep_s,
+            )
+            time.sleep(sleep_s)
+
+    if last_exc is not None:
+        raise last_exc
+
+    return pd.DataFrame()
+
+
 def get_daily_data(symbol: str, years: int = 3) -> pd.DataFrame:
     """Fetch daily OHLCV data for a single symbol for the last `years` years."""
     safe_years = max(1, int(years))
     start = (datetime.now(timezone.utc) - timedelta(days=365 * safe_years)).date().isoformat()
+    logger = logging.getLogger("screener")
 
-    df = yf.download(
+    df = _yf_download_with_retry(
+        retries=2,
+        logger=logger,
+        context=f"single_symbol:{symbol}",
         tickers=[symbol],
         start=start,
         interval="1d",
@@ -300,7 +333,10 @@ def fetch_prices(
             if not chunk:
                 continue
             try:
-                df = yf.download(
+                df = _yf_download_with_retry(
+                    retries=settings.yfinance_max_retries,
+                    logger=logger,
+                    context=f"incremental:{append_start}:{len(chunk)}",
                     tickers=chunk,
                     start=append_start,
                     interval="1d",
@@ -342,7 +378,10 @@ def fetch_prices(
         if not chunk:
             continue
         try:
-            df = yf.download(
+            df = _yf_download_with_retry(
+                retries=settings.yfinance_max_retries,
+                logger=logger,
+                context=f"full_refresh:{start}:{len(chunk)}",
                 tickers=chunk,
                 start=start,
                 interval="1d",
