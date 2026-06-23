@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-06-23T11:55:43.237194+00:00",
+    "generated_at": "2026-06-23T12:34:52.873735+00:00",
     "regime": "Bull",
     "engine": "playbook",
     "universe_size": 2447,
@@ -9351,12 +9351,12 @@
       "quote_metrics_missing_beta_1y_count": 22,
       "quote_metrics_missing_both_count": 3,
       "quote_metrics_success_rate": 0.988562091503268,
-      "run_duration_seconds": 206.622
+      "run_duration_seconds": 287.419
     },
     "run_timing": {
-      "started_at_utc": "2026-06-23T11:52:16.609263+00:00",
-      "finished_at_utc": "2026-06-23T11:55:43.230772+00:00",
-      "duration_seconds": 206.622
+      "started_at_utc": "2026-06-23T12:30:05.449727+00:00",
+      "finished_at_utc": "2026-06-23T12:34:52.868900+00:00",
+      "duration_seconds": 287.419
     },
     "quote_metrics": {
       "coverage": {
