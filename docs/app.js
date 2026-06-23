@@ -3320,7 +3320,7 @@ function renderTrackerTable(items) {
     tr.innerHTML = `
       <td>${esc(r.symbol || '-')}</td>
       <td>${esc(r.engine || '-')}</td>
-      <td>${esc(r.playbook_label || '-')}</td>
+      <td>${esc(r.playbook_label || r.playbook_id || '-')}</td>
       <td>${esc(r.capture_date_utc || '-')}</td>
       <td>${hasEntryDate ? esc(entryDate) : '-'}</td>
       <td>${hasEntryPrice ? fmtNumber(entryPrice) : '-'}</td>
