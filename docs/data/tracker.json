@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-06-24T00:24:11.337555+00:00",
+    "generated_at_utc": "2026-06-24T06:20:27.771853+00:00",
     "rules": {
       "engine": "playbook_first_hybrid",
       "max_rank": 10,
@@ -42,7 +42,7 @@
       "score_at_capture": 80.1714873874612,
       "distance_to_sma20_pct": 0.08871365739951154,
       "rsi14": 66.17673575968708,
-      "volume_buzz_ratio": 0.8773313530096896,
+      "volume_buzz_ratio": 0.8793818484416154,
       "signal_close": 169.50999450683594,
       "signal_atr14": 6.196286882672991,
       "stop_loss": 158.35667811802455,
@@ -56,7 +56,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.337528+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.682633+00:00"
     },
     {
       "symbol": "LQDA",
@@ -84,7 +84,7 @@
       "score_at_capture": 78.7415025194936,
       "distance_to_sma20_pct": 0.13467787419792931,
       "rsi14": 70.33682664347164,
-      "volume_buzz_ratio": 0.8158919540231094,
+      "volume_buzz_ratio": 0.8963150034629278,
       "signal_close": 75.58999633789062,
       "signal_atr14": 4.966427666800363,
       "stop_loss": 66.65042653764998,
@@ -98,7 +98,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.232198+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.691629+00:00"
     },
     {
       "symbol": "HPE",
@@ -126,7 +126,7 @@
       "score_at_capture": 78.410944931476,
       "distance_to_sma20_pct": 0.035812502090198706,
       "rsi14": 63.36993969314392,
-      "volume_buzz_ratio": 0.6021449867001846,
+      "volume_buzz_ratio": 0.7711067348171589,
       "signal_close": 47.91999816894531,
       "signal_atr14": 2.9491857801164896,
       "stop_loss": 42.02162660871233,
@@ -140,7 +140,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.242888+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.700491+00:00"
     },
     {
       "symbol": "RLAY",
@@ -168,7 +168,7 @@
       "score_at_capture": 79.16128173748587,
       "distance_to_sma20_pct": 0.17706613371356994,
       "rsi14": 71.48139485913963,
-      "volume_buzz_ratio": 0.628814122772158,
+      "volume_buzz_ratio": 1.3369348823269043,
       "signal_close": 17.18000030517578,
       "signal_atr14": 1.1260711806161063,
       "stop_loss": 14.927857943943568,
@@ -182,7 +182,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.253457+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.709391+00:00"
     },
     {
       "symbol": "GFS",
@@ -210,7 +210,7 @@
       "score_at_capture": 74.85491965415385,
       "distance_to_sma20_pct": 0.019836612569698264,
       "rsi14": 55.50654101636868,
-      "volume_buzz_ratio": 0.6709342596909983,
+      "volume_buzz_ratio": 0.6749534036969393,
       "signal_close": 90.19000244140625,
       "signal_atr14": 5.412928989955357,
       "stop_loss": 79.36414446149554,
@@ -224,7 +224,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.264034+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.718317+00:00"
     },
     {
       "symbol": "TVTX",
@@ -252,7 +252,7 @@
       "score_at_capture": 83.03669175297723,
       "distance_to_sma20_pct": 0.13829409230735346,
       "rsi14": 73.79694815015789,
-      "volume_buzz_ratio": 0.6010774743141977,
+      "volume_buzz_ratio": 0.601070715409074,
       "signal_close": 55.150001525878906,
       "signal_atr14": 2.524643216814314,
       "stop_loss": 48.366950607299806,
@@ -266,7 +266,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.274473+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.727252+00:00"
     },
     {
       "symbol": "SYRE",
@@ -294,7 +294,7 @@
       "score_at_capture": 85.83752738002832,
       "distance_to_sma20_pct": 0.22662557464784805,
       "rsi14": 72.07413702815853,
-      "volume_buzz_ratio": 1.8879719142232854,
+      "volume_buzz_ratio": 1.891296337771741,
       "signal_close": 88.33999633789062,
       "signal_atr14": 4.922857557024274,
       "stop_loss": 79.1423009109497,
@@ -308,7 +308,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.284925+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.736193+00:00"
     },
     {
       "symbol": "NTAP",
@@ -336,7 +336,7 @@
       "score_at_capture": 77.88617970174484,
       "distance_to_sma20_pct": -0.029543471014056966,
       "rsi14": 56.65073036173432,
-      "volume_buzz_ratio": 0.7955987424614027,
+      "volume_buzz_ratio": 1.028777489317871,
       "signal_close": 159.7100067138672,
       "signal_atr14": 7.850714547293527,
       "stop_loss": 144.00857761928015,
@@ -350,7 +350,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.295489+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.745221+00:00"
     },
     {
       "symbol": "FTNT",
@@ -378,7 +378,7 @@
       "score_at_capture": 78.53305905720494,
       "distance_to_sma20_pct": 0.036113456526197796,
       "rsi14": 66.73197008595481,
-      "volume_buzz_ratio": 0.8788746646625946,
+      "volume_buzz_ratio": 0.9213127644612624,
       "signal_close": 144.72999572753906,
       "signal_atr14": 6.451430184500558,
       "stop_loss": 131.82713535853796,
@@ -392,7 +392,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.305981+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.754146+00:00"
     },
     {
       "symbol": "FLEX",
@@ -420,7 +420,7 @@
       "score_at_capture": 77.39655861035668,
       "distance_to_sma20_pct": 0.012586515502031714,
       "rsi14": 58.17890408584394,
-      "volume_buzz_ratio": 1.0418862340990693,
+      "volume_buzz_ratio": 1.086790429485754,
       "signal_close": 147.61000061035156,
       "signal_atr14": 9.857142857142858,
       "stop_loss": 127.89571489606584,
@@ -434,7 +434,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.316475+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.762990+00:00"
     },
     {
       "symbol": "CSCO",
@@ -462,7 +462,7 @@
       "score_at_capture": 79.32742518956185,
       "distance_to_sma20_pct": -0.002905267629333297,
       "rsi14": 57.78902626438763,
-      "volume_buzz_ratio": 0.8763353271235684,
+      "volume_buzz_ratio": 0.9328160399823142,
       "signal_close": 119.54000091552734,
       "signal_atr14": 4.479284558977399,
       "stop_loss": 110.58143179757255,
@@ -476,7 +476,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.327051+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.771820+00:00"
     }
   ],
   "inactive": [],
@@ -508,7 +508,7 @@
       "score_at_capture": 80.1714873874612,
       "distance_to_sma20_pct": 0.08871365739951154,
       "rsi14": 66.17673575968708,
-      "volume_buzz_ratio": 0.8773313530096896,
+      "volume_buzz_ratio": 0.8793818484416154,
       "signal_close": 169.50999450683594,
       "signal_atr14": 6.196286882672991,
       "stop_loss": 158.35667811802455,
@@ -522,7 +522,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.337528+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.682633+00:00"
     },
     {
       "symbol": "LQDA",
@@ -550,7 +550,7 @@
       "score_at_capture": 78.7415025194936,
       "distance_to_sma20_pct": 0.13467787419792931,
       "rsi14": 70.33682664347164,
-      "volume_buzz_ratio": 0.8158919540231094,
+      "volume_buzz_ratio": 0.8963150034629278,
       "signal_close": 75.58999633789062,
       "signal_atr14": 4.966427666800363,
       "stop_loss": 66.65042653764998,
@@ -564,7 +564,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.232198+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.691629+00:00"
     },
     {
       "symbol": "HPE",
@@ -592,7 +592,7 @@
       "score_at_capture": 78.410944931476,
       "distance_to_sma20_pct": 0.035812502090198706,
       "rsi14": 63.36993969314392,
-      "volume_buzz_ratio": 0.6021449867001846,
+      "volume_buzz_ratio": 0.7711067348171589,
       "signal_close": 47.91999816894531,
       "signal_atr14": 2.9491857801164896,
       "stop_loss": 42.02162660871233,
@@ -606,7 +606,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.242888+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.700491+00:00"
     },
     {
       "symbol": "RLAY",
@@ -634,7 +634,7 @@
       "score_at_capture": 79.16128173748587,
       "distance_to_sma20_pct": 0.17706613371356994,
       "rsi14": 71.48139485913963,
-      "volume_buzz_ratio": 0.628814122772158,
+      "volume_buzz_ratio": 1.3369348823269043,
       "signal_close": 17.18000030517578,
       "signal_atr14": 1.1260711806161063,
       "stop_loss": 14.927857943943568,
@@ -648,7 +648,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.253457+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.709391+00:00"
     },
     {
       "symbol": "GFS",
@@ -676,7 +676,7 @@
       "score_at_capture": 74.85491965415385,
       "distance_to_sma20_pct": 0.019836612569698264,
       "rsi14": 55.50654101636868,
-      "volume_buzz_ratio": 0.6709342596909983,
+      "volume_buzz_ratio": 0.6749534036969393,
       "signal_close": 90.19000244140625,
       "signal_atr14": 5.412928989955357,
       "stop_loss": 79.36414446149554,
@@ -690,7 +690,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.264034+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.718317+00:00"
     },
     {
       "symbol": "TVTX",
@@ -718,7 +718,7 @@
       "score_at_capture": 83.03669175297723,
       "distance_to_sma20_pct": 0.13829409230735346,
       "rsi14": 73.79694815015789,
-      "volume_buzz_ratio": 0.6010774743141977,
+      "volume_buzz_ratio": 0.601070715409074,
       "signal_close": 55.150001525878906,
       "signal_atr14": 2.524643216814314,
       "stop_loss": 48.366950607299806,
@@ -732,7 +732,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.274473+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.727252+00:00"
     },
     {
       "symbol": "SYRE",
@@ -760,7 +760,7 @@
       "score_at_capture": 85.83752738002832,
       "distance_to_sma20_pct": 0.22662557464784805,
       "rsi14": 72.07413702815853,
-      "volume_buzz_ratio": 1.8879719142232854,
+      "volume_buzz_ratio": 1.891296337771741,
       "signal_close": 88.33999633789062,
       "signal_atr14": 4.922857557024274,
       "stop_loss": 79.1423009109497,
@@ -774,7 +774,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.284925+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.736193+00:00"
     },
     {
       "symbol": "NTAP",
@@ -802,7 +802,7 @@
       "score_at_capture": 77.88617970174484,
       "distance_to_sma20_pct": -0.029543471014056966,
       "rsi14": 56.65073036173432,
-      "volume_buzz_ratio": 0.7955987424614027,
+      "volume_buzz_ratio": 1.028777489317871,
       "signal_close": 159.7100067138672,
       "signal_atr14": 7.850714547293527,
       "stop_loss": 144.00857761928015,
@@ -816,7 +816,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.295489+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.745221+00:00"
     },
     {
       "symbol": "FTNT",
@@ -844,7 +844,7 @@
       "score_at_capture": 78.53305905720494,
       "distance_to_sma20_pct": 0.036113456526197796,
       "rsi14": 66.73197008595481,
-      "volume_buzz_ratio": 0.8788746646625946,
+      "volume_buzz_ratio": 0.9213127644612624,
       "signal_close": 144.72999572753906,
       "signal_atr14": 6.451430184500558,
       "stop_loss": 131.82713535853796,
@@ -858,7 +858,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.305981+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.754146+00:00"
     },
     {
       "symbol": "FLEX",
@@ -886,7 +886,7 @@
       "score_at_capture": 77.39655861035668,
       "distance_to_sma20_pct": 0.012586515502031714,
       "rsi14": 58.17890408584394,
-      "volume_buzz_ratio": 1.0418862340990693,
+      "volume_buzz_ratio": 1.086790429485754,
       "signal_close": 147.61000061035156,
       "signal_atr14": 9.857142857142858,
       "stop_loss": 127.89571489606584,
@@ -900,7 +900,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.316475+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.762990+00:00"
     },
     {
       "symbol": "CSCO",
@@ -928,7 +928,7 @@
       "score_at_capture": 79.32742518956185,
       "distance_to_sma20_pct": -0.002905267629333297,
       "rsi14": 57.78902626438763,
-      "volume_buzz_ratio": 0.8763353271235684,
+      "volume_buzz_ratio": 0.9328160399823142,
       "signal_close": 119.54000091552734,
       "signal_atr14": 4.479284558977399,
       "stop_loss": 110.58143179757255,
@@ -942,7 +942,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-24T00:24:11.327051+00:00"
+      "last_updated_utc": "2026-06-24T06:20:27.771820+00:00"
     }
   ]
 }
