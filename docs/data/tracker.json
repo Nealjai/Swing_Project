@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-06-26T06:27:13.092144+00:00",
+    "generated_at_utc": "2026-06-26T11:48:53.299174+00:00",
     "rules": {
       "engine": "playbook_first_hybrid",
       "max_rank": 10,
@@ -56,7 +56,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.942454+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.174541+00:00"
     },
     {
       "symbol": "HUM",
@@ -98,7 +98,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.953294+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.183379+00:00"
     },
     {
       "symbol": "DELL",
@@ -140,7 +140,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.964287+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.192224+00:00"
     },
     {
       "symbol": "AMD",
@@ -182,7 +182,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.975075+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.201106+00:00"
     },
     {
       "symbol": "PANW",
@@ -224,7 +224,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.985546+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.210063+00:00"
     },
     {
       "symbol": "RVMD",
@@ -266,7 +266,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.996355+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.219045+00:00"
     },
     {
       "symbol": "LQDA",
@@ -308,7 +308,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.006961+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.227975+00:00"
     },
     {
       "symbol": "HPE",
@@ -350,7 +350,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.017850+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.236846+00:00"
     },
     {
       "symbol": "RLAY",
@@ -392,7 +392,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.028414+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.245675+00:00"
     },
     {
       "symbol": "GFS",
@@ -434,7 +434,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.038962+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.254511+00:00"
     },
     {
       "symbol": "TVTX",
@@ -476,7 +476,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.049569+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.263348+00:00"
     },
     {
       "symbol": "NTAP",
@@ -518,7 +518,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.060277+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.272207+00:00"
     },
     {
       "symbol": "FTNT",
@@ -560,7 +560,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.071078+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.281267+00:00"
     },
     {
       "symbol": "FLEX",
@@ -602,7 +602,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.081575+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.290131+00:00"
     },
     {
       "symbol": "CSCO",
@@ -644,7 +644,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.092110+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.299137+00:00"
     }
   ],
   "inactive": [
@@ -688,7 +688,7 @@
       "exit_reason": "trailing_stop_gap_open",
       "exit_date_utc": "2026-06-24",
       "exit_price": 83.22000122070312,
-      "last_updated_utc": "2026-06-26T06:27:12.931671+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.165641+00:00"
     }
   ],
   "dropped": [
@@ -732,7 +732,7 @@
       "exit_reason": "trailing_stop_gap_open",
       "exit_date_utc": "2026-06-24",
       "exit_price": 83.22000122070312,
-      "last_updated_utc": "2026-06-26T06:27:12.931671+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.165641+00:00"
     }
   ],
   "items": [
@@ -776,7 +776,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.942454+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.174541+00:00"
     },
     {
       "symbol": "HUM",
@@ -818,7 +818,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.953294+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.183379+00:00"
     },
     {
       "symbol": "DELL",
@@ -860,7 +860,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.964287+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.192224+00:00"
     },
     {
       "symbol": "AMD",
@@ -902,7 +902,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.975075+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.201106+00:00"
     },
     {
       "symbol": "PANW",
@@ -944,7 +944,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.985546+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.210063+00:00"
     },
     {
       "symbol": "RVMD",
@@ -986,7 +986,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:12.996355+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.219045+00:00"
     },
     {
       "symbol": "LQDA",
@@ -1028,7 +1028,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.006961+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.227975+00:00"
     },
     {
       "symbol": "HPE",
@@ -1070,7 +1070,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.017850+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.236846+00:00"
     },
     {
       "symbol": "RLAY",
@@ -1112,7 +1112,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.028414+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.245675+00:00"
     },
     {
       "symbol": "GFS",
@@ -1154,7 +1154,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.038962+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.254511+00:00"
     },
     {
       "symbol": "TVTX",
@@ -1196,7 +1196,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.049569+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.263348+00:00"
     },
     {
       "symbol": "NTAP",
@@ -1238,7 +1238,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.060277+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.272207+00:00"
     },
     {
       "symbol": "FTNT",
@@ -1280,7 +1280,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.071078+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.281267+00:00"
     },
     {
       "symbol": "FLEX",
@@ -1322,7 +1322,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.081575+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.290131+00:00"
     },
     {
       "symbol": "CSCO",
@@ -1364,7 +1364,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-26T06:27:13.092110+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.299137+00:00"
     },
     {
       "symbol": "SYRE",
@@ -1406,7 +1406,7 @@
       "exit_reason": "trailing_stop_gap_open",
       "exit_date_utc": "2026-06-24",
       "exit_price": 83.22000122070312,
-      "last_updated_utc": "2026-06-26T06:27:12.931671+00:00"
+      "last_updated_utc": "2026-06-26T11:48:53.165641+00:00"
     }
   ]
 }

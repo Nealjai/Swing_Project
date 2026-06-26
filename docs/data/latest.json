@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-06-26T06:27:11.791219+00:00",
+    "generated_at": "2026-06-26T11:48:52.582822+00:00",
     "regime": "Bull",
     "engine": "playbook",
     "universe_size": 2447,
@@ -2493,7 +2493,7 @@
       "atr14": 2.9921417236328125,
       "avg_dollar_volume_20d": 370786776.5205765,
       "median_dollar_volume_20d": 343207193.83277893,
-      "market_cap": 12048930347.946167,
+      "market_cap": 12523412530.410767,
       "beta_1y": 1.2053904354935059,
       "engine": "weak",
       "score": 77.20748139061024,
@@ -4486,7 +4486,7 @@
       "atr14": 34.739981515066965,
       "avg_dollar_volume_20d": 3672695934.0167236,
       "median_dollar_volume_20d": 3285993313.9526367,
-      "market_cap": 979640308493.1531,
+      "market_cap": 1005607813881.667,
       "beta_1y": 0.5137582088560356,
       "engine": "weak",
       "score": 76.34079346771338,
@@ -9291,12 +9291,12 @@
       "quote_metrics_missing_beta_1y_count": 21,
       "quote_metrics_missing_both_count": 3,
       "quote_metrics_success_rate": 0.9889705882352942,
-      "run_duration_seconds": 408.204
+      "run_duration_seconds": 645.507
     },
     "run_timing": {
-      "started_at_utc": "2026-06-26T06:20:23.581423+00:00",
-      "finished_at_utc": "2026-06-26T06:27:11.785798+00:00",
-      "duration_seconds": 408.204
+      "started_at_utc": "2026-06-26T11:38:07.071283+00:00",
+      "finished_at_utc": "2026-06-26T11:48:52.578088+00:00",
+      "duration_seconds": 645.507
     },
     "quote_metrics": {
       "coverage": {
@@ -11764,9 +11764,9 @@
         ]
       },
       "market_cap_source_counts": {
-        "fast_info": 1225,
+        "fast_info": 1302,
         "unavailable": 6,
-        "stale_cache": 1217
+        "stale_cache": 1140
       },
       "beta_1y_source_counts": {
         "cache": 2422,
