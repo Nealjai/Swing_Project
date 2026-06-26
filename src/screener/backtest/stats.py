@@ -96,15 +96,8 @@ def summarize_trades(trades: pd.DataFrame) -> Dict[str, object]:
                 "Weak": _summary_for_subset(pd.DataFrame()),
                 "Combined": _summary_for_subset(pd.DataFrame()),
             },
-            "by_year": {str(y): _summary_for_subset(pd.DataFrame()) for y in range(2020, 2025)},
-            "by_year_engine": {
-                str(y): {
-                    "Bull": _summary_for_subset(pd.DataFrame()),
-                    "Weak": _summary_for_subset(pd.DataFrame()),
-                    "Combined": _summary_for_subset(pd.DataFrame()),
-                }
-                for y in range(2020, 2025)
-            },
+            "by_year": {},
+            "by_year_engine": {},
         }
 
     df = trades.copy()
@@ -121,7 +114,8 @@ def summarize_trades(trades: pd.DataFrame) -> Dict[str, object]:
 
     by_year: Dict[str, Dict[str, float | int | None]] = {}
     by_year_engine: Dict[str, Dict[str, Dict[str, float | int | None]]] = {}
-    for year in range(2020, 2025):
+    years = sorted(df["year"].dropna().astype(int).unique().tolist())
+    for year in years:
         year_df = df[df["year"] == year]
         by_year[str(year)] = _summary_for_subset(year_df)
         by_year_engine[str(year)] = {
