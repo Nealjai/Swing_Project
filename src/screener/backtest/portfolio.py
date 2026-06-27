@@ -508,7 +508,7 @@ def simulate_portfolio(
                     )
 
         # Exit logic with gap-aware and intraday trigger handling.
-        # Priority for ambiguous same-bar TP/SL touches is conservative: stop-loss first.
+        # Priority for ambiguous same-bar risk touches is conservative: stop-loss first.
         to_close: List[tuple[str, Dict[str, object], float, str]] = []
         for sym, pos in list(open_positions.items()):
             open_series = open_map.get(sym)
@@ -522,36 +522,24 @@ def simulate_portfolio(
             day_close = None if close_series is None else _safe_float(close_series.loc[day])
 
             sl_level = _safe_float(pos.get("sl_level"))
-            tp_level = _safe_float(pos.get("tp_level"))
             planned_exit_date = pd.Timestamp(pos.get("planned_exit_date"))
             planned_exit_raw = _safe_float(pos.get("planned_exit_raw"))
 
             exit_raw: float | None = None
             exit_reason: str | None = None
 
-            # Gap-at-open exits.
+            # Gap-at-open hard stop.
             if day_open is not None and day_open > 0:
                 if sl_level is not None and sl_level > 0 and day_open <= sl_level:
                     exit_raw = float(day_open)
                     exit_reason = "sl_gap_open"
-                elif tp_level is not None and tp_level > 0 and day_open >= tp_level:
-                    exit_raw = float(day_open)
-                    exit_reason = "tp_gap_open"
 
-            # Intraday exits. If both touched intraday in same bar, prioritize SL.
+            # Intraday hard stop.
             if exit_raw is None:
                 hit_sl = bool(sl_level is not None and sl_level > 0 and day_low is not None and day_low <= sl_level)
-                hit_tp = bool(tp_level is not None and tp_level > 0 and day_high is not None and day_high >= tp_level)
-
-                if hit_sl and hit_tp:
-                    exit_raw = float(sl_level)
-                    exit_reason = "sl_intraday_both_touched"
-                elif hit_sl:
+                if hit_sl:
                     exit_raw = float(sl_level)
                     exit_reason = "sl_intraday"
-                elif hit_tp:
-                    exit_raw = float(tp_level)
-                    exit_reason = "tp_intraday"
 
             # Planned-time fallback.
             if exit_raw is None and day >= planned_exit_date:
@@ -567,7 +555,7 @@ def simulate_portfolio(
                 to_close.append((sym, pos, float(exit_raw), str(exit_reason)))
                 continue
 
-            # Optional partial take-profit on activation after risk exits are checked.
+            # Optional partial exit on activation after hard risk exits are checked.
             activation_date = pos.get("activation_date")
             activation_raw = _safe_float(pos.get("activation_raw"))
             partial_exit_fraction = _safe_float(pos.get("partial_exit_fraction"))
@@ -614,7 +602,7 @@ def simulate_portfolio(
                                 "engine": pos.get("engine"),
                                 "entry_date": pd.Timestamp(pos.get("entry_date")).strftime("%Y-%m-%d"),
                                 "status": "partial_exit",
-                                "reason": "activation_half_take_profit",
+                                "reason": "activation_partial_exit_half",
                                 "shares": int(partial_shares),
                                 "exit_fill": float(partial_fill),
                             }

@@ -66,6 +66,7 @@ def _plan_two_phase_exit(
     idx: pd.Index,
     open_px: np.ndarray,
     low_px: np.ndarray,
+    high_px: np.ndarray,
     raw_close_px: np.ndarray,
     entry_i: int,
     last_idx_in_range: int,
@@ -103,6 +104,7 @@ def _plan_two_phase_exit(
     for j in range(entry_i, time_stop_i + 1):
         day_open = float(open_px[j]) if np.isfinite(open_px[j]) else np.nan
         day_low = float(low_px[j]) if np.isfinite(low_px[j]) else np.nan
+        day_high = float(high_px[j]) if np.isfinite(high_px[j]) else np.nan
         day_close = float(raw_close_px[j]) if np.isfinite(raw_close_px[j]) else np.nan
 
         if np.isfinite(day_close):
@@ -120,17 +122,34 @@ def _plan_two_phase_exit(
                 final_exit_reason = "sl_intraday"
                 break
 
+            if np.isfinite(day_open) and day_open >= activation_level:
+                activated = True
+                activation_i = j
+                activation_price = day_open
+                continue
+            if np.isfinite(day_high) and day_high >= activation_level:
+                activated = True
+                activation_i = j
+                activation_price = float(activation_level)
+                continue
             if np.isfinite(day_close) and day_close >= activation_level:
                 activated = True
                 activation_i = j
                 activation_price = day_close
                 continue
         else:
-            if not np.isfinite(day_close):
-                continue
-
             trailing_stop = highest_close_since_entry - (1.5 * atr_val)
-            if np.isfinite(trailing_stop) and day_close <= trailing_stop:
+            if np.isfinite(trailing_stop) and np.isfinite(day_open) and day_open <= trailing_stop:
+                final_exit_i = j
+                final_exit_price = day_open
+                final_exit_reason = "trailing_stop_gap_open"
+                break
+            if np.isfinite(trailing_stop) and np.isfinite(day_low) and day_low <= trailing_stop:
+                final_exit_i = j
+                final_exit_price = float(trailing_stop)
+                final_exit_reason = "trailing_stop_intraday"
+                break
+            if np.isfinite(trailing_stop) and np.isfinite(day_close) and day_close <= trailing_stop:
                 final_exit_i = j
                 final_exit_price = day_close
                 final_exit_reason = "trailing_stop_close"
@@ -201,6 +220,7 @@ def _simulate_symbol(
     signal_close_px = frame["signal_close"].to_numpy(dtype=float)
     volume = frame["Volume"].to_numpy(dtype=float)
     low_px = frame["Low"].to_numpy(dtype=float)
+    high_px = frame["High"].to_numpy(dtype=float)
     high_20d = frame["high_20d"].to_numpy(dtype=float)
     rsi14 = frame["rsi14"].to_numpy(dtype=float)
     avg_dv = frame["avg_dollar_volume_20d"].to_numpy(dtype=float)
@@ -299,6 +319,7 @@ def _simulate_symbol(
             idx=idx,
             open_px=open_px,
             low_px=low_px,
+            high_px=high_px,
             raw_close_px=raw_close_px,
             entry_i=entry_i,
             last_idx_in_range=last_idx_in_range,
@@ -389,6 +410,7 @@ def _generate_symbol_candidates(
     signal_close_px = frame["signal_close"].to_numpy(dtype=float)
     volume = frame["Volume"].to_numpy(dtype=float)
     low_px = frame["Low"].to_numpy(dtype=float)
+    high_px = frame["High"].to_numpy(dtype=float)
     high_20d = frame["high_20d"].to_numpy(dtype=float)
     rsi14 = frame["rsi14"].to_numpy(dtype=float)
     avg_dv = frame["avg_dollar_volume_20d"].to_numpy(dtype=float)
@@ -479,6 +501,7 @@ def _generate_symbol_candidates(
             idx=idx,
             open_px=open_px,
             low_px=low_px,
+            high_px=high_px,
             raw_close_px=raw_close_px,
             entry_i=entry_i,
             last_idx_in_range=last_idx_in_range,

@@ -303,16 +303,18 @@ def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: D
     if sl_level is None and atr14 is not None and signal_close is not None:
         sl_level = signal_close - (2.0 * atr14)
 
-    activation_level = _to_float((risk or {}).get("activation_level"))
-    if activation_level is None and atr14 is not None and signal_close is not None:
-        activation_level = signal_close + (2.0 * atr14)
-
     trailing_stop_offset = _to_float((risk or {}).get("trailing_stop_offset"))
     if trailing_stop_offset is None and atr14 is not None:
         trailing_stop_offset = 1.5 * atr14
 
     entry_date, entry_price = _next_trading_open(latest.get("df"), current_date)
     entry_date_utc = entry_date.isoformat() if entry_date is not None else None
+
+    activation_level = _to_float((risk or {}).get("activation_level"))
+    if activation_level is None and atr14 is not None:
+        activation_reference = entry_price if entry_price is not None and entry_price > 0 else signal_close
+        if activation_reference is not None:
+            activation_level = activation_reference + (2.0 * atr14)
 
     return {
         "symbol": _symbol_from_candidate(candidate),
@@ -348,6 +350,8 @@ def _new_tracker_record(candidate: Dict[str, Any], current_date: date, latest: D
         "activated": False,
         "activation_date_utc": None,
         "activation_price": None,
+        "partial_exit_done": False,
+        "partial_exit_fraction": 0.0,
         "highest_close_since_entry": None,
         "exit_reason": None,
         "exit_date_utc": None,
@@ -438,6 +442,10 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
     activation_date = _extract_date(activation_date_utc)
     activation_price = _to_float(out.get("activation_price"))
     highest_close = _to_float(out.get("highest_close_since_entry"))
+    partial_exit_done = bool(out.get("partial_exit_done"))
+    partial_exit_fraction = _to_float(out.get("partial_exit_fraction"))
+    if partial_exit_fraction is None:
+        partial_exit_fraction = 0.0
 
     position_state = "active"
     status_tags: List[str] = []
@@ -475,11 +483,29 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
                     exit_price = stop_loss
                     status_tags.append("stop_loss")
                     break
-                if activation_level is not None and close_px is not None and close_px >= activation_level:
+                if activation_level is not None and open_px is not None and open_px >= activation_level:
+                    activated = True
+                    activation_date_utc = d.isoformat()
+                    activation_date = d
+                    activation_price = open_px
+                    partial_exit_done = True
+                    partial_exit_fraction = 0.5
+                    status_tags.append("trail_stop")
+                elif activation_level is not None and _high_px is not None and _high_px >= activation_level:
+                    activated = True
+                    activation_date_utc = d.isoformat()
+                    activation_date = d
+                    activation_price = activation_level
+                    partial_exit_done = True
+                    partial_exit_fraction = 0.5
+                    status_tags.append("trail_stop")
+                elif activation_level is not None and close_px is not None and close_px >= activation_level:
                     activated = True
                     activation_date_utc = d.isoformat()
                     activation_date = d
                     activation_price = close_px
+                    partial_exit_done = True
+                    partial_exit_fraction = 0.5
                     status_tags.append("trail_stop")
             else:
                 trailing_eligible_start = activation_date if activation_date is not None else entry_date
@@ -544,6 +570,8 @@ def _refresh_record(record: Dict[str, Any], latest: Dict[str, Any], current_date
     out["activation_date_utc"] = activation_date_utc
     out["activation_price"] = activation_price
     out["highest_close_since_entry"] = highest_close
+    out["partial_exit_done"] = partial_exit_done
+    out["partial_exit_fraction"] = partial_exit_fraction
     out["position_state"] = position_state
     out["status"] = position_state
     out["status_tags"] = status_tags

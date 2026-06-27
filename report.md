@@ -1,5 +1,23 @@
 # Project Report
 
+## 2026-06-27
+
+### Execution-contract reliability hardening (TP legacy cleanup)
+- Removed legacy TP exit branches from [`simulate_portfolio()`](src/screener/backtest/portfolio.py:161):
+  - deleted `tp_gap_open`/`tp_intraday`-driven closure logic
+  - preserved hard stop-loss + planned time-stop behavior
+  - renamed partial activation fill reason from `activation_half_take_profit` to `activation_partial_exit_half`.
+- Hardened daily risk payload contract in [`_attach_risk_fields()`](scripts/run_daily.py:180):
+  - added `risk.schema_version = "2.1"`
+  - kept `activation_level` as canonical activation field
+  - retained `take_profit` as a documented deprecated compatibility alias.
+- Updated screener UI contract wording to remove TP semantics:
+  - table/detail rendering now reads strict `risk.activation_level` in [`docs/app.js`](docs/app.js:640)
+  - labels changed from `Activation (TP1)` to `Activation` in [`docs/app.js`](docs/app.js:813) and [`docs/index.html`](docs/index.html:177).
+- Added execution-contract regression tests in [`tests/test_portfolio_execution_contract.py`](tests/test_portfolio_execution_contract.py:1):
+  - verifies portfolio no longer emits TP-prefixed exit reasons
+  - verifies activation partial-exit fill reason uses contract-safe naming.
+
 ## 2026-06-24
 
 ### Backtesting rebuild milestone (core + active scenarios)

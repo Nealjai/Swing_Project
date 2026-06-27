@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import unittest
+from datetime import date
+
+import pandas as pd
 
 from src.screener.engines.bull import bull_candidates
-from src.screener.tracker import _compute_leadership_thresholds, _is_tracker_eligible
+from src.screener.tracker import _compute_leadership_thresholds, _is_tracker_eligible, _new_tracker_record, _refresh_record
 
 
 def _build_row(symbol: str, close: list[float], spy_close: list[float]) -> dict:
@@ -150,6 +153,89 @@ class PolicyBPlusTrackerTests(unittest.TestCase):
         self.assertGreaterEqual(thresholds["strict"], thresholds["breakout"])
         self.assertGreaterEqual(thresholds["breakout"], thresholds["pullback"])
         self.assertGreaterEqual(thresholds["pullback"], 0.80)
+
+
+class TrackerExecutionContractTests(unittest.TestCase):
+    def test_new_record_derives_activation_from_entry_open_plus_2atr(self) -> None:
+        candidate = {
+            "symbol": "AAA",
+            "engine": "playbook",
+            "intent": "trade",
+            "rank": 1,
+            "score": 88.0,
+            "risk": {
+                "atr14": 1.0,
+                "signal_close": 100.0,
+            },
+        }
+        df = pd.DataFrame(
+            {
+                "Open": [100.0],
+                "High": [101.0],
+                "Low": [99.0],
+                "Close": [100.5],
+            },
+            index=pd.to_datetime(["2026-01-02"]),
+        )
+
+        record = _new_tracker_record(
+            candidate,
+            current_date=date(2026, 1, 2),
+            latest={"df": df, "current_close": 100.5},
+        )
+
+        self.assertEqual(record.get("entry_date_utc"), "2026-01-02")
+        self.assertEqual(record.get("entry_price"), 100.0)
+        self.assertEqual(record.get("activation_level"), 102.0)
+
+    def test_refresh_activates_on_intraday_high_and_sets_hard_partial_exit(self) -> None:
+        candidate = {
+            "symbol": "AAA",
+            "engine": "playbook",
+            "intent": "trade",
+            "rank": 1,
+            "score": 88.0,
+            "risk": {
+                "atr14": 1.0,
+                "signal_close": 100.0,
+            },
+        }
+        df = pd.DataFrame(
+            {
+                "Open": [100.0, 101.0],
+                "High": [103.0, 101.0],
+                "Low": [99.0, 100.0],
+                "Close": [102.0, 100.0],
+            },
+            index=pd.to_datetime(["2026-01-02", "2026-01-05"]),
+        )
+
+        record = _new_tracker_record(
+            candidate,
+            current_date=date(2026, 1, 2),
+            latest={"df": df, "current_close": 102.0},
+        )
+
+        refreshed = _refresh_record(
+            record,
+            latest={
+                "current_close": 100.0,
+                "distance_to_sma20_pct": None,
+                "rsi14": None,
+                "volume_buzz_ratio": None,
+                "df": df,
+                "df_index": df.index,
+            },
+            current_date=date(2026, 1, 5),
+        )
+
+        self.assertTrue(bool(refreshed.get("activated")))
+        self.assertEqual(refreshed.get("activation_date_utc"), "2026-01-02")
+        self.assertEqual(refreshed.get("activation_price"), 102.0)
+        self.assertTrue(bool(refreshed.get("partial_exit_done")))
+        self.assertEqual(refreshed.get("partial_exit_fraction"), 0.5)
+        self.assertEqual(refreshed.get("position_state"), "inactive")
+        self.assertEqual(refreshed.get("exit_reason"), "trailing_stop_intraday")
 
 
 if __name__ == "__main__":

@@ -81,8 +81,7 @@ def export_outputs(
                     "Momentum confirmation from RSI14",
                     "Liquidity filter and minimum price must pass",
                 ],
-                "take_profit": "Take profit: resistance_level + 1x ATR14 (fallback close + 3x ATR14)",
-                "stop_loss": "Stop loss: bb_lower - 1x ATR14",
+                "execution": "Entry next open; hard stop-loss at signal close - 2x ATR14; activation at entry + 2x ATR14 triggers automatic 50% partial exit; remaining 50% exits by hard trailing stop (highest close - 1.5x ATR14) or hard time stop (day 15 close).",
             },
             "weak": {
                 "title": "Weak: Oversold Rebound Engine",
@@ -91,8 +90,7 @@ def export_outputs(
                     "Close below lower Bollinger Band",
                     "Liquidity filter and minimum price must pass",
                 ],
-                "take_profit": "Take profit: resistance_level + 1x ATR14 (fallback close + 3x ATR14)",
-                "stop_loss": "Stop loss: bb_lower - 1x ATR14",
+                "execution": "Entry next open; hard stop-loss at signal close - 2x ATR14; activation at entry + 2x ATR14 triggers automatic 50% partial exit; remaining 50% exits by hard trailing stop (highest close - 1.5x ATR14) or hard time stop (day 15 close).",
             },
         },
         "fundamental_checklist": [
