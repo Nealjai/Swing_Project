@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at_utc": "2026-06-27T06:09:09.631649+00:00",
+    "generated_at_utc": "2026-06-27T11:01:13.993706+00:00",
     "rules": {
       "engine": "playbook_first_hybrid",
       "max_rank": 10,
@@ -56,7 +56,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.478813+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.897316+00:00"
     },
     {
       "symbol": "STM",
@@ -98,7 +98,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.489483+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.904119+00:00"
     },
     {
       "symbol": "HUM",
@@ -140,7 +140,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.500260+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.911003+00:00"
     },
     {
       "symbol": "DELL",
@@ -182,7 +182,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.511196+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.917866+00:00"
     },
     {
       "symbol": "AMD",
@@ -224,7 +224,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.522145+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.924749+00:00"
     },
     {
       "symbol": "PANW",
@@ -266,7 +266,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.533130+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.931639+00:00"
     },
     {
       "symbol": "RVMD",
@@ -308,7 +308,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.544218+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.938584+00:00"
     },
     {
       "symbol": "LQDA",
@@ -350,7 +350,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.555414+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.945490+00:00"
     },
     {
       "symbol": "HPE",
@@ -392,7 +392,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.566469+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.952429+00:00"
     },
     {
       "symbol": "RLAY",
@@ -434,7 +434,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.577568+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.959352+00:00"
     },
     {
       "symbol": "TVTX",
@@ -476,7 +476,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.588479+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.966209+00:00"
     },
     {
       "symbol": "NTAP",
@@ -518,7 +518,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.599236+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.973130+00:00"
     },
     {
       "symbol": "FTNT",
@@ -560,7 +560,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.609903+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.979996+00:00"
     },
     {
       "symbol": "FLEX",
@@ -602,7 +602,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.620817+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.986844+00:00"
     },
     {
       "symbol": "CSCO",
@@ -644,53 +644,11 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.631618+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.993679+00:00"
     }
   ],
   "inactive": [
     {
-      "symbol": "SYRE",
-      "engine": "bull",
-      "playbook_id": "BREAKOUT",
-      "playbook_label": null,
-      "regime_label": "Bull",
-      "intent": "trade",
-      "regime_reason": "regime_allows_bull_execution",
-      "capture_date_utc": "2026-06-21",
-      "entry_date_utc": "2026-06-22",
-      "entry_price": 95.0,
-      "capture_close": 88.33999633789062,
-      "current_close": 87.88999938964844,
-      "return_since_capture_pct": -0.00509392083876703,
-      "days_tracked_trading": 3,
-      "expiry_date_utc": null,
-      "status": "inactive",
-      "position_state": "inactive",
-      "status_tag": "trailing_stop",
-      "status_tags": [
-        "trailing_stop"
-      ],
-      "rank_at_capture": 1,
-      "score_at_capture": 85.83752738002832,
-      "distance_to_sma20_pct": 0.08044647648819425,
-      "rsi14": 57.8154215105474,
-      "volume_buzz_ratio": 3.2373660209234787,
-      "signal_close": 88.33999633789062,
-      "signal_atr14": 4.922857557024274,
-      "stop_loss": 79.1423009109497,
-      "activation_level": 98.18571145193917,
-      "trailing_stop_offset": 7.3842863355364114,
-      "trail_stop_price": 93.34071213858468,
-      "activated": true,
-      "activation_date_utc": "2026-06-22",
-      "activation_price": 99.31500244140625,
-      "highest_close_since_entry": 100.7249984741211,
-      "exit_reason": "trailing_stop_gap_open",
-      "exit_date_utc": "2026-06-24",
-      "exit_price": 83.22000122070312,
-      "last_updated_utc": "2026-06-27T06:09:09.468083+00:00"
-    },
-    {
       "symbol": "GFS",
       "engine": "bull",
       "playbook_id": "TIGHT_BASE",
@@ -730,53 +688,53 @@
       "exit_reason": "sl_intraday",
       "exit_date_utc": "2026-06-26",
       "exit_price": 79.36414446149554,
-      "last_updated_utc": "2026-06-27T06:09:09.456378+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.890534+00:00"
+    },
+    {
+      "symbol": "SYRE",
+      "engine": "bull",
+      "playbook_id": "BREAKOUT",
+      "playbook_label": null,
+      "regime_label": "Bull",
+      "intent": "trade",
+      "regime_reason": "regime_allows_bull_execution",
+      "capture_date_utc": "2026-06-21",
+      "entry_date_utc": "2026-06-22",
+      "entry_price": 95.0,
+      "capture_close": 88.33999633789062,
+      "current_close": 87.88999938964844,
+      "return_since_capture_pct": -0.00509392083876703,
+      "days_tracked_trading": 3,
+      "expiry_date_utc": null,
+      "status": "inactive",
+      "position_state": "inactive",
+      "status_tag": "trailing_stop",
+      "status_tags": [
+        "trailing_stop"
+      ],
+      "rank_at_capture": 1,
+      "score_at_capture": 85.83752738002832,
+      "distance_to_sma20_pct": 0.08044647648819425,
+      "rsi14": 57.8154215105474,
+      "volume_buzz_ratio": 3.2373660209234787,
+      "signal_close": 88.33999633789062,
+      "signal_atr14": 4.922857557024274,
+      "stop_loss": 79.1423009109497,
+      "activation_level": 98.18571145193917,
+      "trailing_stop_offset": 7.3842863355364114,
+      "trail_stop_price": 93.34071213858468,
+      "activated": true,
+      "activation_date_utc": "2026-06-22",
+      "activation_price": 99.31500244140625,
+      "highest_close_since_entry": 100.7249984741211,
+      "exit_reason": "trailing_stop_gap_open",
+      "exit_date_utc": "2026-06-24",
+      "exit_price": 83.22000122070312,
+      "last_updated_utc": "2026-06-27T11:01:13.882987+00:00"
     }
   ],
   "dropped": [
     {
-      "symbol": "SYRE",
-      "engine": "bull",
-      "playbook_id": "BREAKOUT",
-      "playbook_label": null,
-      "regime_label": "Bull",
-      "intent": "trade",
-      "regime_reason": "regime_allows_bull_execution",
-      "capture_date_utc": "2026-06-21",
-      "entry_date_utc": "2026-06-22",
-      "entry_price": 95.0,
-      "capture_close": 88.33999633789062,
-      "current_close": 87.88999938964844,
-      "return_since_capture_pct": -0.00509392083876703,
-      "days_tracked_trading": 3,
-      "expiry_date_utc": null,
-      "status": "inactive",
-      "position_state": "inactive",
-      "status_tag": "trailing_stop",
-      "status_tags": [
-        "trailing_stop"
-      ],
-      "rank_at_capture": 1,
-      "score_at_capture": 85.83752738002832,
-      "distance_to_sma20_pct": 0.08044647648819425,
-      "rsi14": 57.8154215105474,
-      "volume_buzz_ratio": 3.2373660209234787,
-      "signal_close": 88.33999633789062,
-      "signal_atr14": 4.922857557024274,
-      "stop_loss": 79.1423009109497,
-      "activation_level": 98.18571145193917,
-      "trailing_stop_offset": 7.3842863355364114,
-      "trail_stop_price": 93.34071213858468,
-      "activated": true,
-      "activation_date_utc": "2026-06-22",
-      "activation_price": 99.31500244140625,
-      "highest_close_since_entry": 100.7249984741211,
-      "exit_reason": "trailing_stop_gap_open",
-      "exit_date_utc": "2026-06-24",
-      "exit_price": 83.22000122070312,
-      "last_updated_utc": "2026-06-27T06:09:09.468083+00:00"
-    },
-    {
       "symbol": "GFS",
       "engine": "bull",
       "playbook_id": "TIGHT_BASE",
@@ -816,7 +774,49 @@
       "exit_reason": "sl_intraday",
       "exit_date_utc": "2026-06-26",
       "exit_price": 79.36414446149554,
-      "last_updated_utc": "2026-06-27T06:09:09.456378+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.890534+00:00"
+    },
+    {
+      "symbol": "SYRE",
+      "engine": "bull",
+      "playbook_id": "BREAKOUT",
+      "playbook_label": null,
+      "regime_label": "Bull",
+      "intent": "trade",
+      "regime_reason": "regime_allows_bull_execution",
+      "capture_date_utc": "2026-06-21",
+      "entry_date_utc": "2026-06-22",
+      "entry_price": 95.0,
+      "capture_close": 88.33999633789062,
+      "current_close": 87.88999938964844,
+      "return_since_capture_pct": -0.00509392083876703,
+      "days_tracked_trading": 3,
+      "expiry_date_utc": null,
+      "status": "inactive",
+      "position_state": "inactive",
+      "status_tag": "trailing_stop",
+      "status_tags": [
+        "trailing_stop"
+      ],
+      "rank_at_capture": 1,
+      "score_at_capture": 85.83752738002832,
+      "distance_to_sma20_pct": 0.08044647648819425,
+      "rsi14": 57.8154215105474,
+      "volume_buzz_ratio": 3.2373660209234787,
+      "signal_close": 88.33999633789062,
+      "signal_atr14": 4.922857557024274,
+      "stop_loss": 79.1423009109497,
+      "activation_level": 98.18571145193917,
+      "trailing_stop_offset": 7.3842863355364114,
+      "trail_stop_price": 93.34071213858468,
+      "activated": true,
+      "activation_date_utc": "2026-06-22",
+      "activation_price": 99.31500244140625,
+      "highest_close_since_entry": 100.7249984741211,
+      "exit_reason": "trailing_stop_gap_open",
+      "exit_date_utc": "2026-06-24",
+      "exit_price": 83.22000122070312,
+      "last_updated_utc": "2026-06-27T11:01:13.882987+00:00"
     }
   ],
   "items": [
@@ -860,7 +860,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.478813+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.897316+00:00"
     },
     {
       "symbol": "STM",
@@ -902,7 +902,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.489483+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.904119+00:00"
     },
     {
       "symbol": "HUM",
@@ -944,7 +944,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.500260+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.911003+00:00"
     },
     {
       "symbol": "DELL",
@@ -986,7 +986,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.511196+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.917866+00:00"
     },
     {
       "symbol": "AMD",
@@ -1028,7 +1028,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.522145+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.924749+00:00"
     },
     {
       "symbol": "PANW",
@@ -1070,7 +1070,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.533130+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.931639+00:00"
     },
     {
       "symbol": "RVMD",
@@ -1112,7 +1112,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.544218+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.938584+00:00"
     },
     {
       "symbol": "LQDA",
@@ -1154,7 +1154,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.555414+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.945490+00:00"
     },
     {
       "symbol": "HPE",
@@ -1196,7 +1196,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.566469+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.952429+00:00"
     },
     {
       "symbol": "RLAY",
@@ -1238,7 +1238,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.577568+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.959352+00:00"
     },
     {
       "symbol": "TVTX",
@@ -1280,7 +1280,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.588479+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.966209+00:00"
     },
     {
       "symbol": "NTAP",
@@ -1322,7 +1322,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.599236+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.973130+00:00"
     },
     {
       "symbol": "FTNT",
@@ -1364,7 +1364,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.609903+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.979996+00:00"
     },
     {
       "symbol": "FLEX",
@@ -1406,7 +1406,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.620817+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.986844+00:00"
     },
     {
       "symbol": "CSCO",
@@ -1448,49 +1448,7 @@
       "exit_reason": null,
       "exit_date_utc": null,
       "exit_price": null,
-      "last_updated_utc": "2026-06-27T06:09:09.631618+00:00"
-    },
-    {
-      "symbol": "SYRE",
-      "engine": "bull",
-      "playbook_id": "BREAKOUT",
-      "playbook_label": null,
-      "regime_label": "Bull",
-      "intent": "trade",
-      "regime_reason": "regime_allows_bull_execution",
-      "capture_date_utc": "2026-06-21",
-      "entry_date_utc": "2026-06-22",
-      "entry_price": 95.0,
-      "capture_close": 88.33999633789062,
-      "current_close": 87.88999938964844,
-      "return_since_capture_pct": -0.00509392083876703,
-      "days_tracked_trading": 3,
-      "expiry_date_utc": null,
-      "status": "inactive",
-      "position_state": "inactive",
-      "status_tag": "trailing_stop",
-      "status_tags": [
-        "trailing_stop"
-      ],
-      "rank_at_capture": 1,
-      "score_at_capture": 85.83752738002832,
-      "distance_to_sma20_pct": 0.08044647648819425,
-      "rsi14": 57.8154215105474,
-      "volume_buzz_ratio": 3.2373660209234787,
-      "signal_close": 88.33999633789062,
-      "signal_atr14": 4.922857557024274,
-      "stop_loss": 79.1423009109497,
-      "activation_level": 98.18571145193917,
-      "trailing_stop_offset": 7.3842863355364114,
-      "trail_stop_price": 93.34071213858468,
-      "activated": true,
-      "activation_date_utc": "2026-06-22",
-      "activation_price": 99.31500244140625,
-      "highest_close_since_entry": 100.7249984741211,
-      "exit_reason": "trailing_stop_gap_open",
-      "exit_date_utc": "2026-06-24",
-      "exit_price": 83.22000122070312,
-      "last_updated_utc": "2026-06-27T06:09:09.468083+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.993679+00:00"
     },
     {
       "symbol": "GFS",
@@ -1532,7 +1490,49 @@
       "exit_reason": "sl_intraday",
       "exit_date_utc": "2026-06-26",
       "exit_price": 79.36414446149554,
-      "last_updated_utc": "2026-06-27T06:09:09.456378+00:00"
+      "last_updated_utc": "2026-06-27T11:01:13.890534+00:00"
+    },
+    {
+      "symbol": "SYRE",
+      "engine": "bull",
+      "playbook_id": "BREAKOUT",
+      "playbook_label": null,
+      "regime_label": "Bull",
+      "intent": "trade",
+      "regime_reason": "regime_allows_bull_execution",
+      "capture_date_utc": "2026-06-21",
+      "entry_date_utc": "2026-06-22",
+      "entry_price": 95.0,
+      "capture_close": 88.33999633789062,
+      "current_close": 87.88999938964844,
+      "return_since_capture_pct": -0.00509392083876703,
+      "days_tracked_trading": 3,
+      "expiry_date_utc": null,
+      "status": "inactive",
+      "position_state": "inactive",
+      "status_tag": "trailing_stop",
+      "status_tags": [
+        "trailing_stop"
+      ],
+      "rank_at_capture": 1,
+      "score_at_capture": 85.83752738002832,
+      "distance_to_sma20_pct": 0.08044647648819425,
+      "rsi14": 57.8154215105474,
+      "volume_buzz_ratio": 3.2373660209234787,
+      "signal_close": 88.33999633789062,
+      "signal_atr14": 4.922857557024274,
+      "stop_loss": 79.1423009109497,
+      "activation_level": 98.18571145193917,
+      "trailing_stop_offset": 7.3842863355364114,
+      "trail_stop_price": 93.34071213858468,
+      "activated": true,
+      "activation_date_utc": "2026-06-22",
+      "activation_price": 99.31500244140625,
+      "highest_close_since_entry": 100.7249984741211,
+      "exit_reason": "trailing_stop_gap_open",
+      "exit_date_utc": "2026-06-24",
+      "exit_price": 83.22000122070312,
+      "last_updated_utc": "2026-06-27T11:01:13.882987+00:00"
     }
   ]
 }
