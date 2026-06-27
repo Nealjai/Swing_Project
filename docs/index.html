@@ -435,11 +435,7 @@
           <header class="backtest-active-header">
             <div>
               <h2>Backtesting</h2>
-              <p class="muted">Fixed active runs only: 10K and 30K are loaded independently from separate files.</p>
-            </div>
-            <div id="btScenarioToggle" class="backtest-scenario-toggle" role="group" aria-label="Capital scenario toggle">
-              <button id="btSelect10k" type="button" class="scenario-btn active" data-capital="10k" aria-pressed="true">10K</button>
-              <button id="btSelect30k" type="button" class="scenario-btn" data-capital="30k" aria-pressed="false">30K</button>
+              <p class="muted">Active run reflects your most recent CLI backtest inputs (capital, positions, date window, etc.).</p>
             </div>
           </header>
 
@@ -491,15 +487,19 @@
           </section>
 
           <section class="backtest-chart-card">
-            <h3>Normalized Performance vs SPY (selected run range)</h3>
+            <h3>Strategy vs SPY (selected run window)</h3>
             <div id="btBenchmarkGrid" class="backtest-benchmark-grid" aria-live="polite">
               <article class="backtest-metric-card"><span>Strategy total return</span><strong id="btBenchStrategyTotalReturn">-</strong></article>
-              <article class="backtest-metric-card"><span>SPY total return</span><strong id="btBenchSpyTotalReturn">-</strong></article>
+              <article class="backtest-metric-card"><span>SPY total return (Adj Close)</span><strong id="btBenchSpyTotalReturn">-</strong></article>
               <article class="backtest-metric-card"><span>Excess return vs SPY</span><strong id="btBenchExcessReturn">-</strong></article>
               <article class="backtest-metric-card"><span>Strategy CAGR</span><strong id="btBenchStrategyCagr">-</strong></article>
               <article class="backtest-metric-card"><span>SPY CAGR</span><strong id="btBenchSpyCagr">-</strong></article>
               <article class="backtest-metric-card"><span>Strategy max drawdown</span><strong id="btBenchStrategyMaxDd">-</strong></article>
               <article class="backtest-metric-card"><span>SPY max drawdown</span><strong id="btBenchSpyMaxDd">-</strong></article>
+              <article class="backtest-metric-card"><span>Strategy volatility (ann.)</span><strong id="btBenchStrategyVol">-</strong></article>
+              <article class="backtest-metric-card"><span>SPY volatility (ann.)</span><strong id="btBenchSpyVol">-</strong></article>
+              <article class="backtest-metric-card"><span>Correlation vs SPY</span><strong id="btBenchCorrelation">-</strong></article>
+              <article class="backtest-metric-card"><span>Beta vs SPY</span><strong id="btBenchBeta">-</strong></article>
             </div>
             <div class="backtest-chart-wrap">
               <canvas id="btBenchmarkChart" height="120"></canvas>
@@ -702,6 +702,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=20260621a"></script>
+    <script src="app.js?v=20260624b"></script>
   </body>
 </html>

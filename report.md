@@ -1,5 +1,33 @@
 # Project Report
 
+## 2026-06-24
+
+### Backtesting rebuild milestone (core + active scenarios)
+- Implemented robust eligibility + reproducible sampling in [`run_backtest()`](src/screener/backtest/engine.py:529):
+  - added config controls for sample size/seed and full-window requirement.
+  - records `eligible_symbols`, `sampled_symbols`, `sample_target`, `sample_seed`, plus `skip_reason_counts` diagnostics.
+- Updated CLI defaults/controls in [`parse_args()`](scripts/run_backtest.py:74):
+  - `--max-positions` default set to 8.
+  - added `--sample-size`, `--sample-seed`, `--allow-partial-history-window`.
+- Upgraded exit realism in [`simulate_portfolio()`](src/screener/backtest/portfolio.py:161):
+  - gap-open SL/TP checks.
+  - intraday OHLC SL/TP checks.
+  - conservative same-bar conflict handling (`SL` priority when both touch intraday).
+- Extended portfolio metrics in [`simulate_portfolio()`](src/screener/backtest/portfolio.py:736):
+  - added `calmar`, `win_rate`, `profit_factor`, `expectancy_pct`, `avg_hold_days`.
+- Made yearly trade summaries dynamic in [`summarize_trades()`](src/screener/backtest/stats.py:90) so years derive from data instead of fixed 2020..2024.
+- Updated Backtesting active compare/diagnostics UI in [`BACKTEST_COMPARE_METRICS`](docs/app.js:1665) and [`renderBacktestActiveView()`](docs/app.js:2058) to surface new KPIs and sampling diagnostics.
+- Added fixed active scenario export wiring in [`main()`](scripts/run_backtest.py:424):
+  - writes `docs/data/backtest_active_10k.json` when capital=10000 and max_positions=8.
+  - writes `docs/data/backtest_active_30k.json` when capital=30000 and max_positions=8.
+
+### Validation
+- Syntax compile passed:
+  - `python3 -m py_compile src/screener/backtest/engine.py src/screener/backtest/portfolio.py src/screener/backtest/stats.py scripts/run_backtest.py`
+- Smoke runs completed successfully:
+  - 10k/8 run wrote [`docs/data/backtest_active_10k.json`](docs/data/backtest_active_10k.json).
+  - 30k/8 run wrote [`docs/data/backtest_active_30k.json`](docs/data/backtest_active_30k.json).
+
 ## 2026-05-31
 
 ### Policy B+ regime-aware bull pipeline + tracker enforcement

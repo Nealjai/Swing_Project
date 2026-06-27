@@ -1,20 +1,23 @@
 #!/bin/sh
 set -eu
 
-# Block local commits that include workflow-owned generated artifacts.
+# Block local commits that include workflow-owned daily artifacts.
 blocked_files=$(git diff --cached --name-only -- \
-  'docs/data/*.json' \
-  'docs/data/*.csv' \
+  'docs/data/latest.json' \
+  'docs/data/latest.csv' \
+  'docs/data/tracker.json' \
+  'docs/data/market_condition.json' \
   'docs/data/daily/**' || true)
 
 if [ -n "$blocked_files" ]; then
   echo ""
-  echo "ERROR: Generated dashboard artifacts are workflow-owned and must not be committed locally."
-  echo "Unstage these files and commit code/docs only:"
+  echo "ERROR: Daily workflow artifacts are workflow-owned and must not be committed locally."
+  echo "Unstage these files before committing:"
   echo "$blocked_files"
   echo ""
   echo "Suggested fix:"
-  echo "  git restore --staged docs/data"
+  echo "  git restore --staged docs/data/latest.json docs/data/latest.csv docs/data/tracker.json docs/data/market_condition.json"
+  echo "  git restore --staged docs/data/daily"
   echo ""
   exit 1
 fi

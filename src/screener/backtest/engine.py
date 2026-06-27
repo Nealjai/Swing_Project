@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Literal
 
@@ -21,6 +22,9 @@ class BacktestConfig:
     end_date: str = "2024-12-31"
     engine: EngineSelection = "both"
     warmup_bars: int = 200
+    universe_sample_size: int | None = 500
+    universe_sample_seed: int = 42
+    require_full_history_window: bool = True
 
 
 @dataclass(frozen=True)
@@ -234,6 +238,11 @@ def _simulate_symbol(
 
     trades: List[Dict[str, object]] = []
 
+    allow_bull = config.engine in {"bull", "both"}
+    allow_weak = config.engine in {"weak", "both"}
+    end_ts_64 = end_ts.to_datetime64()
+    last_idx_in_range = int(np.searchsorted(idx.values, end_ts_64, side="right") - 1)
+
     i = max(config.warmup_bars, 0)
     n = len(frame)
     while i < n - 1:
@@ -248,9 +257,9 @@ def _simulate_symbol(
             continue
 
         signal_engine: str | None = None
-        if regime_state == "bull" and bull_signal[i] and _engine_enabled(config.engine, "bull"):
+        if regime_state == "bull" and bull_signal[i] and allow_bull:
             signal_engine = "bull"
-        elif regime_state == "weak" and weak_signal[i] and _engine_enabled(config.engine, "weak"):
+        elif regime_state == "weak" and weak_signal[i] and allow_weak:
             signal_engine = "weak"
 
         if signal_engine is None:
@@ -282,7 +291,6 @@ def _simulate_symbol(
         sl_level = signal_close - (2.0 * atr_val)
         activation_level = entry_price + (2.0 * atr_val)
 
-        last_idx_in_range = int(np.searchsorted(idx.values, end_ts.to_datetime64(), side="right") - 1)
         if last_idx_in_range < entry_i:
             i += 1
             continue
@@ -419,6 +427,10 @@ def _generate_symbol_candidates(
     candidates: List[Dict[str, object]] = []
     n = len(frame)
     first_i = max(config.warmup_bars, 0)
+    allow_bull = config.engine in {"bull", "both"}
+    allow_weak = config.engine in {"weak", "both"}
+    end_ts_64 = end_ts.to_datetime64()
+    last_idx_in_range = int(np.searchsorted(idx.values, end_ts_64, side="right") - 1)
 
     for i in range(first_i, n - 1):
         signal_date = idx[i]
@@ -430,9 +442,9 @@ def _generate_symbol_candidates(
             continue
 
         signal_engine: str | None = None
-        if regime_state == "bull" and bull_signal[i] and _engine_enabled(config.engine, "bull"):
+        if regime_state == "bull" and bull_signal[i] and allow_bull:
             signal_engine = "bull"
-        elif regime_state == "weak" and weak_signal[i] and _engine_enabled(config.engine, "weak"):
+        elif regime_state == "weak" and weak_signal[i] and allow_weak:
             signal_engine = "weak"
 
         if signal_engine is None:
@@ -460,7 +472,6 @@ def _generate_symbol_candidates(
         sl_level = signal_close - (2.0 * atr_val)
         activation_level = entry_price + (2.0 * atr_val)
 
-        last_idx_in_range = int(np.searchsorted(idx.values, end_ts.to_datetime64(), side="right") - 1)
         if last_idx_in_range < entry_i:
             continue
 
@@ -531,9 +542,16 @@ def run_backtest(
     force_refresh: bool = False,
     market_aware_refresh: bool = True,
 ) -> BacktestResult:
+    run_started_perf = time.perf_counter()
+
+    def _checkpoint(label: str) -> None:
+        logger.info("BACKTEST ENGINE | %s | elapsed=%.2fs", label, time.perf_counter() - run_started_perf)
+
     unique_symbols = sorted({str(s).strip().upper() for s in symbols if str(s).strip()})
     if settings.benchmark_symbol not in unique_symbols:
         unique_symbols.append(settings.benchmark_symbol)
+
+    _checkpoint(f"start symbols={len(unique_symbols)} engine={config.engine}")
 
     prices, data_diag = fetch_prices(
         yf_symbols=unique_symbols,
@@ -550,6 +568,11 @@ def run_backtest(
         benchmark_symbol=settings.benchmark_symbol,
     )
     quote_metrics_coverage = quote_metrics_diag.get("coverage") or {}
+    _checkpoint(
+        "data_ready "
+        f"downloaded={data_diag.downloaded_symbols} cached={data_diag.cached_symbols} "
+        f"quote_metrics_success={int(quote_metrics_coverage.get('success_count', 0))}"
+    )
 
     benchmark_df = prices.get(settings.benchmark_symbol)
     if benchmark_df is None or benchmark_df.empty:
@@ -567,18 +590,30 @@ def run_backtest(
         raise RuntimeError(f"Benchmark {settings.benchmark_symbol} lacks sufficient data for SMA200")
 
     regime_by_date = _regime_state_series(benchmark_enriched)
+    start_ts = pd.Timestamp(config.start_date)
+    end_ts = pd.Timestamp(config.end_date)
 
     all_trades: List[Dict[str, object]] = []
     all_candidates: List[Dict[str, object]] = []
     skipped: List[Dict[str, str]] = list(data_diag.skipped)
+    skip_reason_counts: Dict[str, int] = {}
 
-    for yf_symbol in unique_symbols:
+    def _mark_skipped(yf_symbol: str, reason: str) -> None:
+        skipped.append({"yf_symbol": yf_symbol, "reason": reason})
+        skip_reason_counts[reason] = int(skip_reason_counts.get(reason, 0)) + 1
+
+    preprocessed: Dict[str, Dict[str, object]] = {}
+
+    processable_symbols = max(0, len(unique_symbols) - 1)
+    for symbol_idx, yf_symbol in enumerate(unique_symbols, start=1):
         if yf_symbol == settings.benchmark_symbol:
             continue
+        if processable_symbols and (symbol_idx == 1 or symbol_idx % 100 == 0 or symbol_idx == len(unique_symbols)):
+            _checkpoint(f"preprocess_progress symbol={symbol_idx}/{len(unique_symbols)}")
 
         raw = prices.get(yf_symbol)
         if raw is None or raw.empty:
-            skipped.append({"yf_symbol": yf_symbol, "reason": "missing_price_data"})
+            _mark_skipped(yf_symbol, "missing_price_data")
             continue
 
         enriched = add_indicators(
@@ -591,14 +626,64 @@ def run_backtest(
         )
 
         if enriched.empty or len(enriched) <= config.warmup_bars:
-            skipped.append({"yf_symbol": yf_symbol, "reason": "insufficient_history"})
+            _mark_skipped(yf_symbol, "insufficient_history")
             continue
 
         quote_metrics = quote_metrics_by_symbol.get(yf_symbol) or {}
         market_cap = _to_float(quote_metrics.get("market_cap"))
         beta_1y = _to_float(quote_metrics.get("beta_1y"))
         if market_cap is None or beta_1y is None:
-            skipped.append({"yf_symbol": yf_symbol, "reason": "missing_market_cap_or_beta_1y"})
+            _mark_skipped(yf_symbol, "missing_market_cap_or_beta_1y")
+            continue
+
+        first_ts = pd.Timestamp(enriched.index.min())
+        last_ts = pd.Timestamp(enriched.index.max())
+        bars_before_start = int((enriched.index < start_ts).sum())
+
+        if bool(config.require_full_history_window) and (first_ts > start_ts or last_ts < end_ts):
+            _mark_skipped(yf_symbol, "insufficient_window_coverage")
+            continue
+
+        if bars_before_start < int(config.warmup_bars):
+            _mark_skipped(yf_symbol, "insufficient_warmup_bars")
+            continue
+
+        preprocessed[yf_symbol] = {
+            "enriched": enriched,
+            "market_cap": market_cap,
+            "beta_1y": beta_1y,
+        }
+
+    eligible_symbols = sorted(preprocessed.keys())
+    requested_sample_size = None if config.universe_sample_size is None else int(max(1, config.universe_sample_size))
+
+    if requested_sample_size is None:
+        selected_symbols = eligible_symbols
+    else:
+        target_size = min(requested_sample_size, len(eligible_symbols))
+        if target_size > 0 and target_size < len(eligible_symbols):
+            rng = np.random.default_rng(int(config.universe_sample_seed))
+            selected_symbols = sorted(rng.choice(np.array(eligible_symbols), size=target_size, replace=False).tolist())
+        else:
+            selected_symbols = eligible_symbols
+
+    _checkpoint(f"preprocess_complete eligible={len(eligible_symbols)} sampled={len(selected_symbols)}")
+
+    selected_set = set(selected_symbols)
+    for yf_symbol in eligible_symbols:
+        if yf_symbol not in selected_set:
+            _mark_skipped(yf_symbol, "not_in_sample")
+
+    for selected_idx, yf_symbol in enumerate(selected_symbols, start=1):
+        if selected_idx == 1 or selected_idx % 50 == 0 or selected_idx == len(selected_symbols):
+            _checkpoint(f"simulate_progress symbol={selected_idx}/{len(selected_symbols)}")
+
+        row = preprocessed.get(yf_symbol) or {}
+        enriched = row.get("enriched")
+        market_cap = _to_float(row.get("market_cap"))
+        beta_1y = _to_float(row.get("beta_1y"))
+        if not isinstance(enriched, pd.DataFrame) or enriched.empty or market_cap is None or beta_1y is None:
+            _mark_skipped(yf_symbol, "preprocessed_data_invalid")
             continue
 
         symbol_candidates = _generate_symbol_candidates(
@@ -635,10 +720,16 @@ def run_backtest(
     if not candidates_df.empty:
         candidates_df = candidates_df.sort_values(["entry_date", "symbol", "engine", "signal_date"]).reset_index(drop=True)
 
+    _checkpoint(f"simulation_complete candidates={len(candidates_df)} trades={len(trades_df)}")
+
     diagnostics = {
         "counts": {
             "symbols_requested": len(unique_symbols),
             "symbols_excluding_benchmark": max(0, len(unique_symbols) - 1),
+            "eligible_symbols": int(len(eligible_symbols)),
+            "sampled_symbols": int(len(selected_symbols)),
+            "sample_target": int(requested_sample_size) if requested_sample_size is not None else None,
+            "sample_seed": int(config.universe_sample_seed),
             "downloaded_symbols": data_diag.downloaded_symbols,
             "cached_symbols": data_diag.cached_symbols,
             "skipped_symbols": len(skipped),
@@ -654,11 +745,16 @@ def run_backtest(
         "quote_metrics": quote_metrics_diag,
         "quote_metrics_coverage": quote_metrics_coverage,
         "skipped_symbols": skipped,
+        "skip_reason_counts": skip_reason_counts,
+        "sampled_symbols": selected_symbols,
         "config": {
             "start_date": config.start_date,
             "end_date": config.end_date,
             "engine": config.engine,
             "warmup_bars": config.warmup_bars,
+            "universe_sample_size": requested_sample_size,
+            "universe_sample_seed": int(config.universe_sample_seed),
+            "require_full_history_window": bool(config.require_full_history_window),
             "min_avg_dollar_volume_20d": float(settings.min_avg_dollar_volume_20d),
             "force_refresh": bool(force_refresh),
             "market_aware_refresh": bool(market_aware_refresh),
