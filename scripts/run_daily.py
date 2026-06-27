@@ -226,11 +226,13 @@ def _enrich_candidates(
             max_shares = 0
 
         row["risk"] = {
+            "schema_version": "2.1",
             "signal_close": signal_close,
             "entry_reference": entry_reference,
             "atr14": atr14,
             "stop_loss": stop_loss,
             "activation_level": activation_level,
+            # Deprecated compatibility alias. Consumers should use activation_level.
             "take_profit": activation_level,
             "trailing_stop_offset": trailing_stop_offset,
             "max_hold_days": 15,

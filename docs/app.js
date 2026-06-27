@@ -457,7 +457,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const heroSubheadline = document.getElementById('howItWorksHeroSubheadline');
   if (heroSubheadline) {
     heroSubheadline.innerHTML =
-      'Both engines run daily, then pass through a playbook-first policy layer. Candidates are scored, tagged (🏆/⚡/👀), and assigned <strong>trade</strong> or <strong>watchlist</strong>. If no trade setup qualifies, the dashboard stays in <strong>HOLD CASH</strong> mode.';
+      'Both engines run daily, then pass through a playbook-first policy layer. Trade-intent names follow a fixed execution contract: next-open entry, hard stop-loss, activation at entry + 2x ATR14 with automatic 50% partial exit, hard trailing stop, and hard day-15 time exit. If no trade setup qualifies, the dashboard stays in <strong>HOLD CASH</strong> mode.';
   }
 
   const logicCards = Array.from(document.querySelectorAll('.screener-logic-card'));
@@ -490,8 +490,8 @@ function renderHowItWorks(payload, marketPayload = null) {
       'Run both Bull and Weak engines across the liquid universe.',
       'Route candidates through playbook-first policy with absolute quality gates.',
       'Compute normalized leadership/actionability scores and assign trade/watchlist intent.',
-      'If no trade setup is qualified, remain in HOLD CASH mode (no forced trades).',
-      'Size risk per setup and admit tracker names only when rank/positionability/quality rules pass.',
+      'Execute trade-intent setups with next-open entry and hard stop-loss at signal close - 2x ATR14.',
+      'At activation (entry + 2x ATR14), automatically sell 50%; manage remainder with hard trailing stop (highest close - 1.5x ATR14) and hard day-15 time exit.',
     ];
     workflowEl.innerHTML = steps.map((step) => `<li>${esc(step)}</li>`).join('');
   }
@@ -499,7 +499,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const interpretationEl = document.getElementById('howItWorksInterpretationText');
   if (interpretationEl) {
     interpretationEl.innerHTML =
-      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, policy-filtered setup with score context, tags, intent, playbook, and risk sizing. Tracker is reserved for trade-intent names that pass rank, positionability, and hybrid quality rules.';
+      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, policy-filtered setup with score context, tags, intent, playbook, and risk sizing. Tracker is reserved for trade-intent names that pass rank, positionability, and hybrid quality rules, then managed with the same hard-rule lifecycle used in backtesting.';
   }
 }
 
@@ -651,7 +651,7 @@ function renderCandidateTable(candidates) {
       <td>${fmtNumber(c.close)}</td>
       <td>${fmtInt(c.risk?.position_sizing?.max_shares)}</td>
       <td>${fmtNumber(c.risk?.stop_loss)}</td>
-      <td>${fmtNumber(c.risk?.activation_level ?? c.risk?.take_profit)}</td>
+      <td>${fmtNumber(c.risk?.activation_level)}</td>
     `;
 
     tr.addEventListener('click', () => {
@@ -820,8 +820,8 @@ function renderSelectedDetails(candidate) {
       <div class="meta-value sl">${fmtNumber(risk.stop_loss)}</div>
     </div>
     <div class="meta-item">
-      <div class="meta-label">Activation (TP1)</div>
-      <div class="meta-value tp">${fmtNumber(risk.activation_level ?? risk.take_profit)}</div>
+      <div class="meta-label">Activation</div>
+      <div class="meta-value tp">${fmtNumber(risk.activation_level)}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">ATR14</div>
@@ -866,7 +866,7 @@ function updateScreenerDetailsPanel(symbol) {
 
   setScreenerDetailField('chartDetailCurrentPrice', fmtNumber(c.close));
   setScreenerDetailField('chartDetailStopLoss', fmtNumber(risk.stop_loss));
-  setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.activation_level ?? risk.take_profit));
+  setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.activation_level));
   setScreenerDetailField('chartDetailAtr14', fmtNumber(risk.atr14));
   setScreenerDetailField('chartDetailBeta', fmtNumber(getCandidateBeta(c)));
   setScreenerDetailField('chartDetailEngine', String(c.engine || '-'));
@@ -1640,7 +1640,7 @@ function renderReportMethodology(payload) {
     methodologyEl.innerHTML = `
         <p><strong>Portfolio assumptions:</strong> initial ${fmtDollar(pAssump.initial_capital)}, max positions ${fmtInt(pAssump.max_positions)}, slippage ${fmtPctPoints((Number(pAssump.slippage_pct_each_side) || 0) * 100, 3)} each side, commission ${fmtDollar(pAssump.commission_per_side)} each side.</p>
         <p><strong>Regime filter logic:</strong> Uses SPY vs SMA200 to switch between Bull and Weak engines.</p>
-        <p><strong>Entry/Exit:</strong> Entries on next session open after signal. Exits based on engine-provided stop-loss or take-profit targets.</p>
+        <p><strong>Entry/Exit:</strong> Next-open entry after signal, hard stop-loss at signal close - 2x ATR14, activation at entry + 2x ATR14 with automatic 50% partial exit, remaining 50% managed by hard trailing stop (highest close - 1.5x ATR14) or hard time stop at day-15 close.</p>
     `;
 }
 
