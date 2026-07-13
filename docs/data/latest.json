@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-07-12T14:27:28.230230+00:00",
+    "generated_at": "2026-07-13T11:58:27.873306+00:00",
     "regime": "Bull",
     "engine": "playbook",
     "universe_size": 2447,
@@ -580,7 +580,7 @@
       "score_breakdown": {
         "leadership_score": 0.7864050231503639,
         "actionability_score": 0.8071285060942218,
-        "oversold_component": 0.3149105148064568,
+        "oversold_component": 0.3149105144574277,
         "extension_component": 0.4573750995841261,
         "capitulation_component": 0.10585805849357605,
         "trend200_component": 0.7817542613137559,
@@ -656,7 +656,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3149105148064568,
+            "oversold_component": 0.3149105144574277,
             "extension_component": 0.4573750995841261,
             "capitulation_component": 0.10585805849357605,
             "trend200_component": 0.7817542613137559,
@@ -759,7 +759,7 @@
       "score_breakdown": {
         "leadership_score": 0.7564611704460993,
         "actionability_score": 0.7979545151805081,
-        "oversold_component": 0.3033810194655846,
+        "oversold_component": 0.30338101911096027,
         "extension_component": 0.6299453436020911,
         "capitulation_component": 0.9275946919453725,
         "trend200_component": 0.7572936118601191,
@@ -835,7 +835,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3033810194655846,
+            "oversold_component": 0.30338101911096027,
             "extension_component": 0.6299453436020911,
             "capitulation_component": 0.9275946919453725,
             "trend200_component": 0.7572936118601191,
@@ -938,7 +938,7 @@
       "score_breakdown": {
         "leadership_score": 0.7149208074840266,
         "actionability_score": 0.8254883265104451,
-        "oversold_component": 0.4552961168518261,
+        "oversold_component": 0.45529611661586633,
         "extension_component": 0.7305430885704589,
         "capitulation_component": 0.6399443345077988,
         "trend200_component": 0.6926387645434228,
@@ -1014,7 +1014,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.4552961168518261,
+            "oversold_component": 0.45529611661586633,
             "extension_component": 0.7305430885704589,
             "capitulation_component": 0.6399443345077988,
             "trend200_component": 0.6926387645434228,
@@ -1117,7 +1117,7 @@
       "score_breakdown": {
         "leadership_score": 0.708382212576531,
         "actionability_score": 0.8264588933600823,
-        "oversold_component": 0.32295711844275327,
+        "oversold_component": 0.32295711809803684,
         "extension_component": 0.7014504332520672,
         "capitulation_component": 0.9994533953316272,
         "trend200_component": 0.7337753620994958,
@@ -1193,7 +1193,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.32295711844275327,
+            "oversold_component": 0.32295711809803684,
             "extension_component": 0.7014504332520672,
             "capitulation_component": 0.9994533953316272,
             "trend200_component": 0.7337753620994958,
@@ -1296,7 +1296,7 @@
       "score_breakdown": {
         "leadership_score": 0.8443351132305523,
         "actionability_score": 0.7312194865330708,
-        "oversold_component": 0.22311125997330147,
+        "oversold_component": 0.22311125960202705,
         "extension_component": 0.37980434057792983,
         "capitulation_component": 0.9440254999489748,
         "trend200_component": 0.9267357383859751,
@@ -1372,7 +1372,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.22311125997330147,
+            "oversold_component": 0.22311125960202705,
             "extension_component": 0.37980434057792983,
             "capitulation_component": 0.9440254999489748,
             "trend200_component": 0.9267357383859751,
@@ -1475,7 +1475,7 @@
       "score_breakdown": {
         "leadership_score": 0.6924090658229951,
         "actionability_score": 0.8246742259859069,
-        "oversold_component": 0.4217379162189822,
+        "oversold_component": 0.42173791594989307,
         "extension_component": 0.5650814554358288,
         "capitulation_component": 0.276667047972092,
         "trend200_component": 0.6171855310416023,
@@ -1551,7 +1551,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.4217379162189822,
+            "oversold_component": 0.42173791594989307,
             "extension_component": 0.5650814554358288,
             "capitulation_component": 0.276667047972092,
             "trend200_component": 0.6171855310416023,
@@ -1654,7 +1654,7 @@
       "score_breakdown": {
         "leadership_score": 0.8076320829408471,
         "actionability_score": 0.7456977271619535,
-        "oversold_component": 0.43079920898056795,
+        "oversold_component": 0.4307992087201293,
         "extension_component": 0.6630941632874471,
         "capitulation_component": 0.372448386279535,
         "trend200_component": 0.9194802278877163,
@@ -1730,7 +1730,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.43079920898056795,
+            "oversold_component": 0.4307992087201293,
             "extension_component": 0.6630941632874471,
             "capitulation_component": 0.372448386279535,
             "trend200_component": 0.9194802278877163,
@@ -1833,7 +1833,7 @@
       "score_breakdown": {
         "leadership_score": 0.7601601587664779,
         "actionability_score": 0.7737166110602782,
-        "oversold_component": 0.321627064891813,
+        "oversold_component": 0.3216270645463612,
         "extension_component": 0.4209885480596907,
         "capitulation_component": 0.3881221521824467,
         "trend200_component": 0.9384847829031885,
@@ -1909,7 +1909,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.321627064891813,
+            "oversold_component": 0.3216270645463612,
             "extension_component": 0.4209885480596907,
             "capitulation_component": 0.3881221521824467,
             "trend200_component": 0.9384847829031885,
@@ -2012,7 +2012,7 @@
       "score_breakdown": {
         "leadership_score": 0.7455717712464774,
         "actionability_score": 0.7819303045679162,
-        "oversold_component": 0.3487096366599111,
+        "oversold_component": 0.34870963633109603,
         "extension_component": 0.5610096688819093,
         "capitulation_component": 0.4779306731510516,
         "trend200_component": 0.743557141153937,
@@ -2088,7 +2088,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3487096366599111,
+            "oversold_component": 0.34870963633109603,
             "extension_component": 0.5610096688819093,
             "capitulation_component": 0.4779306731510516,
             "trend200_component": 0.743557141153937,
@@ -2191,7 +2191,7 @@
       "score_breakdown": {
         "leadership_score": 0.7329120088000614,
         "actionability_score": 0.7897617309530468,
-        "oversold_component": 0.4823433978725232,
+        "oversold_component": 0.48234339766518736,
         "extension_component": 0.4965415448130649,
         "capitulation_component": 0.9484689463830069,
         "trend200_component": 0.7539291677665749,
@@ -2267,7 +2267,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.4823433978725232,
+            "oversold_component": 0.48234339766518736,
             "extension_component": 0.4965415448130649,
             "capitulation_component": 0.9484689463830069,
             "trend200_component": 0.7539291677665749,
@@ -2370,7 +2370,7 @@
       "score_breakdown": {
         "leadership_score": 0.7305840905458368,
         "actionability_score": 0.7911316497296219,
-        "oversold_component": 0.35359082440278367,
+        "oversold_component": 0.3535908240773216,
         "extension_component": 0.5825438251948588,
         "capitulation_component": 0.469214350883497,
         "trend200_component": 0.7207852524236933,
@@ -2446,7 +2446,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.35359082440278367,
+            "oversold_component": 0.3535908240773216,
             "extension_component": 0.5825438251948588,
             "capitulation_component": 0.469214350883497,
             "trend200_component": 0.7207852524236933,
@@ -2549,7 +2549,7 @@
       "score_breakdown": {
         "leadership_score": 0.6601894515604705,
         "actionability_score": 0.8343442705521399,
-        "oversold_component": 0.5069274563964841,
+        "oversold_component": 0.5069274562163285,
         "extension_component": 0.6705216080025038,
         "capitulation_component": 0.7653715070414808,
         "trend200_component": 0.6125403223765548,
@@ -2625,7 +2625,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.5069274563964841,
+            "oversold_component": 0.5069274562163285,
             "extension_component": 0.6705216080025038,
             "capitulation_component": 0.7653715070414808,
             "trend200_component": 0.6125403223765548,
@@ -2728,7 +2728,7 @@
       "score_breakdown": {
         "leadership_score": 0.6783750055008241,
         "actionability_score": 0.8220716599884133,
-        "oversold_component": 0.46497122526330326,
+        "oversold_component": 0.46497122503740745,
         "extension_component": 0.6181563504259799,
         "capitulation_component": 0.33330763314601436,
         "trend200_component": 0.6552369297983647,
@@ -2804,7 +2804,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.46497122526330326,
+            "oversold_component": 0.46497122503740745,
             "extension_component": 0.6181563504259799,
             "capitulation_component": 0.33330763314601436,
             "trend200_component": 0.6552369297983647,
@@ -2907,7 +2907,7 @@
       "score_breakdown": {
         "leadership_score": 0.7349317922754933,
         "actionability_score": 0.7809293962998372,
-        "oversold_component": 0.23145607718470232,
+        "oversold_component": 0.2314560768130983,
         "extension_component": 0.5612228409063904,
         "capitulation_component": 0.4526181934623429,
         "trend200_component": 0.7198674266256643,
@@ -2983,7 +2983,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.23145607718470232,
+            "oversold_component": 0.2314560768130983,
             "extension_component": 0.5612228409063904,
             "capitulation_component": 0.4526181934623429,
             "trend200_component": 0.7198674266256643,
@@ -3086,7 +3086,7 @@
       "score_breakdown": {
         "leadership_score": 0.6830229274661188,
         "actionability_score": 0.8152911310652814,
-        "oversold_component": 0.49889853115985255,
+        "oversold_component": 0.4988985309707155,
         "extension_component": 0.6273868165632102,
         "capitulation_component": 0.7661507801175844,
         "trend200_component": 0.7921302863237987,
@@ -3162,7 +3162,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.49889853115985255,
+            "oversold_component": 0.4988985309707155,
             "extension_component": 0.6273868165632102,
             "capitulation_component": 0.7661507801175844,
             "trend200_component": 0.7921302863237987,
@@ -3459,7 +3459,7 @@
       "score_breakdown": {
         "leadership_score": 0.7885668075127745,
         "actionability_score": 0.7371368254368811,
-        "oversold_component": 0.38122268223952066,
+        "oversold_component": 0.38122268193488823,
         "extension_component": 0.5060342577886049,
         "capitulation_component": 0.8832940302048196,
         "trend200_component": 0.8679630458744017,
@@ -3535,7 +3535,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.38122268223952066,
+            "oversold_component": 0.38122268193488823,
             "extension_component": 0.5060342577886049,
             "capitulation_component": 0.8832940302048196,
             "trend200_component": 0.8679630458744017,
@@ -3638,7 +3638,7 @@
       "score_breakdown": {
         "leadership_score": 0.730639875313516,
         "actionability_score": 0.7749069410049716,
-        "oversold_component": 0.15531957262376134,
+        "oversold_component": 0.1553195722775601,
         "extension_component": 0.5733488169580847,
         "capitulation_component": 0.2907242204728754,
         "trend200_component": 0.7304196407940612,
@@ -3714,7 +3714,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.15531957262376134,
+            "oversold_component": 0.1553195722775601,
             "extension_component": 0.5733488169580847,
             "capitulation_component": 0.2907242204728754,
             "trend200_component": 0.7304196407940612,
@@ -3817,7 +3817,7 @@
       "score_breakdown": {
         "leadership_score": 0.6978716028755698,
         "actionability_score": 0.7937618355529759,
-        "oversold_component": 0.45008855424932465,
+        "oversold_component": 0.4500885540080363,
         "extension_component": 0.5388079809100339,
         "capitulation_component": 0.3064981111009455,
         "trend200_component": 0.800123243845111,
@@ -3893,7 +3893,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.45008855424932465,
+            "oversold_component": 0.4500885540080363,
             "extension_component": 0.5388079809100339,
             "capitulation_component": 0.3064981111009455,
             "trend200_component": 0.800123243845111,
@@ -4001,7 +4001,7 @@
       "score_breakdown": {
         "leadership_score": 0.6958974862885172,
         "actionability_score": 0.7949142458441555,
-        "oversold_component": 0.24089557223105396,
+        "oversold_component": 0.24089557185970942,
         "extension_component": 0.5568804258948207,
         "capitulation_component": 0.9173699300743146,
         "trend200_component": 0.6258118709681997,
@@ -4077,7 +4077,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.24089557223105396,
+            "oversold_component": 0.24089557185970942,
             "extension_component": 0.5568804258948207,
             "capitulation_component": 0.9173699300743146,
             "trend200_component": 0.6258118709681997,
@@ -4185,7 +4185,7 @@
       "score_breakdown": {
         "leadership_score": 0.8536820222037024,
         "actionability_score": 0.6876489691313361,
-        "oversold_component": 0.33838162787187104,
+        "oversold_component": 0.33838162753630874,
         "extension_component": 0.3521092544393612,
         "capitulation_component": 0.4062773270332257,
         "trend200_component": 0.9602346893604313,
@@ -4261,7 +4261,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.33838162787187104,
+            "oversold_component": 0.33838162753630874,
             "extension_component": 0.3521092544393612,
             "capitulation_component": 0.4062773270332257,
             "trend200_component": 0.9602346893604313,
@@ -4543,35 +4543,35 @@
       "adj_close": 69.25,
       "volume": 1079600.0,
       "high_20d": 73.62999725341797,
-      "rsi14": 56.28904083078063,
-      "bb_upper": 74.09667027179478,
-      "bb_lower": 64.89233043010952,
+      "rsi14": 56.289040830779804,
+      "bb_upper": 74.09667027179484,
+      "bb_lower": 64.89233043010947,
       "sma20": 69.49450035095215,
       "sma50": 61.7652645111084,
-      "sma200": 50.26580478668213,
+      "sma200": 50.26580493927002,
       "ema9": 69.49832116937299,
-      "ema21": 68.20048287055425,
+      "ema21": 68.20048287055471,
       "atr14": 2.6767866952078685,
       "avg_dollar_volume_20d": 118655681.60644531,
       "median_dollar_volume_20d": 110358547.4784851,
       "market_cap": 7631602064.799286,
-      "beta_1y": 1.6823694659289765,
+      "beta_1y": 1.6823698997175203,
       "engine": "weak",
-      "score": 74.98878594877169,
+      "score": 74.98878588864699,
       "playbook_id": "LEADER_PULLBACK",
       "playbook_label": "Leader Pullback",
       "intent": "trade",
       "regime_reason": "weak_engine_watchlist_wait_for_quality_or_reclaim",
       "setup_tag": "Actionable Breakout",
-      "leadership_score": 0.6967326165799831,
+      "leadership_score": 0.6967326150768658,
       "actionability_score": 0.7853246880928727,
       "score_breakdown": {
-        "leadership_score": 0.6967326165799831,
+        "leadership_score": 0.6967326150768658,
         "actionability_score": 0.7853246880928727,
-        "oversold_component": 0.41974443945027873,
-        "extension_component": 0.5865887471037763,
+        "oversold_component": 0.4197444391793376,
+        "extension_component": 0.5865887471037726,
         "capitulation_component": 0.4737748685722157,
-        "trend200_component": 0.8423401425585509,
+        "trend200_component": 0.8423401395523162,
         "trend50_component": 0.7494311547475888,
         "liquidity_component": 0.4068143337983721,
         "safety_component": 0.4310277618762265,
@@ -4586,10 +4586,10 @@
           "liquidity": 1.0
         },
         "raw_features": {
-          "oversold": -0.876301361026021,
-          "extension": -0.06715230507222703,
+          "oversold": -0.8763013610259934,
+          "extension": -0.06715230507222796,
           "capitulation": 0.6300777087773178,
-          "trend200": 0.37767614174055186,
+          "trend200": 0.37767613755845053,
           "trend50": 0.12118033571353815,
           "liquidity": 118655681.60644531,
           "atr_pct": 0.03865395949758655,
@@ -4623,9 +4623,9 @@
             "name": "normalized_scoring",
             "passed": true,
             "checks": {
-              "leadership_score": 0.6967326165799831,
+              "leadership_score": 0.6967326150768658,
               "actionability_score": 0.7853246880928727,
-              "score": 74.98878594877169,
+              "score": 74.98878588864699,
               "setup_tag": "Actionable Breakout",
               "intent": "watchlist"
             }
@@ -4633,10 +4633,10 @@
         ],
         "snapshots": {
           "raw_features": {
-            "oversold": -0.876301361026021,
-            "extension": -0.06715230507222703,
+            "oversold": -0.8763013610259934,
+            "extension": -0.06715230507222796,
             "capitulation": 0.6300777087773178,
-            "trend200": 0.37767614174055186,
+            "trend200": 0.37767613755845053,
             "trend50": 0.12118033571353815,
             "liquidity": 118655681.60644531,
             "atr_pct": 0.03865395949758655,
@@ -4644,10 +4644,10 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.41974443945027873,
-            "extension_component": 0.5865887471037763,
+            "oversold_component": 0.4197444391793376,
+            "extension_component": 0.5865887471037726,
             "capitulation_component": 0.4737748685722157,
-            "trend200_component": 0.8423401425585509,
+            "trend200_component": 0.8423401395523162,
             "trend50_component": 0.7494311547475888,
             "liquidity_component": 0.4068143337983721,
             "safety_component": 0.4310277618762265,
@@ -4752,7 +4752,7 @@
       "score_breakdown": {
         "leadership_score": 0.7012115830137136,
         "actionability_score": 0.7817492158118988,
-        "oversold_component": 0.44372688057640425,
+        "oversold_component": 0.44372688032869506,
         "extension_component": 0.3170855946730807,
         "capitulation_component": 0.5564274421645727,
         "trend200_component": 0.6856282063172096,
@@ -4828,7 +4828,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.44372688057640425,
+            "oversold_component": 0.44372688032869506,
             "extension_component": 0.3170855946730807,
             "capitulation_component": 0.5564274421645727,
             "trend200_component": 0.6856282063172096,
@@ -4936,7 +4936,7 @@
       "score_breakdown": {
         "leadership_score": 0.6604823425962831,
         "actionability_score": 0.8045650103798244,
-        "oversold_component": 0.47898817139986405,
+        "oversold_component": 0.47898817118889786,
         "extension_component": 0.7249009672108808,
         "capitulation_component": 0.2841013685243631,
         "trend200_component": 0.735345015876312,
@@ -5012,7 +5012,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.47898817139986405,
+            "oversold_component": 0.47898817118889786,
             "extension_component": 0.7249009672108808,
             "capitulation_component": 0.2841013685243631,
             "trend200_component": 0.735345015876312,
@@ -5120,7 +5120,7 @@
       "score_breakdown": {
         "leadership_score": 0.6837803697287728,
         "actionability_score": 0.7876573016236142,
-        "oversold_component": 0.4831259494311723,
+        "oversold_component": 0.48312594922468605,
         "extension_component": 0.6770311461379172,
         "capitulation_component": 0.7993743396042676,
         "trend200_component": 0.8672625621132221,
@@ -5196,7 +5196,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.4831259494311723,
+            "oversold_component": 0.48312594922468605,
             "extension_component": 0.6770311461379172,
             "capitulation_component": 0.7993743396042676,
             "trend200_component": 0.8672625621132221,
@@ -5304,7 +5304,7 @@
       "score_breakdown": {
         "leadership_score": 0.6988793936416172,
         "actionability_score": 0.777529806988976,
-        "oversold_component": 0.3151043351322002,
+        "oversold_component": 0.3151043347832711,
         "extension_component": 0.44875908486327215,
         "capitulation_component": 0.3669720376377362,
         "trend200_component": 0.83641572183418,
@@ -5380,7 +5380,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3151043351322002,
+            "oversold_component": 0.3151043347832711,
             "extension_component": 0.44875908486327215,
             "capitulation_component": 0.3669720376377362,
             "trend200_component": 0.83641572183418,
@@ -5488,7 +5488,7 @@
       "score_breakdown": {
         "leadership_score": 0.6920580883393663,
         "actionability_score": 0.7820602904424085,
-        "oversold_component": 0.17884131845311774,
+        "oversold_component": 0.1788413180932877,
         "extension_component": 0.5802641059151114,
         "capitulation_component": 0.6181868796540119,
         "trend200_component": 0.7956792020718708,
@@ -5564,7 +5564,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.17884131845311774,
+            "oversold_component": 0.1788413180932877,
             "extension_component": 0.5802641059151114,
             "capitulation_component": 0.6181868796540119,
             "trend200_component": 0.7956792020718708,
@@ -5672,7 +5672,7 @@
       "score_breakdown": {
         "leadership_score": 0.6875384553242944,
         "actionability_score": 0.7838651210327554,
-        "oversold_component": 0.41391598774460886,
+        "oversold_component": 0.41391598746824493,
         "extension_component": 0.4128796724966336,
         "capitulation_component": 0.9435646354818948,
         "trend200_component": 0.7345795763812556,
@@ -5748,7 +5748,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.41391598774460886,
+            "oversold_component": 0.41391598746824493,
             "extension_component": 0.4128796724966336,
             "capitulation_component": 0.9435646354818948,
             "trend200_component": 0.7345795763812556,
@@ -5856,7 +5856,7 @@
       "score_breakdown": {
         "leadership_score": 0.6666397150741374,
         "actionability_score": 0.796807246665742,
-        "oversold_component": 0.25327472533986184,
+        "oversold_component": 0.2532747249698282,
         "extension_component": 0.6496858620129828,
         "capitulation_component": 0.289016384052736,
         "trend200_component": 0.662374160760618,
@@ -5932,7 +5932,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.25327472533986184,
+            "oversold_component": 0.2532747249698282,
             "extension_component": 0.6496858620129828,
             "capitulation_component": 0.289016384052736,
             "trend200_component": 0.662374160760618,
@@ -6040,7 +6040,7 @@
       "score_breakdown": {
         "leadership_score": 0.7266573110072779,
         "actionability_score": 0.7553061707236072,
-        "oversold_component": 0.1978930146464674,
+        "oversold_component": 0.19789301427960126,
         "extension_component": 0.48842894030182055,
         "capitulation_component": 0.5109836525390689,
         "trend200_component": 0.7136582497876243,
@@ -6116,7 +6116,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.1978930146464674,
+            "oversold_component": 0.19789301427960126,
             "extension_component": 0.48842894030182055,
             "capitulation_component": 0.5109836525390689,
             "trend200_component": 0.7136582497876243,
@@ -6224,7 +6224,7 @@
       "score_breakdown": {
         "leadership_score": 0.734362615490774,
         "actionability_score": 0.7450714443604974,
-        "oversold_component": 0.3714056799890867,
+        "oversold_component": 0.37140567967670773,
         "extension_component": 0.23489625678651366,
         "capitulation_component": 0.3715067187781024,
         "trend200_component": 0.7376109020809396,
@@ -6300,7 +6300,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3714056799890867,
+            "oversold_component": 0.37140567967670773,
             "extension_component": 0.23489625678651366,
             "capitulation_component": 0.3715067187781024,
             "trend200_component": 0.7376109020809396,
@@ -6408,7 +6408,7 @@
       "score_breakdown": {
         "leadership_score": 0.6946319516717204,
         "actionability_score": 0.7699468098870201,
-        "oversold_component": 0.40922447017162306,
+        "oversold_component": 0.4092244698909853,
         "extension_component": 0.5268740252464404,
         "capitulation_component": 0.5586970871580583,
         "trend200_component": 0.7167184776050225,
@@ -6484,7 +6484,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.40922447017162306,
+            "oversold_component": 0.4092244698909853,
             "extension_component": 0.5268740252464404,
             "capitulation_component": 0.5586970871580583,
             "trend200_component": 0.7167184776050225,
@@ -6592,7 +6592,7 @@
       "score_breakdown": {
         "leadership_score": 0.7189381344935473,
         "actionability_score": 0.7530610760162407,
-        "oversold_component": 0.22929050189020586,
+        "oversold_component": 0.22929050151863614,
         "extension_component": 0.4281409181575918,
         "capitulation_component": 0.9431816697788689,
         "trend200_component": 0.6664303773163195,
@@ -6668,7 +6668,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.22929050189020586,
+            "oversold_component": 0.22929050151863614,
             "extension_component": 0.4281409181575918,
             "capitulation_component": 0.9431816697788689,
             "trend200_component": 0.6664303773163195,
@@ -6975,7 +6975,7 @@
       "score_breakdown": {
         "leadership_score": 0.6983945295225928,
         "actionability_score": 0.7650006763713313,
-        "oversold_component": 0.20536197995567188,
+        "oversold_component": 0.20536197958694297,
         "extension_component": 0.522040927354918,
         "capitulation_component": 0.4950455805588214,
         "trend200_component": 0.5974502887523163,
@@ -7051,7 +7051,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.20536197995567188,
+            "oversold_component": 0.20536197958694297,
             "extension_component": 0.522040927354918,
             "capitulation_component": 0.4950455805588214,
             "trend200_component": 0.5974502887523163,
@@ -7159,7 +7159,7 @@
       "score_breakdown": {
         "leadership_score": 0.6864968048311485,
         "actionability_score": 0.771141743572731,
-        "oversold_component": 0.42435790548814656,
+        "oversold_component": 0.42435790522153455,
         "extension_component": 0.572522470148206,
         "capitulation_component": 0.38329461089963196,
         "trend200_component": 0.7625701787859429,
@@ -7235,7 +7235,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.42435790548814656,
+            "oversold_component": 0.42435790522153455,
             "extension_component": 0.572522470148206,
             "capitulation_component": 0.38329461089963196,
             "trend200_component": 0.7625701787859429,
@@ -7343,7 +7343,7 @@
       "score_breakdown": {
         "leadership_score": 0.7296082045976305,
         "actionability_score": 0.742344390878308,
-        "oversold_component": 0.2535682381155998,
+        "oversold_component": 0.2535682377456102,
         "extension_component": 0.511040506645759,
         "capitulation_component": 0.40553149607419264,
         "trend200_component": 0.7232090403195031,
@@ -7419,7 +7419,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.2535682381155998,
+            "oversold_component": 0.2535682377456102,
             "extension_component": 0.511040506645759,
             "capitulation_component": 0.40553149607419264,
             "trend200_component": 0.7232090403195031,
@@ -7527,7 +7527,7 @@
       "score_breakdown": {
         "leadership_score": 0.7659744855072874,
         "actionability_score": 0.7166317864347105,
-        "oversold_component": 0.4326422509941032,
+        "oversold_component": 0.4326422507354521,
         "extension_component": 0.1033154013873108,
         "capitulation_component": 0.4419352774893786,
         "trend200_component": 0.9883921169939182,
@@ -7603,7 +7603,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.4326422509941032,
+            "oversold_component": 0.4326422507354521,
             "extension_component": 0.1033154013873108,
             "capitulation_component": 0.4419352774893786,
             "trend200_component": 0.9883921169939182,
@@ -7711,7 +7711,7 @@
       "score_breakdown": {
         "leadership_score": 0.6941027146211023,
         "actionability_score": 0.7633861799848186,
-        "oversold_component": 0.2679539870705732,
+        "oversold_component": 0.26795398670344456,
         "extension_component": 0.4501688000502255,
         "capitulation_component": 0.43947337057036995,
         "trend200_component": 0.6651073254537399,
@@ -7787,7 +7787,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.2679539870705732,
+            "oversold_component": 0.26795398670344456,
             "extension_component": 0.4501688000502255,
             "capitulation_component": 0.43947337057036995,
             "trend200_component": 0.6651073254537399,
@@ -7895,7 +7895,7 @@
       "score_breakdown": {
         "leadership_score": 0.7034651393120976,
         "actionability_score": 0.7537579982914624,
-        "oversold_component": 0.23928723568094784,
+        "oversold_component": 0.2392872353095128,
         "extension_component": 0.4586166184276033,
         "capitulation_component": 0.5516722388491603,
         "trend200_component": 0.6444421145349165,
@@ -7971,7 +7971,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.23928723568094784,
+            "oversold_component": 0.2392872353095128,
             "extension_component": 0.4586166184276033,
             "capitulation_component": 0.5516722388491603,
             "trend200_component": 0.6444421145349165,
@@ -8079,7 +8079,7 @@
       "score_breakdown": {
         "leadership_score": 0.6944182587492032,
         "actionability_score": 0.7566312592060547,
-        "oversold_component": 0.39955989654754936,
+        "oversold_component": 0.3995598962583286,
         "extension_component": 0.4189430260704965,
         "capitulation_component": 0.5029835035355685,
         "trend200_component": 0.6662731888409796,
@@ -8155,7 +8155,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.39955989654754936,
+            "oversold_component": 0.3995598962583286,
             "extension_component": 0.4189430260704965,
             "capitulation_component": 0.5029835035355685,
             "trend200_component": 0.6662731888409796,
@@ -8263,7 +8263,7 @@
       "score_breakdown": {
         "leadership_score": 0.6874293348806929,
         "actionability_score": 0.7602439898247775,
-        "oversold_component": 0.5259528842652087,
+        "oversold_component": 0.525952884106674,
         "extension_component": 0.7590244728836896,
         "capitulation_component": 0.5930819964287419,
         "trend200_component": 0.8418382493546875,
@@ -8339,7 +8339,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.5259528842652087,
+            "oversold_component": 0.525952884106674,
             "extension_component": 0.7590244728836896,
             "capitulation_component": 0.5930819964287419,
             "trend200_component": 0.8418382493546875,
@@ -8447,7 +8447,7 @@
       "score_breakdown": {
         "leadership_score": 0.6731943072006917,
         "actionability_score": 0.7629181672404711,
-        "oversold_component": 0.583290553947645,
+        "oversold_component": 0.5832905538560398,
         "extension_component": 0.6588871442938328,
         "capitulation_component": 0.8564042030079769,
         "trend200_component": 0.784285901802967,
@@ -8523,7 +8523,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.583290553947645,
+            "oversold_component": 0.5832905538560398,
             "extension_component": 0.6588871442938328,
             "capitulation_component": 0.8564042030079769,
             "trend200_component": 0.784285901802967,
@@ -8631,7 +8631,7 @@
       "score_breakdown": {
         "leadership_score": 0.7625794074838609,
         "actionability_score": 0.6993807802351443,
-        "oversold_component": 0.1882102302825708,
+        "oversold_component": 0.18821022991885852,
         "extension_component": 0.5384987664265657,
         "capitulation_component": 0.24607929673331166,
         "trend200_component": 0.9503798524295876,
@@ -8707,7 +8707,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.1882102302825708,
+            "oversold_component": 0.18821022991885852,
             "extension_component": 0.5384987664265657,
             "capitulation_component": 0.24607929673331166,
             "trend200_component": 0.9503798524295876,
@@ -8815,7 +8815,7 @@
       "score_breakdown": {
         "leadership_score": 0.7411401780356484,
         "actionability_score": 0.7113069965800662,
-        "oversold_component": 0.4457948068226044,
+        "oversold_component": 0.4457948065769715,
         "extension_component": 0.5979261753012018,
         "capitulation_component": 0.40221977821686805,
         "trend200_component": 0.917214056292911,
@@ -8891,7 +8891,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.4457948068226044,
+            "oversold_component": 0.4457948065769715,
             "extension_component": 0.5979261753012018,
             "capitulation_component": 0.40221977821686805,
             "trend200_component": 0.917214056292911,
@@ -8999,7 +8999,7 @@
       "score_breakdown": {
         "leadership_score": 0.788092724123753,
         "actionability_score": 0.6796485501731429,
-        "oversold_component": 0.3202023860616004,
+        "oversold_component": 0.3202023857153708,
         "extension_component": 0.27002889035214,
         "capitulation_component": 0.31291905415218413,
         "trend200_component": 0.9903767272718172,
@@ -9075,7 +9075,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3202023860616004,
+            "oversold_component": 0.3202023857153708,
             "extension_component": 0.27002889035214,
             "capitulation_component": 0.31291905415218413,
             "trend200_component": 0.9903767272718172,
@@ -9183,7 +9183,7 @@
       "score_breakdown": {
         "leadership_score": 0.6988745151419372,
         "actionability_score": 0.7379044016302204,
-        "oversold_component": 0.3379007538879289,
+        "oversold_component": 0.33790075355206417,
         "extension_component": 0.28659861718471397,
         "capitulation_component": 0.6357072694989664,
         "trend200_component": 0.6375042848656093,
@@ -9259,7 +9259,7 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3379007538879289,
+            "oversold_component": 0.33790075355206417,
             "extension_component": 0.28659861718471397,
             "capitulation_component": 0.6357072694989664,
             "trend200_component": 0.6375042848656093,
@@ -9355,12 +9355,12 @@
       "quote_metrics_missing_beta_1y_count": 20,
       "quote_metrics_missing_both_count": 3,
       "quote_metrics_success_rate": 0.9893790849673203,
-      "run_duration_seconds": 467.822
+      "run_duration_seconds": 496.569
     },
     "run_timing": {
-      "started_at_utc": "2026-07-12T14:19:40.403743+00:00",
-      "finished_at_utc": "2026-07-12T14:27:28.225508+00:00",
-      "duration_seconds": 467.822
+      "started_at_utc": "2026-07-13T11:50:11.299089+00:00",
+      "finished_at_utc": "2026-07-13T11:58:27.868443+00:00",
+      "duration_seconds": 496.569
     },
     "quote_metrics": {
       "coverage": {
@@ -11828,9 +11828,9 @@
         ]
       },
       "market_cap_source_counts": {
-        "fast_info": 972,
+        "fast_info": 943,
         "unavailable": 6,
-        "stale_cache": 1470
+        "stale_cache": 1499
       },
       "beta_1y_source_counts": {
         "computed_adj_close": 2424,
