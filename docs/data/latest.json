@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-07-24T05:51:47.294562+00:00",
+    "generated_at": "2026-07-24T11:17:16.248723+00:00",
     "regime": "Choppy",
     "engine": "playbook",
     "universe_size": 2447,
@@ -7814,35 +7814,35 @@
       "adj_close": 70.33000183105469,
       "volume": 1356700.0,
       "high_20d": 73.62999725341797,
-      "rsi14": 57.37902287698368,
-      "bb_upper": 73.88905714773419,
-      "bb_lower": 65.77394334054706,
+      "rsi14": 57.37902287700944,
+      "bb_upper": 73.88905714773396,
+      "bb_lower": 65.77394334054729,
       "sma20": 69.83150024414063,
       "sma50": 65.85278587341308,
-      "sma200": 51.408756256103516,
+      "sma200": 51.40875637054443,
       "ema9": 69.60854903051911,
-      "ema21": 68.80940907498228,
+      "ema21": 68.8094090749825,
       "atr14": 2.4967150006975447,
       "avg_dollar_volume_20d": 110659745.12950897,
       "median_dollar_volume_20d": 104604432.03125,
       "market_cap": 7872258503.795715,
-      "beta_1y": 1.6270611407237356,
+      "beta_1y": 1.6270609906859153,
       "engine": "weak",
-      "score": 74.38307593911955,
+      "score": 74.38307589548722,
       "playbook_id": "LEADER_PULLBACK",
       "playbook_label": "Leader Pullback",
       "intent": "trade",
       "regime_reason": "weak_engine_watchlist_wait_for_quality_or_reclaim",
       "setup_tag": "Actionable Breakout",
-      "leadership_score": 0.6908958914908587,
+      "leadership_score": 0.6908958904000505,
       "actionability_score": 0.7791206713247534,
       "score_breakdown": {
-        "leadership_score": 0.6908958914908587,
+        "leadership_score": 0.6908958904000505,
         "actionability_score": 0.7791206713247534,
-        "oversold_component": 0.3155411662588508,
-        "extension_component": 0.45701478422105823,
+        "oversold_component": 0.3155411662582786,
+        "extension_component": 0.4570147842210748,
         "capitulation_component": 0.47535254475998906,
-        "trend200_component": 0.8478794731714093,
+        "trend200_component": 0.8478794709897929,
         "trend50_component": 0.6849131754133182,
         "liquidity_component": 0.4177057562156959,
         "safety_component": 0.44878437593423987,
@@ -7857,10 +7857,10 @@
           "liquidity": 1.0
         },
         "raw_features": {
-          "oversold": -0.9126340958994561,
-          "extension": -0.06926844064857811,
+          "oversold": -0.9126340959003146,
+          "extension": -0.06926844064857442,
           "capitulation": 0.8622531470004957,
-          "trend200": 0.368054918128947,
+          "trend200": 0.36805491508352306,
           "trend50": 0.06798825438073375,
           "liquidity": 110659745.12950897,
           "atr_pct": 0.03549999908566906,
@@ -7894,9 +7894,9 @@
             "name": "normalized_scoring",
             "passed": true,
             "checks": {
-              "leadership_score": 0.6908958914908587,
+              "leadership_score": 0.6908958904000505,
               "actionability_score": 0.7791206713247534,
-              "score": 74.38307593911955,
+              "score": 74.38307589548722,
               "setup_tag": "Actionable Breakout",
               "intent": "watchlist"
             }
@@ -7904,10 +7904,10 @@
         ],
         "snapshots": {
           "raw_features": {
-            "oversold": -0.9126340958994561,
-            "extension": -0.06926844064857811,
+            "oversold": -0.9126340959003146,
+            "extension": -0.06926844064857442,
             "capitulation": 0.8622531470004957,
-            "trend200": 0.368054918128947,
+            "trend200": 0.36805491508352306,
             "trend50": 0.06798825438073375,
             "liquidity": 110659745.12950897,
             "atr_pct": 0.03549999908566906,
@@ -7915,10 +7915,10 @@
             "reclaim_score": 1.0
           },
           "normalized_components": {
-            "oversold_component": 0.3155411662588508,
-            "extension_component": 0.45701478422105823,
+            "oversold_component": 0.3155411662582786,
+            "extension_component": 0.4570147842210748,
             "capitulation_component": 0.47535254475998906,
-            "trend200_component": 0.8478794731714093,
+            "trend200_component": 0.8478794709897929,
             "trend50_component": 0.6849131754133182,
             "liquidity_component": 0.4177057562156959,
             "safety_component": 0.44878437593423987,
@@ -9299,12 +9299,12 @@
       "quote_metrics_missing_beta_1y_count": 15,
       "quote_metrics_missing_both_count": 3,
       "quote_metrics_success_rate": 0.991421568627451,
-      "run_duration_seconds": 1325.623
+      "run_duration_seconds": 1463.643
     },
     "run_timing": {
-      "started_at_utc": "2026-07-24T05:29:41.667157+00:00",
-      "finished_at_utc": "2026-07-24T05:51:47.289898+00:00",
-      "duration_seconds": 1325.623
+      "started_at_utc": "2026-07-24T10:52:52.600426+00:00",
+      "finished_at_utc": "2026-07-24T11:17:16.243765+00:00",
+      "duration_seconds": 1463.643
     },
     "quote_metrics": {
       "coverage": {
