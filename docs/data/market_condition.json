@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-31T05:53:50.321595+00:00",
+  "generated_at": "2026-07-31T11:25:21.630861+00:00",
   "regime_label": "Choppy",
   "signals": {
     "spy_close_above_sma200": true,
@@ -7,7 +7,7 @@
     "sma50_up_10d": true
   },
   "spy_close": 741.6900024414062,
-  "vix_close": 17.09000015258789,
+  "vix_close": 16.760000228881836,
   "distribution_day_count_25d": 7,
   "distribution_day_count_25d_series": [
     0,
