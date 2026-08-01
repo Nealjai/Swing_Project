@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-08-01T05:44:12.179349+00:00",
+    "generated_at": "2026-08-01T10:31:46.952569+00:00",
     "regime": "Bull",
     "engine": "playbook",
     "universe_size": 2447,
@@ -5622,7 +5622,7 @@
       "atr14": 6.697139195033482,
       "avg_dollar_volume_20d": 2087243725.6954193,
       "median_dollar_volume_20d": 2054835707.9238892,
-      "market_cap": 617777520049.8037,
+      "market_cap": 549784282537.4414,
       "beta_1y": -0.1924077823909533,
       "engine": "weak",
       "score": 76.50645572398311,
@@ -6174,7 +6174,7 @@
       "atr14": 7.003567286900112,
       "avg_dollar_volume_20d": 173535184.9585724,
       "median_dollar_volume_20d": 170353657.2189331,
-      "market_cap": 15865149503.495178,
+      "market_cap": 14112608306.48,
       "beta_1y": 0.4054442011228871,
       "engine": "weak",
       "score": 76.32651043719527,
@@ -8198,7 +8198,7 @@
       "atr14": 8.193572998046875,
       "avg_dollar_volume_20d": 3213556768.903656,
       "median_dollar_volume_20d": 2804139724.77417,
-      "market_cap": 935128200714.1113,
+      "market_cap": 871430706632.8479,
       "beta_1y": 0.8319702533677742,
       "engine": "weak",
       "score": 75.38565616363763,
@@ -9304,12 +9304,12 @@
       "quote_metrics_missing_beta_1y_count": 14,
       "quote_metrics_missing_both_count": 2,
       "quote_metrics_success_rate": 0.9918300653594772,
-      "run_duration_seconds": 497.547
+      "run_duration_seconds": 382.581
     },
     "run_timing": {
-      "started_at_utc": "2026-08-01T05:35:54.627334+00:00",
-      "finished_at_utc": "2026-08-01T05:44:12.174399+00:00",
-      "duration_seconds": 497.547
+      "started_at_utc": "2026-08-01T10:25:24.366448+00:00",
+      "finished_at_utc": "2026-08-01T10:31:46.947376+00:00",
+      "duration_seconds": 382.581
     },
     "quote_metrics": {
       "coverage": {
@@ -11777,9 +11777,9 @@
         ]
       },
       "market_cap_source_counts": {
-        "fast_info": 1253,
+        "fast_info": 1168,
         "unavailable": 6,
-        "stale_cache": 1189
+        "stale_cache": 1274
       },
       "beta_1y_source_counts": {
         "computed_adj_close": 2431,
