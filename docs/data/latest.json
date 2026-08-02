@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-08-02T10:37:27.609556+00:00",
+    "generated_at": "2026-08-02T14:28:05.810612+00:00",
     "regime": "Bull",
     "engine": "playbook",
     "universe_size": 2447,
@@ -9304,12 +9304,12 @@
       "quote_metrics_missing_beta_1y_count": 14,
       "quote_metrics_missing_both_count": 2,
       "quote_metrics_success_rate": 0.9918300653594772,
-      "run_duration_seconds": 785.326
+      "run_duration_seconds": 539.192
     },
     "run_timing": {
-      "started_at_utc": "2026-08-02T10:24:22.279209+00:00",
-      "finished_at_utc": "2026-08-02T10:37:27.604982+00:00",
-      "duration_seconds": 785.326
+      "started_at_utc": "2026-08-02T14:19:06.613668+00:00",
+      "finished_at_utc": "2026-08-02T14:28:05.805750+00:00",
+      "duration_seconds": 539.192
     },
     "quote_metrics": {
       "coverage": {
@@ -11777,9 +11777,9 @@
         ]
       },
       "market_cap_source_counts": {
-        "fast_info": 1501,
+        "fast_info": 1493,
         "unavailable": 6,
-        "stale_cache": 941
+        "stale_cache": 949
       },
       "beta_1y_source_counts": {
         "computed_adj_close": 2431,
