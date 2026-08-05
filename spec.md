@@ -1,60 +1,53 @@
 
 # Specification: Market Condition Tab
 
-## 0. Addendum (2026-04-25): Tracker tab + 10-trading-day post-discovery tracking
+## 0. Addendum (2026-08-05): Contract alignment to current runtime
 
 ### Goal
-Add a separate Tracker feature that measures how qualified bull-engine discoveries perform after they are first detected, without changing existing screener output contracts or deployment behavior.
+Align this spec with the actual implementation currently running in [`scripts/run_daily.py`](scripts/run_daily.py:314), [`src/screener/tracker.py`](src/screener/tracker.py:626), and [`src/screener/market_condition.py`](src/screener/market_condition.py:198).
 
-### Approved inclusion + lifecycle rules
+### Tracker inclusion + lifecycle rules (current)
 - Include only symbols that satisfy all conditions on the run day:
-  - engine is `bull`
-  - rank is top 10 (`rank <= 10`)
-  - has both tags by score thresholds:
-    - 🏆: `leadership_score >= 0.90`
-    - ⚡: `actionability_score >= 0.58`
-- Persist original `capture_date_utc` while symbol remains active.
-- Track for `10` trading days (`days_tracked_trading`).
-- Auto-drop after the 10-trading-day window.
-- If rediscovered after being dropped, create a new active record (new capture cycle).
+  - `intent == trade`
+  - `rank <= 10`
+  - `risk.position_sizing.max_shares > 0`
+- Quality gate is hybrid and dynamic (not fixed 0.90/0.58 only):
+  - strict route: leadership dynamic quantile gate (`q90`) + actionability floor (`>= 0.58`)
+  - playbook-aware relaxed route:
+    - `PULLBACK_ENTRY` / `TIGHT_BASE` / `LEADER_PULLBACK`: leadership `>= q85`, actionability `>= 0.55`
+    - `BREAKOUT`: leadership `>= q88`, actionability `>= 0.58`
+- Tracker lifecycle is position-state based:
+  - records remain `active` until stop-loss / trailing-stop / time-stop logic exits the position
+  - exited records become `inactive`
+  - max tracked window is capped at 15 trading days in runtime calculations
 
-### Data contract
-New additive artifact only: [`docs/data/tracker.json`](docs/data/tracker.json:1)
+### Tracker data contract (current)
+Artifact: [`docs/data/tracker.json`](docs/data/tracker.json:1)
 
 Top-level structure:
-- `meta` (generated timestamp, tracker rules, counts)
-- `active` (active tracked records)
-- `dropped` (recent dropped records)
-- `items` (combined list for easy frontend rendering)
+- `meta` (generated timestamp, rules, counts)
+- `active` (active records)
+- `inactive` (inactive/exited records)
+- `dropped` (backward-compat alias of `inactive`)
+- `items` (combined active + inactive list)
 
-Approved record fields:
-- `symbol`
-- `capture_date_utc`
-- `capture_close`
-- `current_close`
-- `return_since_capture_pct`
-- `days_tracked_trading`
-- `expiry_date_utc`
-- `status` (`active` | `dropped`)
-- `rank_at_capture`
-- `score_at_capture`
-- `distance_to_sma20_pct`
-- `rsi14`
-- `volume_buzz_ratio` (`today_volume / avg_50d_volume`)
-- `last_updated_utc`
+Representative record fields (runtime-generated):
+- identity/context: `symbol`, `engine`, `playbook_id`, `playbook_label`, `regime_label`, `intent`
+- capture/entry: `capture_date_utc`, `entry_date_utc`, `entry_price`, `capture_close`, `current_close`
+- performance/state: `return_since_capture_pct`, `days_tracked_trading`, `expiry_date_utc`, `status`, `position_state`
+- risk/execution: `signal_close`, `signal_atr14`, `stop_loss`, `activation_level`, `trailing_stop_offset`, `trail_stop_price`
+- lifecycle events: `activated`, `activation_date_utc`, `activation_price`, `partial_exit_done`, `partial_exit_fraction`, `highest_close_since_entry`
+- exit/status labels: `exit_reason`, `exit_date_utc`, `exit_price`, `status_tags`, `status_tag`, `last_updated_utc`
 
-### Architecture changes (additive only)
-- Backend tracker module: [`update_tracker_file()`](src/screener/tracker.py:288)
-- Runtime integration in daily job: [`main()`](scripts/run_daily.py:203)
-- New frontend tab and table rendering:
-  - markup: [`docs/index.html`](docs/index.html:29)
-  - logic: [`renderTracker()`](docs/app.js:2891)
-  - style: [`docs/styles.css`](docs/styles.css:379)
+### Runtime integration points
+- Tracker writer: [`update_tracker_file()`](src/screener/tracker.py:626)
+- Daily pipeline integration: [`main()`](scripts/run_daily.py:314)
+- Frontend consumer:
+  - fetch paths in [`docs/app.js`](docs/app.js:3569)
 
 ### Non-goals
-- No changes to ranking model behavior.
-- No changes to existing screener output file contract in [`docs/data/latest.json`](docs/data/latest.json:1).
-- No changes to backtest data contract.
+- No behavior change from this documentation update.
+- No alteration to the existing output contracts beyond documenting current truth.
 
 ## 0. Addendum (2026-04-18): Normalized dual-engine scoring refactor
 
@@ -157,134 +150,57 @@ graph TD
 
 ## 2. Data Structure
 
-The `docs/data/market_condition.json` file will have the following structure:
+The [`docs/data/market_condition.json`](docs/data/market_condition.json:1) file currently follows this structure:
 
 ```json
 {
-  "generated_at": "YYYY-MM-DDTHH:MM:SSZ",
-  "regime": "Bull",
+  "generated_at": "YYYY-MM-DDTHH:MM:SS+00:00",
+  "regime_label": "Bull",
+  "signals": {
+    "spy_close_above_sma200": true,
+    "spy_close_above_sma50": true,
+    "sma50_up_10d": true
+  },
   "spy_close": 450.75,
   "vix_close": 15.2,
-  "distribution_day_count": 3,
-  "ftd_count": 1,
-  "chart_data": {
-    "dates": ["2023-01-01", "..."],
-    "spy_close": [440.1, "..."],
-    "sma50": [430.5, "..."],
-    "sma200": [400.2, "..."],
+  "distribution_day_count_25d": 3,
+  "distribution_day_count_25d_series": [0, 1, 1, 2],
+  "distribution_day_dates": ["2023-10-26"],
+  "follow_through_day_dates": ["2023-11-02"],
+  "chart_markers": {
     "distribution_days": [
-        { "date": "2023-10-26", "price": 413.72 },
+      { "date": "2023-10-26", "price": 413.72 }
     ],
     "follow_through_days": [
-        { "date": "2023-11-02", "price": 431.75 },
+      { "date": "2023-11-02", "price": 431.75 }
     ]
+  },
+  "spy_history": {
+    "dates": ["2023-01-01", "..."],
+    "open": [440.1, "..."],
+    "high": [443.2, "..."],
+    "low": [437.8, "..."],
+    "close": [441.7, "..."],
+    "volume": [73000000, "..."],
+    "sma50": [430.5, "..."],
+    "sma200": [400.2, "..."]
   }
 }
 ```
 
-## 3. Backend Implementation
+## 3. Backend Implementation (current)
 
-### 3.1. New File: `src/screener/market_condition.py`
+### 3.1 Market condition builder
+- Implemented by [`get_market_condition()`](src/screener/market_condition.py:198).
+- Downloads SPY/VIX history via [`_download_history()`](src/screener/market_condition.py:37).
+- Computes indicators via [`_add_spy_indicators()`](src/screener/market_condition.py:66).
+- Produces regime label via [`_calculate_regime_signals()`](src/screener/market_condition.py:75) + [`_determine_regime()`](src/screener/market_condition.py:84).
+- Produces DD/FTD markers via [`_distribution_days()`](src/screener/market_condition.py:100) and [`_follow_through_days()`](src/screener/market_condition.py:118).
 
-This file will contain the logic for market analysis.
-
-```python
-# src/screener/market_condition.py
-
-import pandas as pd
-from src.screener import data
-
-def calculate_regime(spy_df: pd.DataFrame) -> str:
-    """
-    Calculates the market regime based on three signals.
-    - Signal 1: SPY close > 200-day SMA.
-    - Signal 2: SPY close > 50-day SMA.
-    - Signal 3: 50-day SMA 5-day direction > +0.1%.
-    """
-    # ... implementation ...
-    return "Bull" # or "Bear", "Choppy"
-
-def calculate_distribution_days(spy_df: pd.DataFrame) -> (int, list):
-    """
-    Identifies and counts distribution days over a rolling 25-day window.
-    - SPY close down >= 0.2%.
-    - Volume > prior day's volume.
-    """
-    # ... implementation ...
-    return (3, [{"date": "...", "price": ...}])
-
-def calculate_follow_through_days(spy_df: pd.DataFrame) -> (int, list):
-    """
-    Identifies and counts Follow-Through Days (FTD).
-    - Occurs on day 4 or later of a rally attempt.
-    - SPY gain >= 1.25%.
-    - Volume > prior day's volume.
-    """
-    # ... implementation ...
-    return (1, [{"date": "...", "price": ...}])
-
-def generate_market_condition_data() -> dict:
-    """
-    Main function to generate the complete market condition data package.
-    """
-    spy_df = data.get_history('SPY', days=300)
-    vix_df = data.get_history('^VIX', days=5)
-
-    # Calculate indicators
-    regime = calculate_regime(spy_df)
-    dd_count, dd_markers = calculate_distribution_days(spy_df)
-    ftd_count, ftd_markers = calculate_follow_through_days(spy_df)
-
-    # Prepare data structure
-    market_condition = {
-        "generated_at": pd.Timestamp.utcnow().isoformat(),
-        "regime": regime,
-        "spy_close": spy_df['Close'].iloc[-1],
-        "vix_close": vix_df['Close'].iloc[-1],
-        "distribution_day_count": dd_count,
-        "ftd_count": ftd_count,
-        "chart_data": {
-            "dates": spy_df.index.strftime('%Y-%m-%d').tolist(),
-            "spy_close": spy_df['Close'].tolist(),
-            "sma50": spy_df['SMA50'].tolist(),
-            "sma200": spy_df['SMA200'].tolist(),
-            "distribution_days": dd_markers,
-            "follow_through_days": ftd_markers,
-        }
-    }
-    return market_condition
-
-```
-
-### 3.2. Modifications to `scripts/run_daily.py`
-
-The daily script will be updated to run the new market condition analysis.
-
-```python
-# scripts/run_daily.py
-
-# ... existing imports ...
-from src.screener import market_condition # New import
-import json
-
-def save_json(data: dict, path: str):
-    """Utility to save dict to JSON."""
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
-
-def main():
-    # ... existing logic to run screener and save latest.json ...
-
-    # --- New Section ---
-    print("Running market condition analysis...")
-    market_data = market_condition.generate_market_condition_data()
-    save_json(market_data, 'docs/data/market_condition.json')
-    print("Market condition data saved.")
-    # --- End New Section ---
-
-if __name__ == "__main__":
-    main()
-```
+### 3.2 Daily pipeline integration
+- Daily runtime calls market condition generation in [`main()`](scripts/run_daily.py:396).
+- Result is written to [`docs/data/market_condition.json`](docs/data/market_condition.json:1) in [`main()`](scripts/run_daily.py:570).
+- Daily runtime also writes tracker payload via [`update_tracker_file()`](src/screener/tracker.py:626) and screener payload via [`export_outputs()`](src/screener/export.py:30).
 
 ## 4. Frontend Implementation
 
