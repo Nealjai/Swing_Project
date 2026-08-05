@@ -507,14 +507,55 @@ def simulate_portfolio(
                         }
                     )
 
-        # Exit logic follows engine-planned path:
-        # - optional partial take-profit leg at activation_date/activation_price
-        # - final exit at planned_exit_date close (or planned_exit_raw fallback)
+        # Exit logic with gap-aware and intraday trigger handling.
+        # Priority for ambiguous same-bar risk touches is conservative: stop-loss first.
         to_close: List[tuple[str, Dict[str, object], float, str]] = []
         for sym, pos in list(open_positions.items()):
+            open_series = open_map.get(sym)
+            high_series = high_map.get(sym)
+            low_series = low_map.get(sym)
             close_series = close_map.get(sym)
-            close_px = None if close_series is None else _safe_float(close_series.loc[day])
 
+            day_open = None if open_series is None else _safe_float(open_series.loc[day])
+            day_high = None if high_series is None else _safe_float(high_series.loc[day])
+            day_low = None if low_series is None else _safe_float(low_series.loc[day])
+            day_close = None if close_series is None else _safe_float(close_series.loc[day])
+
+            sl_level = _safe_float(pos.get("sl_level"))
+            planned_exit_date = pd.Timestamp(pos.get("planned_exit_date"))
+            planned_exit_raw = _safe_float(pos.get("planned_exit_raw"))
+
+            exit_raw: float | None = None
+            exit_reason: str | None = None
+
+            # Gap-at-open hard stop.
+            if day_open is not None and day_open > 0:
+                if sl_level is not None and sl_level > 0 and day_open <= sl_level:
+                    exit_raw = float(day_open)
+                    exit_reason = "sl_gap_open"
+
+            # Intraday hard stop.
+            if exit_raw is None:
+                hit_sl = bool(sl_level is not None and sl_level > 0 and day_low is not None and day_low <= sl_level)
+                if hit_sl:
+                    exit_raw = float(sl_level)
+                    exit_reason = "sl_intraday"
+
+            # Planned-time fallback.
+            if exit_raw is None and day >= planned_exit_date:
+                base_reason = str(pos.get("exit_reason") or "planned_exit")
+                if day_close is not None and day_close > 0:
+                    exit_raw = float(day_close)
+                    exit_reason = f"{base_reason}_at_close"
+                elif planned_exit_raw is not None and planned_exit_raw > 0:
+                    exit_raw = float(planned_exit_raw)
+                    exit_reason = f"{base_reason}_raw_fallback"
+
+            if exit_raw is not None and exit_raw > 0 and exit_reason is not None:
+                to_close.append((sym, pos, float(exit_raw), str(exit_reason)))
+                continue
+
+            # Optional partial exit on activation after hard risk exits are checked.
             activation_date = pos.get("activation_date")
             activation_raw = _safe_float(pos.get("activation_raw"))
             partial_exit_fraction = _safe_float(pos.get("partial_exit_fraction"))
@@ -529,48 +570,43 @@ def simulate_portfolio(
                 and partial_exit_fraction is not None
                 and partial_exit_fraction > 0
             ):
-                shares_before = int(pos.get("shares", 0) or 0)
-                if shares_before > 1:
-                    partial_shares = int(floor(shares_before * float(partial_exit_fraction)))
-                    partial_shares = max(1, min(partial_shares, shares_before - 1))
-                    partial_fill = float(activation_raw) * (1.0 - float(config.slippage_pct_each_side))
-                    partial_proceeds = (partial_shares * partial_fill) - float(config.commission_per_side)
+                activation_hit = False
+                partial_exit_raw = None
+                if day_open is not None and day_open >= float(activation_raw):
+                    activation_hit = True
+                    partial_exit_raw = float(day_open)
+                elif day_high is not None and day_high >= float(activation_raw):
+                    activation_hit = True
+                    partial_exit_raw = float(activation_raw)
 
-                    cash += partial_proceeds
-                    turnover_dollars += partial_shares * partial_fill
-                    pos["shares"] = shares_before - partial_shares
-                    pos["partial_taken"] = True
-                    pos["exit_proceeds_accum"] = float(pos.get("exit_proceeds_accum", 0.0) or 0.0) + float(partial_proceeds)
-                    pos["exit_legs"] = int(pos.get("exit_legs", 0) or 0) + 1
+                if activation_hit and partial_exit_raw is not None and partial_exit_raw > 0:
+                    shares_before = int(pos.get("shares", 0) or 0)
+                    if shares_before > 1:
+                        partial_shares = int(floor(shares_before * float(partial_exit_fraction)))
+                        partial_shares = max(1, min(partial_shares, shares_before - 1))
+                        partial_fill = float(partial_exit_raw) * (1.0 - float(config.slippage_pct_each_side))
+                        partial_proceeds = (partial_shares * partial_fill) - float(config.commission_per_side)
 
-                    fills_log.append(
-                        {
-                            "date": day.strftime("%Y-%m-%d"),
-                            "symbol": pos.get("symbol"),
-                            "yf_symbol": sym,
-                            "engine": pos.get("engine"),
-                            "entry_date": pd.Timestamp(pos.get("entry_date")).strftime("%Y-%m-%d"),
-                            "status": "partial_exit",
-                            "reason": "activation_half_take_profit",
-                            "shares": int(partial_shares),
-                            "exit_fill": float(partial_fill),
-                        }
-                    )
+                        cash += partial_proceeds
+                        turnover_dollars += partial_shares * partial_fill
+                        pos["shares"] = shares_before - partial_shares
+                        pos["partial_taken"] = True
+                        pos["exit_proceeds_accum"] = float(pos.get("exit_proceeds_accum", 0.0) or 0.0) + float(partial_proceeds)
+                        pos["exit_legs"] = int(pos.get("exit_legs", 0) or 0) + 1
 
-            planned_exit_date = pd.Timestamp(pos.get("planned_exit_date"))
-            planned_exit_raw = _safe_float(pos.get("planned_exit_raw"))
-            if day >= planned_exit_date:
-                exit_raw: float | None = None
-                exit_reason = str(pos.get("exit_reason") or "planned_exit")
-                if close_px is not None and close_px > 0:
-                    exit_raw = float(close_px)
-                    exit_reason = f"{exit_reason}_at_close"
-                elif planned_exit_raw is not None and planned_exit_raw > 0:
-                    exit_raw = float(planned_exit_raw)
-                    exit_reason = f"{exit_reason}_raw_fallback"
-
-                if exit_raw is not None and exit_raw > 0:
-                    to_close.append((sym, pos, float(exit_raw), exit_reason))
+                        fills_log.append(
+                            {
+                                "date": day.strftime("%Y-%m-%d"),
+                                "symbol": pos.get("symbol"),
+                                "yf_symbol": sym,
+                                "engine": pos.get("engine"),
+                                "entry_date": pd.Timestamp(pos.get("entry_date")).strftime("%Y-%m-%d"),
+                                "status": "partial_exit",
+                                "reason": "activation_partial_exit_half",
+                                "shares": int(partial_shares),
+                                "exit_fill": float(partial_fill),
+                            }
+                        )
 
         for sym, pos, exit_raw, exit_reason in to_close:
             exit_fill = exit_raw * (1.0 - float(config.slippage_pct_each_side))
@@ -588,13 +624,16 @@ def simulate_portfolio(
             basis = float(pos["entry_cost"])
             pnl_pct = ((pnl_dollar / basis) * 100.0) if basis > 0 else None
 
+            entry_ts = pd.Timestamp(pos["entry_date"])
+            hold_days = int(max(1, (day - entry_ts).days + 1))
             executed_trades.append(
                 {
                     "symbol": pos["symbol"],
                     "yf_symbol": sym,
                     "engine": pos["engine"],
-                    "entry_date": pd.Timestamp(pos["entry_date"]).strftime("%Y-%m-%d"),
+                    "entry_date": entry_ts.strftime("%Y-%m-%d"),
                     "exit_date": day.strftime("%Y-%m-%d"),
+                    "hold_days": hold_days,
                     "shares": int(pos.get("initial_shares", shares_remaining)),
                     "entry_price_raw": float(pos["entry_raw"]),
                     "entry_price_fill": float(pos["entry_fill"]),
@@ -670,10 +709,26 @@ def simulate_portfolio(
         trading_days_per_year=int(config.trading_days_per_year),
     )
 
+    pnl_series = pd.to_numeric(executed_df.get("pnl_pct", pd.Series(dtype=float)), errors="coerce").dropna()
+    wins = pnl_series[pnl_series > 0]
+    losses = pnl_series[pnl_series < 0]
+    win_rate = (float(len(wins)) / float(len(pnl_series)) * 100.0) if len(pnl_series) else None
+    gross_profit = float(wins.sum()) if len(wins) else 0.0
+    gross_loss_abs = float(abs(losses.sum())) if len(losses) else 0.0
+    profit_factor = (gross_profit / gross_loss_abs) if gross_loss_abs > 0 else None
+    expectancy_pct = float(pnl_series.mean()) if len(pnl_series) else None
+    avg_hold_days = (
+        float(pd.to_numeric(executed_df.get("hold_days", pd.Series(dtype=float)), errors="coerce").dropna().mean())
+        if not executed_df.empty
+        else None
+    )
+    calmar = (float(cagr_pct) / float(max_drawdown_pct)) if cagr_pct is not None and max_drawdown_pct > 0 else None
+
     metrics: Dict[str, float | int | None] = {
         "total_return_pct": round(total_return_pct, 4),
         "cagr_pct": round(cagr_pct, 4) if cagr_pct is not None else None,
         "max_drawdown_pct": round(max_drawdown_pct, 4),
+        "calmar": round(float(calmar), 4) if calmar is not None and np.isfinite(calmar) else None,
         "exposure_pct": round(exposure_pct, 4),
         "months_halted": int(len(halted_months)),
         "sharpe": round(float(sharpe), 4) if sharpe is not None and np.isfinite(sharpe) else None,
@@ -682,6 +737,10 @@ def simulate_portfolio(
         "turnover_pct": round(float(turnover_pct), 4),
         "executed_trades": int(len(executed_df)),
         "rejected_entries": int(len(fills_df[fills_df.get("status") == "rejected"])) if not fills_df.empty else 0,
+        "win_rate": round(float(win_rate), 4) if win_rate is not None and np.isfinite(win_rate) else None,
+        "profit_factor": round(float(profit_factor), 4) if profit_factor is not None and np.isfinite(profit_factor) else None,
+        "expectancy_pct": round(float(expectancy_pct), 4) if expectancy_pct is not None and np.isfinite(expectancy_pct) else None,
+        "avg_hold_days": round(float(avg_hold_days), 4) if avg_hold_days is not None and np.isfinite(avg_hold_days) else None,
     }
 
     return PortfolioResult(

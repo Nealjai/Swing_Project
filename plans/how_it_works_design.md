@@ -127,15 +127,30 @@ sequenceDiagram
 
     S->>M: 1. Check SPY vs 200-Day SMA
     M-->>S: 2. Determine Regime (Bull/Weak)
-    S->>S: 3. Activate Correct Engine
-    S->>Stocks: 4. Filter & Scan Universe
-    Stocks-->>S: 5. Score Potential Candidates
-    S->>R: 6. Rank & Display Top Results
+    S->>S: 3. Run both engines + playbook routing
+    S->>Stocks: 4. Filter, score, and assign trade/watchlist intent
+    Stocks-->>S: 5. Apply hard execution contract to trade-intent setups
+    S->>R: 6. Rank and display candidates + tracker status
 ```
 
 ---
 
-### F. How to Read the Results Section
+### F. Trade Lifecycle (Hard Rules)
+
+This section explains the exact execution lifecycle used by both backtest and tracker for trade-intent setups.
+
+**UI Component:** A compact rules card and short ordered list.
+
+**Content:**
+*   **Entry:** Next session open after signal date.
+*   **Initial stop-loss:** Hard stop at `signal_close - 2 x ATR14` (gap-open and intraday aware).
+*   **Activation rule:** At `entry_price + 2 x ATR14`, automatically execute a 50% partial exit.
+*   **Trailing rule (remaining 50%):** Hard trailing stop at `highest_close_since_entry - 1.5 x ATR14` with gap-open/intraday/close handling.
+*   **Time rule:** Hard exit at day-15 close if still open.
+
+---
+
+### G. How to Read the Results Section
 
 A final, concise section explaining what a user should take away from a scanner result.
 

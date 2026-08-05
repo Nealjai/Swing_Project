@@ -174,14 +174,12 @@ let state = {
     activeRun: null,
     view: 'explorer',
     initialized: false,
-    selectedCapital: '10k',
+    selectedCapital: 'active',
     datasets: {
-      '10k': null,
-      '30k': null,
+      active: null,
     },
     availability: {
-      '10k': false,
-      '30k': false,
+      active: false,
     },
     spyDataLoaded: false,
     spyDataLoading: false,
@@ -212,11 +210,19 @@ let state = {
   },
 };
 
-function renderBanner(regime, engine) {
+function renderBanner(regime, engine, tradePolicy = {}) {
   const banner = document.getElementById('regimeBanner');
   const safeRegime = String(regime || 'unknown').toLowerCase();
   banner.className = `banner ${safeRegime === 'bull' ? 'bull' : safeRegime === 'weak' ? 'weak' : 'neutral'}`;
-  banner.textContent = `Regime: ${String(regime || '-').toUpperCase()} | Active Engine: ${String(engine || '-').toUpperCase()}`;
+
+  const policy = toObject(tradePolicy);
+  const tradeAllowed = Boolean(policy.trade_allowed);
+  const qualifiedCount = fmtInt(policy.qualified_trade_count ?? 0);
+  const cashReason = String(policy.cash_reason || '').trim();
+
+  const modeText = tradeAllowed ? 'TRADE MODE' : 'HOLD CASH';
+  const reasonText = !tradeAllowed && cashReason ? ` | Reason: ${cashReason}` : '';
+  banner.textContent = `${modeText} | Regime: ${String(regime || '-').toUpperCase()} | Active Engine: ${String(engine || '-').toUpperCase()} | Qualified Trades: ${qualifiedCount}${reasonText}`;
 }
 
 function inferActiveEngine(candidates, fallbackEngine = null) {
@@ -373,19 +379,19 @@ function getHowItWorksEngineCards() {
       checks: [
         'Leadership Quality: Uses relative, absolute, and excess return diagnostics vs SPY.',
         'Price Consolidation: Looks for Cup-with-Handle / Volatility Contraction structures.',
-        'Intent Layer: In Bear regime, candidates are usually watchlist unless strict exception gates pass.',
+        'Intent layer is cash-first: if no setup survives playbook gates, the system stays in HOLD CASH.',
       ],
     },
     {
       key: 'weak',
       title: 'Weak Engine',
-      tagline: 'Playbook-Based Weak Regime Entries',
+      tagline: 'Playbook-Based Routing and Risk-First Validation',
       purpose:
         'This engine classifies each candidate into a weak-regime playbook (Defensive RS, Capitulation→Reclaim, or Leader Pullback), then scores leadership and entry readiness with risk-first gates.',
       checks: [
-        'Playbook Routing: DEF_RS, CAP_RECLAIM, and LEADER_PB are selected from price/structure context.',
-        'Reclaim Gate: Actionability is capped unless reclaim/turn confirmation is present.',
-        'Safety Layer: ATR% and liquidity are blended to prioritize tradable, lower-chaos setups.',
+        'Playbook Routing: candidates are mapped to setup archetypes (e.g. BREAKOUT / PULLBACK_ENTRY / TIGHT_BASE / CAPITULATION_RECLAIM).',
+        'Permission Layer: regime + absolute quality gates decide whether a setup can be trade-intent or only watchlist.',
+        'Safety Layer: ATR%, liquidity, and position-sizing constraints prioritize tradable setups.',
       ],
     },
   ];
@@ -451,7 +457,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const heroSubheadline = document.getElementById('howItWorksHeroSubheadline');
   if (heroSubheadline) {
     heroSubheadline.innerHTML =
-      'Both engines run daily. Candidates are scored, tagged (🏆/⚡/👀), and assigned <strong>trade</strong> or <strong>watchlist</strong>. Weak results also include a playbook label for review.';
+      'Both engines run daily, then pass through a playbook-first policy layer. Trade-intent names follow a fixed execution contract: next-open entry, hard stop-loss, activation at entry + 2x ATR14 with automatic 50% partial exit, hard trailing stop, and hard day-15 time exit. If no trade setup qualifies, the dashboard stays in <strong>HOLD CASH</strong> mode.';
   }
 
   const logicCards = Array.from(document.querySelectorAll('.screener-logic-card'));
@@ -470,7 +476,7 @@ function renderHowItWorks(payload, marketPayload = null) {
     }
     if (engineLogicExplanation) {
       engineLogicExplanation.textContent =
-        'Both engines run daily. Weak candidates are routed into DEF_RS / CAP_RECLAIM / LEADER_PB, then scored with reclaim and safety gates. Tracker admits only top-ranked trade-intent names that meet 🏆 and ⚡ thresholds.';
+        'Both engines run daily. Outputs are routed into playbooks, then filtered by regime permissioning and absolute quality gates. Tracker keeps only trade-intent, top-ranked, positionable names using strict/relaxed hybrid quality thresholds.';
     }
   }
 
@@ -482,10 +488,10 @@ function renderHowItWorks(payload, marketPayload = null) {
     const steps = [
       'Evaluate SPY regime signals and classify market as Bull, Choppy, or Weak.',
       'Run both Bull and Weak engines across the liquid universe.',
-      'Compute normalized leadership/actionability scores and rank all candidates.',
-      'Attach tags from thresholds: 🏆 leadership, ⚡ actionable, 👀 near-actionable watchlist.',
-      'Assign intent (trade/watchlist); Weak rows also carry a playbook label.',
-      'Tracker admits only top-ranked trade-intent names that pass both 🏆 and ⚡ thresholds.',
+      'Route candidates through playbook-first policy with absolute quality gates.',
+      'Compute normalized leadership/actionability scores and assign trade/watchlist intent.',
+      'Execute trade-intent setups with next-open entry and hard stop-loss at signal close - 2x ATR14.',
+      'At activation (entry + 2x ATR14), automatically sell 50%; manage remainder with hard trailing stop (highest close - 1.5x ATR14) and hard day-15 time exit.',
     ];
     workflowEl.innerHTML = steps.map((step) => `<li>${esc(step)}</li>`).join('');
   }
@@ -493,7 +499,7 @@ function renderHowItWorks(payload, marketPayload = null) {
   const interpretationEl = document.getElementById('howItWorksInterpretationText');
   if (interpretationEl) {
     interpretationEl.innerHTML =
-      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, regime-aware setup with score context, tags, intent, and (for Weak) a playbook label. Tracker is reserved for strict trade-intent candidates that satisfy both 🏆 and ⚡.';
+      'A scanner result is <strong>not</strong> a buy signal. It is a ranked, policy-filtered setup with score context, tags, intent, playbook, and risk sizing. Tracker is reserved for trade-intent names that pass rank, positionability, and hybrid quality rules, then managed with the same hard-rule lifecycle used in backtesting.';
   }
 }
 
@@ -509,20 +515,96 @@ function renderDiagnostics(stats) {
     return;
   }
 
-  if (summary) {
-    const safeStats = toObject(stats);
-    const missingSymbols = toArray(safeStats.missingSymbols);
-    const oldSymbols = toArray(safeStats.oldSymbols);
+  const safeStats = toObject(stats);
+  const counts = toObject(safeStats.counts);
+  const skipped = toArray(safeStats.skipped);
 
+  const downloaded = toFiniteNumber(counts.downloaded_symbols ?? safeStats.downloaded_symbols) ?? 0;
+  const cached = toFiniteNumber(counts.cached_symbols ?? safeStats.cached_symbols) ?? 0;
+  const failed = toFiniteNumber(counts.missing_or_skipped_count ?? safeStats.missing_or_skipped_count ?? skipped.length) ?? skipped.length;
+
+  const attemptedFromMeta = toFiniteNumber(counts.initial_universe ?? counts.ticker_info_attempted_count);
+  const attempted = Math.max(0, Math.round(attemptedFromMeta ?? downloaded + cached + failed));
+  const success = Math.max(0, downloaded + cached);
+  const successRate = attempted > 0 ? success / attempted : null;
+
+  const rowsWithMetrics = toFiniteNumber(counts.rows_with_metrics);
+  const rankedCandidates = toFiniteNumber(counts.ranked_candidates_count ?? counts.raw_candidates_count);
+  const runSeconds = toFiniteNumber(counts.run_duration_seconds ?? toObject(safeStats.run_timing).duration_seconds);
+
+  const reasonCounts = skipped.reduce((acc, row) => {
+    const reason = String(toObject(row).reason || 'unknown').trim();
+    if (!reason) return acc;
+    acc[reason] = (acc[reason] || 0) + 1;
+    return acc;
+  }, {});
+
+  const topReasons = Object.entries(reasonCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([reason, count]) => `<li><span>${esc(reason)}</span><strong>${fmtInt(count)}</strong></li>`)
+    .join('');
+
+  if (summary) {
     summary.innerHTML = `
-      <p>Total Symbols: ${fmtInt(safeStats.totalSymbols)}</p>
-      <p>Missing Symbols: ${missingSymbols.length}</p>
-      <p>Old Symbols (not updated in > 5 days): ${oldSymbols.length}</p>
+      <h3>Data Health Summary (OHLCV)</h3>
+      <div class="diagnostics-summary-grid">
+        <article class="diagnostics-metric-card">
+          <p class="diagnostics-label">Attempted Symbols</p>
+          <p class="diagnostics-value">${fmtInt(attempted)}</p>
+        </article>
+        <article class="diagnostics-metric-card success">
+          <p class="diagnostics-label">OHLCV Success</p>
+          <p class="diagnostics-value">${fmtInt(success)}</p>
+        </article>
+        <article class="diagnostics-metric-card failure">
+          <p class="diagnostics-label">OHLCV Failed/Skipped</p>
+          <p class="diagnostics-value">${fmtInt(failed)}</p>
+        </article>
+        <article class="diagnostics-metric-card">
+          <p class="diagnostics-label">Success Rate</p>
+          <p class="diagnostics-value">${fmtPct(successRate, 2)}</p>
+        </article>
+      </div>
+
+      <div class="diagnostics-subgrid">
+        <article class="diagnostics-subcard">
+          <h4>Data Source Split</h4>
+          <p>Downloaded this run: <strong>${fmtInt(downloaded)}</strong></p>
+          <p>Loaded from cache: <strong>${fmtInt(cached)}</strong></p>
+        </article>
+        <article class="diagnostics-subcard">
+          <h4>Pipeline Coverage</h4>
+          <p>Rows with metrics: <strong>${fmtInt(rowsWithMetrics)}</strong></p>
+          <p>Ranked candidates: <strong>${fmtInt(rankedCandidates)}</strong></p>
+          <p>Run duration: <strong>${runSeconds === null ? '-' : `${fmtNumber(runSeconds, 3)}s`}</strong></p>
+        </article>
+        <article class="diagnostics-subcard">
+          <h4>Top Skip Reasons</h4>
+          ${topReasons ? `<ul class="diagnostics-reason-list">${topReasons}</ul>` : '<p>No skips reported.</p>'}
+        </article>
+      </div>
     `;
   }
 
   if (diagnosticsEl) {
-    diagnosticsEl.textContent = JSON.stringify(stats, null, 2);
+    diagnosticsEl.textContent = JSON.stringify(
+      {
+        ohlcv_health: {
+          attempted_symbols: attempted,
+          success_symbols: success,
+          failed_or_skipped_symbols: failed,
+          success_rate: successRate,
+          downloaded_symbols: downloaded,
+          cached_symbols: cached,
+          top_skip_reasons: reasonCounts,
+        },
+        counts,
+        run_timing: toObject(safeStats.run_timing),
+      },
+      null,
+      2,
+    );
   }
 }
 
@@ -550,7 +632,7 @@ function renderCandidateTable(candidates) {
 
   if (!safeCandidates.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="9">No candidates produced in this run.</td>';
+    tr.innerHTML = '<td colspan="11">No candidates produced in this run.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -562,12 +644,14 @@ function renderCandidateTable(candidates) {
       <td>${fmtInt(c.rank)}</td>
       <td>${esc(c.symbol)}</td>
       <td>${esc(c.engine)}</td>
-      <td>${esc(c.playbook_label || '-')}</td>
+      <td>${esc(c.playbook_id || c.playbook_label || '-')}</td>
+      <td>${esc(c.intent || '-')}</td>
       <td>${fmtNumber(c.score, 4)}</td>
       <td class="candidate-tag-cell">${buildCandidateTagCell(c)}</td>
       <td>${fmtNumber(c.close)}</td>
+      <td>${fmtInt(c.risk?.position_sizing?.max_shares)}</td>
       <td>${fmtNumber(c.risk?.stop_loss)}</td>
-      <td>${fmtNumber(c.risk?.activation_level ?? c.risk?.take_profit)}</td>
+      <td>${fmtNumber(c.risk?.activation_level)}</td>
     `;
 
     tr.addEventListener('click', () => {
@@ -709,14 +793,23 @@ function renderCompressedSymbolList(candidates) {
   highlightCompressedSymbolRow();
 }
 
+function getCandidateBeta(candidate) {
+  const c = toObject(candidate);
+  return c.beta_1y ?? c.beta ?? null;
+}
+
 function renderSelectedDetails(candidate) {
   const c = toObject(candidate);
   const risk = toObject(c.risk);
-  const fundamentals = toObject(c.fundamentals);
 
-  document.getElementById('selectedSymbolTitle').textContent = `${String(c.symbol || '-')} details`;
+  const titleEl = document.getElementById('selectedSymbolTitle');
+  if (titleEl) {
+    titleEl.textContent = `${String(c.symbol || '-')} details`;
+  }
 
   const meta = document.getElementById('selectedSymbolMeta');
+  if (!meta) return;
+
   meta.innerHTML = `
     <div class="meta-item">
       <div class="meta-label">Current Price (Close)</div>
@@ -727,40 +820,27 @@ function renderSelectedDetails(candidate) {
       <div class="meta-value sl">${fmtNumber(risk.stop_loss)}</div>
     </div>
     <div class="meta-item">
-      <div class="meta-label">Activation (TP1)</div>
-      <div class="meta-value tp">${fmtNumber(risk.activation_level ?? risk.take_profit)}</div>
+      <div class="meta-label">Activation</div>
+      <div class="meta-value tp">${fmtNumber(risk.activation_level)}</div>
     </div>
     <div class="meta-item">
       <div class="meta-label">ATR14</div>
       <div class="meta-value">${fmtNumber(risk.atr14)}</div>
     </div>
+    <div class="meta-item">
+      <div class="meta-label">Beta (1Y)</div>
+      <div class="meta-value">${fmtNumber(getCandidateBeta(c))}</div>
+    </div>
   `;
 
-  const fundamentalsEl = document.getElementById('selectedFundamentals');
-  fundamentalsEl.innerHTML = `
-    <div class="fund-item">
-      <div class="fund-label">ROE</div>
-      <div class="fund-value">${fmtPct(fundamentals.roe)}</div>
+  meta.innerHTML += `
+    <div class="meta-item">
+      <div class="meta-label">Engine</div>
+      <div class="meta-value">${esc(c.engine || '-')}</div>
     </div>
-    <div class="fund-item">
-      <div class="fund-label">P/E</div>
-      <div class="fund-value">${fmtNumber(fundamentals.pe)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Revenue Growth QoQ</div>
-      <div class="fund-value">${fmtPct(fundamentals.revenue_growth_qoq)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Revenue Growth YoY</div>
-      <div class="fund-value">${fmtPct(fundamentals.revenue_growth_yoy)}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Engine</div>
-      <div class="fund-value">${esc(c.engine || '-')}</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Score</div>
-      <div class="fund-value">${fmtNumber(c.score, 4)}</div>
+    <div class="meta-item">
+      <div class="meta-label">Score</div>
+      <div class="meta-value">${fmtNumber(c.score, 4)}</div>
     </div>
   `;
 }
@@ -781,18 +861,14 @@ function updateScreenerDetailsPanel(symbol) {
 
   const c = toObject(candidate);
   const risk = toObject(c.risk);
-  const fundamentals = toObject(c.fundamentals);
 
   panel.dataset.symbol = String(c.symbol || c.yf_symbol || normalized || '');
 
   setScreenerDetailField('chartDetailCurrentPrice', fmtNumber(c.close));
   setScreenerDetailField('chartDetailStopLoss', fmtNumber(risk.stop_loss));
-  setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.activation_level ?? risk.take_profit));
+  setScreenerDetailField('chartDetailTakeProfit', fmtNumber(risk.activation_level));
   setScreenerDetailField('chartDetailAtr14', fmtNumber(risk.atr14));
-  setScreenerDetailField('chartDetailRoe', fmtPct(fundamentals.roe));
-  setScreenerDetailField('chartDetailPe', fmtNumber(fundamentals.pe));
-  setScreenerDetailField('chartDetailRevGrowthQoq', fmtPct(fundamentals.revenue_growth_qoq));
-  setScreenerDetailField('chartDetailRevGrowthYoy', fmtPct(fundamentals.revenue_growth_yoy));
+  setScreenerDetailField('chartDetailBeta', fmtNumber(getCandidateBeta(c)));
   setScreenerDetailField('chartDetailEngine', String(c.engine || '-'));
   setScreenerDetailField('chartDetailScore', fmtNumber(c.score, 4));
 }
@@ -1564,7 +1640,7 @@ function renderReportMethodology(payload) {
     methodologyEl.innerHTML = `
         <p><strong>Portfolio assumptions:</strong> initial ${fmtDollar(pAssump.initial_capital)}, max positions ${fmtInt(pAssump.max_positions)}, slippage ${fmtPctPoints((Number(pAssump.slippage_pct_each_side) || 0) * 100, 3)} each side, commission ${fmtDollar(pAssump.commission_per_side)} each side.</p>
         <p><strong>Regime filter logic:</strong> Uses SPY vs SMA200 to switch between Bull and Weak engines.</p>
-        <p><strong>Entry/Exit:</strong> Entries on next session open after signal. Exits based on engine-provided stop-loss or take-profit targets.</p>
+        <p><strong>Entry/Exit:</strong> Next-open entry after signal, hard stop-loss at signal close - 2x ATR14, activation at entry + 2x ATR14 with automatic 50% partial exit, remaining 50% managed by hard trailing stop (highest close - 1.5x ATR14) or hard time stop at day-15 close.</p>
     `;
 }
 
@@ -1580,13 +1656,15 @@ function renderReportDiagnostics(payload) {
 }
 
 const BACKTEST_ACTIVE_PATHS = {
-  '10k': 'data/backtest_active_10k.json',
-  '30k': 'data/backtest_active_30k.json',
+  active: 'data/backtest_active.json',
 };
 
 const BACKTEST_COMPARE_METRICS = [
   { key: 'total_return_pct', label: 'Total Return', type: 'pct' },
+  { key: 'cagr_pct', label: 'CAGR', type: 'pct' },
   { key: 'max_drawdown_pct', label: 'Max Drawdown', type: 'pct' },
+  { key: 'calmar', label: 'Calmar', type: 'num' },
+  { key: 'win_rate', label: 'Win Rate', type: 'pct' },
   { key: 'executed_trades', label: 'Executed Trades', type: 'int' },
   { key: 'rejected_entries', label: 'Rejected Entries', type: 'int' },
   { key: 'avg_positions', label: 'Avg Positions', type: 'num' },
@@ -1596,9 +1674,6 @@ function getBacktestActiveElements() {
   return {
     errorEl: document.getElementById('backtestError'),
     panel: document.getElementById('backtestActivePanel'),
-    toggle: document.getElementById('btScenarioToggle'),
-    btn10k: document.getElementById('btSelect10k'),
-    btn30k: document.getElementById('btSelect30k'),
     visibleRangeEl: document.getElementById('btVisibleRange'),
     runNameEl: document.getElementById('btRunName'),
     scenarioEl: document.getElementById('btScenario'),
@@ -1624,6 +1699,10 @@ function getBacktestActiveElements() {
     benchSpyCagrEl: document.getElementById('btBenchSpyCagr'),
     benchStrategyMaxDdEl: document.getElementById('btBenchStrategyMaxDd'),
     benchSpyMaxDdEl: document.getElementById('btBenchSpyMaxDd'),
+    benchStrategyVolEl: document.getElementById('btBenchStrategyVol'),
+    benchSpyVolEl: document.getElementById('btBenchSpyVol'),
+    benchCorrelationEl: document.getElementById('btBenchCorrelation'),
+    benchBetaEl: document.getElementById('btBenchBeta'),
     monthlyTbodyEl: document.getElementById('btMonthlyTbody'),
     annualTbodyEl: document.getElementById('btAnnualTbody'),
     methodologyEl: document.getElementById('btMethodology'),
@@ -1632,8 +1711,8 @@ function getBacktestActiveElements() {
   };
 }
 
-function getBacktestScenarioLabel(capitalKey) {
-  return capitalKey === '30k' ? '30K Starting Capital' : '10K Starting Capital';
+function getBacktestScenarioLabel(_capitalKey) {
+  return 'Active Run';
 }
 
 function setBacktestActiveError(message) {
@@ -1684,8 +1763,10 @@ function formatReasonLabel(reason) {
 
 function filterBacktestToVisibleWindow(payload) {
   const p = toObject(payload);
+  const meta = toObject(p.meta);
   const portfolio = toObject(p.portfolio);
   const curve = toObject(portfolio.curve);
+
   const rawDates = toArray(curve.dates).map((d) => String(d || '').slice(0, 10));
   const rawEquity = toArray(curve.equity).map((v) => (Number.isFinite(Number(v)) ? Number(v) : null));
   const rawDrawdown = toArray(curve.drawdown_pct).map((v) => (Number.isFinite(Number(v)) ? Number(v) : null));
@@ -1702,27 +1783,38 @@ function filterBacktestToVisibleWindow(payload) {
     };
   }
 
-  const parsedDates = rawDates.map((d) => new Date(`${d}T00:00:00Z`));
-  const endDate = parsedDates[parsedDates.length - 1];
-  const startDate = new Date(endDate.getTime());
-  startDate.setUTCFullYear(startDate.getUTCFullYear() - 5);
+  // Use the backtest run's own requested window for the "active" panel.
+  // The old 5Y rolling filter hard-coded a recent window and breaks historical comparisons.
+  const runStartRaw = String(meta.start_date || rawDates[0] || '').slice(0, 10);
+  const runEndRaw = String(meta.end_date || rawDates[rawDates.length - 1] || '').slice(0, 10);
 
-  const visibleIdx = [];
-  for (let i = 0; i < parsedDates.length; i += 1) {
-    if (parsedDates[i].getTime() >= startDate.getTime()) visibleIdx.push(i);
+  const runStart = runStartRaw || rawDates[0] || null;
+  const runEnd = runEndRaw || rawDates[rawDates.length - 1] || null;
+
+  const dates = [];
+  const equity = [];
+  const drawdown = [];
+
+  for (let i = 0; i < rawDates.length; i += 1) {
+    const d = rawDates[i];
+    if (!d) continue;
+    if (runStart && d < runStart) continue;
+    if (runEnd && d > runEnd) continue;
+
+    dates.push(d);
+    equity.push(rawEquity[i]);
+    drawdown.push(rawDrawdown[i]);
   }
 
-  const dates = visibleIdx.map((i) => rawDates[i]);
-  const equity = visibleIdx.map((i) => rawEquity[i]);
-  const drawdown = visibleIdx.map((i) => rawDrawdown[i]);
-  const visibleStart = dates[0] || rawDates[0] || null;
-  const visibleEnd = dates[dates.length - 1] || rawDates[rawDates.length - 1] || null;
+  const visibleStart = dates[0] || runStart || rawDates[0] || null;
+  const visibleEnd = dates[dates.length - 1] || runEnd || rawDates[rawDates.length - 1] || null;
 
   const monthly = toArray(portfolio.monthly_returns).filter((row) => {
     const month = String(toObject(row).month || '');
     if (!month) return false;
-    const monthDate = new Date(`${month}-01T00:00:00Z`);
-    return monthDate.getTime() >= startDate.getTime();
+    if (visibleStart && `${month}-01` < visibleStart.slice(0, 7) + '-01') return false;
+    if (visibleEnd && `${month}-01` > visibleEnd.slice(0, 7) + '-01') return false;
+    return true;
   });
 
   const byYearEngine = toObject(toObject(p.stats).by_year_engine ?? toObject(p.stats).by_year_by_engine);
@@ -1781,6 +1873,87 @@ function computeAnnualizedReturnPct(startValue, endValue, startDate, endDate) {
   return (Math.pow(e / s, 1 / years) - 1) * 100;
 }
 
+function computeSeriesDailyReturns(values) {
+  const src = toArray(values).map((v) => Number(v));
+  if (src.length < 2) return [];
+
+  const out = [];
+  for (let i = 1; i < src.length; i += 1) {
+    const prev = src[i - 1];
+    const curr = src[i];
+    if (!Number.isFinite(prev) || !Number.isFinite(curr) || prev <= 0) {
+      out.push(null);
+      continue;
+    }
+    out.push(curr / prev - 1);
+  }
+  return out;
+}
+
+function computeMean(values) {
+  const valid = toArray(values).map((v) => Number(v)).filter((v) => Number.isFinite(v));
+  if (!valid.length) return null;
+  return valid.reduce((acc, v) => acc + v, 0) / valid.length;
+}
+
+function computeSampleVariance(values) {
+  const valid = toArray(values).map((v) => Number(v)).filter((v) => Number.isFinite(v));
+  if (valid.length < 2) return null;
+  const mean = computeMean(valid);
+  if (!Number.isFinite(mean)) return null;
+
+  let sumSq = 0;
+  for (const v of valid) {
+    const delta = v - mean;
+    sumSq += delta * delta;
+  }
+  return sumSq / (valid.length - 1);
+}
+
+function computeSampleCovariance(aValues, bValues) {
+  const a = toArray(aValues);
+  const b = toArray(bValues);
+  const n = Math.min(a.length, b.length);
+  if (n < 2) return null;
+
+  const pairs = [];
+  for (let i = 0; i < n; i += 1) {
+    const av = Number(a[i]);
+    const bv = Number(b[i]);
+    if (!Number.isFinite(av) || !Number.isFinite(bv)) continue;
+    pairs.push([av, bv]);
+  }
+
+  if (pairs.length < 2) return null;
+
+  const meanA = pairs.reduce((acc, [x]) => acc + x, 0) / pairs.length;
+  const meanB = pairs.reduce((acc, [, y]) => acc + y, 0) / pairs.length;
+
+  let acc = 0;
+  for (const [x, y] of pairs) {
+    acc += (x - meanA) * (y - meanB);
+  }
+
+  return acc / (pairs.length - 1);
+}
+
+function computeCorrelation(aValues, bValues) {
+  const cov = computeSampleCovariance(aValues, bValues);
+  const varA = computeSampleVariance(aValues);
+  const varB = computeSampleVariance(bValues);
+  if (!Number.isFinite(cov) || !Number.isFinite(varA) || !Number.isFinite(varB) || varA <= 0 || varB <= 0) {
+    return null;
+  }
+
+  return cov / Math.sqrt(varA * varB);
+}
+
+function computeAnnualizedVolatilityPct(dailyReturns) {
+  const variance = computeSampleVariance(dailyReturns);
+  if (!Number.isFinite(variance) || variance < 0) return null;
+  return Math.sqrt(variance) * Math.sqrt(252) * 100;
+}
+
 function buildDateAdjCloseMap(spyPayload) {
   const p = toObject(spyPayload);
   const dates = toArray(p.Date?.length ? p.Date : p.dates);
@@ -1805,6 +1978,65 @@ function buildDateAdjCloseMap(spyPayload) {
   return out;
 }
 
+function buildDateAdjCloseMapFromCsv(csvText) {
+  const raw = String(csvText || '').trim();
+  if (!raw) return {};
+
+  const lines = raw.split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return {};
+
+  const header = lines[0].split(',').map((col) => String(col || '').trim());
+  const dateIdx = header.findIndex((col) => col.toLowerCase() === 'date');
+  const adjIdx = header.findIndex((col) => col.toLowerCase() === 'adj close');
+  const closeIdx = header.findIndex((col) => col.toLowerCase() === 'close');
+
+  if (dateIdx < 0 || (adjIdx < 0 && closeIdx < 0)) return {};
+
+  const priceIdx = adjIdx >= 0 ? adjIdx : closeIdx;
+  const out = {};
+
+  for (let i = 1; i < lines.length; i += 1) {
+    const row = lines[i].split(',');
+    const date = String(row[dateIdx] || '').slice(0, 10);
+    const value = Number(row[priceIdx]);
+    if (!date || !Number.isFinite(value) || value <= 0) continue;
+    out[date] = value;
+  }
+
+  return out;
+}
+
+function getActiveBacktestPayloadForSpy() {
+  return state.backtest.datasets.active || null;
+}
+
+function getActiveBacktestRunRange() {
+  const payload = toObject(getActiveBacktestPayloadForSpy());
+  const meta = toObject(payload.meta);
+  const curve = toObject(toObject(payload.portfolio).curve);
+  const dates = toArray(curve.dates).map((d) => String(d || '').slice(0, 10)).filter(Boolean);
+
+  const startDate = String(meta.start_date || dates[0] || '').slice(0, 10);
+  const endDate = String(meta.end_date || dates[dates.length - 1] || '').slice(0, 10);
+
+  if (!startDate || !endDate) return null;
+  return { startDate, endDate };
+}
+
+function hasSpyCoverageForRange(spyByDate, startDate, endDate) {
+  const map = toObject(spyByDate);
+  const start = String(startDate || '').slice(0, 10);
+  const end = String(endDate || '').slice(0, 10);
+  if (!start || !end) return false;
+
+  const keys = Object.keys(map).sort();
+  if (!keys.length) return false;
+
+  const first = keys[0];
+  const last = keys[keys.length - 1];
+  return first <= start && last >= end;
+}
+
 function buildBacktestBenchmarkComparison(payload) {
   const p = toObject(payload);
   const meta = toObject(p.meta);
@@ -1821,6 +2053,10 @@ function buildBacktestBenchmarkComparison(payload) {
   const dates = [];
   const strategyRaw = [];
   const spyRaw = [];
+
+  const spyKeys = Object.keys(spyMap).sort();
+  const spyFirst = spyKeys[0] || null;
+  const spyLast = spyKeys[spyKeys.length - 1] || null;
 
   for (let i = 0; i < rawDates.length; i += 1) {
     const date = rawDates[i];
@@ -1839,6 +2075,17 @@ function buildBacktestBenchmarkComparison(payload) {
   }
 
   if (dates.length < 2) {
+    console.warn('[backtest-spy-debug] benchmark alignment failed', {
+      runStart,
+      runEnd,
+      rawCurvePoints: rawDates.length,
+      matchedPoints: dates.length,
+      spyPoints: spyKeys.length,
+      spyFirst,
+      spyLast,
+      spyDataError: state.backtest.spyDataError || null,
+    });
+
     return {
       available: false,
       reason: benchmark.reason || 'Unable to align strategy and SPY price history for the selected run range.',
@@ -1855,6 +2102,10 @@ function buildBacktestBenchmarkComparison(payload) {
       spyCagrPct: null,
       strategyMaxDrawdownPct: null,
       spyMaxDrawdownPct: null,
+      strategyVolatilityPct: null,
+      spyVolatilityPct: null,
+      correlationToSpy: null,
+      betaToSpy: null,
     };
   }
 
@@ -1866,6 +2117,11 @@ function buildBacktestBenchmarkComparison(payload) {
   const spyTotalReturnPct = (spyNorm[spyNorm.length - 1] - 1) * 100;
   const startDate = dates[0];
   const endDate = dates[dates.length - 1];
+
+  const strategyDailyReturns = computeSeriesDailyReturns(strategyRaw);
+  const spyDailyReturns = computeSeriesDailyReturns(spyRaw);
+  const covariance = computeSampleCovariance(strategyDailyReturns, spyDailyReturns);
+  const spyVariance = computeSampleVariance(spyDailyReturns);
 
   return {
     available: true,
@@ -1883,28 +2139,108 @@ function buildBacktestBenchmarkComparison(payload) {
     spyCagrPct: computeAnnualizedReturnPct(spyNorm[0], spyNorm[spyNorm.length - 1], startDate, endDate),
     strategyMaxDrawdownPct: computeNormalizedMaxDrawdownPct(strategyNorm),
     spyMaxDrawdownPct: computeNormalizedMaxDrawdownPct(spyNorm),
+    strategyVolatilityPct: computeAnnualizedVolatilityPct(strategyDailyReturns),
+    spyVolatilityPct: computeAnnualizedVolatilityPct(spyDailyReturns),
+    correlationToSpy: computeCorrelation(strategyDailyReturns, spyDailyReturns),
+    betaToSpy:
+      Number.isFinite(covariance) && Number.isFinite(spyVariance) && spyVariance > 0
+        ? covariance / spyVariance
+        : null,
   };
 }
 
 async function loadBacktestSpyDataIfNeeded() {
-  if (state.backtest.spyDataLoaded || state.backtest.spyDataLoading) return;
+  if (state.backtest.spyDataLoading) return;
+
+  const range = getActiveBacktestRunRange();
+  if (
+    state.backtest.spyDataLoaded &&
+    range &&
+    hasSpyCoverageForRange(state.backtest.spyAdjCloseByDate, range.startDate, range.endDate)
+  ) {
+    console.info('[backtest-spy-debug] skip reload (coverage already satisfied)', {
+      range,
+      points: Object.keys(toObject(state.backtest.spyAdjCloseByDate)).length,
+    });
+    return;
+  }
 
   state.backtest.spyDataLoading = true;
   state.backtest.spyDataError = null;
+
+  let loadedMap = {};
+  let lastError = null;
+  let loadedSource = null;
+
   try {
     const url = `data/daily/SPY.json?t=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     const payload = await res.json();
-    state.backtest.spyAdjCloseByDate = buildDateAdjCloseMap(payload);
-    state.backtest.spyDataLoaded = true;
+    loadedMap = buildDateAdjCloseMap(payload);
+    loadedSource = 'docs-spy-json';
   } catch (err) {
-    state.backtest.spyDataLoaded = true;
-    state.backtest.spyDataError = String(err?.message || err);
-    state.backtest.spyAdjCloseByDate = {};
-  } finally {
-    state.backtest.spyDataLoading = false;
+    lastError = err;
   }
+
+  const needRangeFallback =
+    !!range && !hasSpyCoverageForRange(loadedMap, range.startDate, range.endDate);
+
+  if (needRangeFallback) {
+    const fallbackSources = ['/data/cache/SPY.csv', '../data/cache/SPY.csv', 'data/cache/SPY.csv'];
+    for (const source of fallbackSources) {
+      try {
+        const fetchUrl = `${source}?t=${Date.now()}`;
+        const res = await fetch(fetchUrl, { cache: 'no-store' });
+        if (!res.ok) {
+          console.warn('[backtest-spy-debug] fallback source HTTP failure', {
+            source,
+            status: res.status,
+            statusText: res.statusText,
+          });
+          continue;
+        }
+        const csvText = await res.text();
+        const csvMap = buildDateAdjCloseMapFromCsv(csvText);
+        if (hasSpyCoverageForRange(csvMap, range.startDate, range.endDate)) {
+          loadedMap = csvMap;
+          loadedSource = source;
+          lastError = null;
+          break;
+        }
+        console.warn('[backtest-spy-debug] fallback source loaded but lacks requested range', {
+          source,
+          requestedRange: range,
+          points: Object.keys(csvMap).length,
+        });
+      } catch (err) {
+        lastError = err;
+        console.warn('[backtest-spy-debug] fallback source exception', {
+          source,
+          error: String(err?.message || err),
+        });
+      }
+    }
+  }
+
+  state.backtest.spyAdjCloseByDate = toObject(loadedMap);
+  state.backtest.spyDataLoaded = true;
+  if (!Object.keys(state.backtest.spyAdjCloseByDate).length && lastError) {
+    state.backtest.spyDataError = String(lastError?.message || lastError);
+  }
+
+  const loadedKeys = Object.keys(state.backtest.spyAdjCloseByDate).sort();
+  console.info('[backtest-spy-debug] load summary', {
+    requestedRange: range,
+    needRangeFallback,
+    loadedSource,
+    points: loadedKeys.length,
+    first: loadedKeys[0] || null,
+    last: loadedKeys[loadedKeys.length - 1] || null,
+    error: state.backtest.spyDataError || (lastError ? String(lastError?.message || lastError) : null),
+  });
+
+  state.backtest.spyDataLoading = false;
 }
 
 async function loadBacktestActiveDataIfNeeded() {
@@ -1913,25 +2249,16 @@ async function loadBacktestActiveDataIfNeeded() {
   state.backtest.loading = true;
   setBacktestActiveError('');
 
-  const scenarioKeys = ['10k', '30k'];
-  await Promise.all(
-    scenarioKeys.map(async (key) => {
-      const url = `${BACKTEST_ACTIVE_PATHS[key]}?t=${Date.now()}`;
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-        const payload = await res.json();
-        state.backtest.datasets[key] = payload;
-        state.backtest.availability[key] = true;
-      } catch (_err) {
-        state.backtest.datasets[key] = null;
-        state.backtest.availability[key] = false;
-      }
-    }),
-  );
-
-  if (!state.backtest.availability['10k'] && state.backtest.availability['30k']) {
-    state.backtest.selectedCapital = '30k';
+  const url = `${BACKTEST_ACTIVE_PATHS.active}?t=${Date.now()}`;
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const payload = await res.json();
+    state.backtest.datasets.active = payload;
+    state.backtest.availability.active = true;
+  } catch (_err) {
+    state.backtest.datasets.active = null;
+    state.backtest.availability.active = false;
   }
 
   state.backtest.loaded = true;
@@ -1939,68 +2266,26 @@ async function loadBacktestActiveDataIfNeeded() {
 }
 
 function renderBacktestCompareStrip() {
+  // Compare strip removed (single active run only).
   const { compareStripEl, compareStatusEl } = getBacktestActiveElements();
-  if (!compareStripEl || !compareStatusEl) return;
-
-  const run10k = state.backtest.datasets['10k'];
-  const run30k = state.backtest.datasets['30k'];
-  const has10k = !!run10k;
-  const has30k = !!run30k;
-
-  if (!has10k && !has30k) {
-    compareStripEl.innerHTML = '';
-    compareStatusEl.textContent = 'No active backtest files found. Expected data/backtest_active_10k.json and data/backtest_active_30k.json.';
-    return;
-  }
-
-  compareStatusEl.textContent = [
-    has10k ? '10K available' : '10K unavailable',
-    has30k ? '30K available' : '30K unavailable',
-  ].join(' | ');
-
-  compareStripEl.innerHTML = BACKTEST_COMPARE_METRICS.map((metric) => {
-    const v10 = has10k ? getBacktestMetric(run10k, metric.key) : null;
-    const v30 = has30k ? getBacktestMetric(run30k, metric.key) : null;
-    const diff =
-      Number.isFinite(Number(v10)) && Number.isFinite(Number(v30))
-        ? Number(v30) - Number(v10)
-        : null;
-
-    return `
-      <article class="backtest-compare-card">
-        <h4>${esc(metric.label)}</h4>
-        <p><span>10K:</span> <strong>${has10k ? formatMetricByType(v10, metric.type) : 'Unavailable'}</strong></p>
-        <p><span>30K:</span> <strong>${has30k ? formatMetricByType(v30, metric.type) : 'Unavailable'}</strong></p>
-        <p><span>Δ (30K−10K):</span> <strong>${diff === null ? 'Unavailable' : formatMetricByType(diff, metric.type)}</strong></p>
-      </article>
-    `;
-  }).join('');
+  if (compareStripEl) compareStripEl.innerHTML = '';
+  if (compareStatusEl) compareStatusEl.textContent = '';
 }
 
 function renderBacktestActiveView() {
   const elements = getBacktestActiveElements();
   if (!elements.panel) return;
 
-  const selectedKey = state.backtest.selectedCapital === '30k' ? '30k' : '10k';
-  const activePayload = state.backtest.datasets[selectedKey];
-  const has10k = !!state.backtest.datasets['10k'];
-  const has30k = !!state.backtest.datasets['30k'];
-
-  elements.btn10k?.classList.toggle('active', selectedKey === '10k');
-  elements.btn30k?.classList.toggle('active', selectedKey === '30k');
-  elements.btn10k?.setAttribute('aria-pressed', String(selectedKey === '10k'));
-  elements.btn30k?.setAttribute('aria-pressed', String(selectedKey === '30k'));
-  if (elements.btn10k) elements.btn10k.disabled = !has10k;
-  if (elements.btn30k) elements.btn30k.disabled = !has30k;
+  const activePayload = state.backtest.datasets.active;
 
   renderBacktestCompareStrip();
 
-  setElText(elements.scenarioEl, getBacktestScenarioLabel(selectedKey));
-  setElText(elements.dataStatusEl, `${has10k ? '10K ✓' : '10K ✕'} | ${has30k ? '30K ✓' : '30K ✕'}`);
+  setElText(elements.scenarioEl, getBacktestScenarioLabel('active'));
+  setElText(elements.dataStatusEl, activePayload ? 'Active ✓' : 'Active ✕');
 
   if (!activePayload) {
     setBacktestActiveError(
-      `Selected scenario (${selectedKey.toUpperCase()}) is unavailable. Backtesting tab uses fixed files only: data/backtest_active_10k.json and data/backtest_active_30k.json.`,
+      `Active run is unavailable. Backtesting tab loads the single active file: ${BACKTEST_ACTIVE_PATHS.active}. Run scripts/run_backtest.py to generate it.`,
     );
     setElText(elements.visibleRangeEl, '-');
     setElText(elements.runNameEl, 'Unavailable');
@@ -2014,7 +2299,7 @@ function renderBacktestActiveView() {
     setElText(elements.kpiAvgPositionsEl, '-');
     if (elements.monthlyTbodyEl) elements.monthlyTbodyEl.innerHTML = '<tr><td colspan="2">Unavailable</td></tr>';
     if (elements.annualTbodyEl) elements.annualTbodyEl.innerHTML = '<tr><td colspan="5">Unavailable</td></tr>';
-    if (elements.methodologyEl) elements.methodologyEl.innerHTML = '<p>No data available for selected scenario.</p>';
+    if (elements.methodologyEl) elements.methodologyEl.innerHTML = '<p>No active backtest data available.</p>';
     if (elements.diagnosticsSummaryEl) elements.diagnosticsSummaryEl.innerHTML = '<p>No diagnostics available.</p>';
     if (elements.diagnosticsPreEl) elements.diagnosticsPreEl.textContent = '';
     setElText(elements.benchStrategyTotalReturnEl, '-');
@@ -2024,6 +2309,10 @@ function renderBacktestActiveView() {
     setElText(elements.benchSpyCagrEl, '-');
     setElText(elements.benchStrategyMaxDdEl, '-');
     setElText(elements.benchSpyMaxDdEl, '-');
+    setElText(elements.benchStrategyVolEl, '-');
+    setElText(elements.benchSpyVolEl, '-');
+    setElText(elements.benchCorrelationEl, '-');
+    setElText(elements.benchBetaEl, '-');
 
     destroyChart(state.backtestChart);
     state.backtestChart = null;
@@ -2115,9 +2404,11 @@ function renderBacktestActiveView() {
   }
 
   if (elements.chartNoteEl) {
-    const intended = 'Intended window: latest 5 years';
-    const actual = windowed.visibleStart && windowed.visibleEnd ? `Visible: ${windowed.visibleStart} → ${windowed.visibleEnd}` : 'Visible: unavailable';
-    elements.chartNoteEl.textContent = `${intended}. ${actual}. Assumptions: initial ${fmtDollar(
+    const selected =
+      windowed.visibleStart && windowed.visibleEnd
+        ? `Selected run window: ${windowed.visibleStart} → ${windowed.visibleEnd}`
+        : 'Selected run window: unavailable';
+    elements.chartNoteEl.textContent = `${selected}. Assumptions: initial ${fmtDollar(
       assumptions.initial_capital,
     )}, max positions ${fmtInt(assumptions.max_positions)}.`;
   }
@@ -2131,6 +2422,10 @@ function renderBacktestActiveView() {
   setElText(elements.benchSpyCagrEl, fmtPctPoints(benchmarkComparison.spyCagrPct));
   setElText(elements.benchStrategyMaxDdEl, fmtPctPoints(benchmarkComparison.strategyMaxDrawdownPct));
   setElText(elements.benchSpyMaxDdEl, fmtPctPoints(benchmarkComparison.spyMaxDrawdownPct));
+  setElText(elements.benchStrategyVolEl, fmtPctPoints(benchmarkComparison.strategyVolatilityPct));
+  setElText(elements.benchSpyVolEl, fmtPctPoints(benchmarkComparison.spyVolatilityPct));
+  setElText(elements.benchCorrelationEl, fmtNumber(benchmarkComparison.correlationToSpy, 3));
+  setElText(elements.benchBetaEl, fmtNumber(benchmarkComparison.betaToSpy, 3));
 
   destroyChart(state.backtestBenchmarkChart);
   state.backtestBenchmarkChart = null;
@@ -2183,7 +2478,7 @@ function renderBacktestActiveView() {
       const reason = benchmarkComparison.reason || state.backtest.spyDataError || 'Benchmark comparison unavailable.';
       elements.benchmarkNoteEl.textContent = reason;
     } else {
-      elements.benchmarkNoteEl.textContent = `Selected run range: ${benchmarkComparison.startDate} → ${benchmarkComparison.endDate}. Normalized base = 1.00 at start (${benchmarkComparison.symbol}).`;
+      elements.benchmarkNoteEl.textContent = `Selected run range: ${benchmarkComparison.startDate} → ${benchmarkComparison.endDate}. SPY uses Adj Close (dividend-adjusted). Normalized base = 1.00 at start (${benchmarkComparison.symbol}).`;
     }
   }
 
@@ -2248,10 +2543,9 @@ function renderBacktestActiveView() {
         </article>
       </div>
       <div class="bt-note-stack">
-        <p><strong>Data source:</strong> ${esc(BACKTEST_ACTIVE_PATHS[selectedKey])}</p>
+        <p><strong>Data source:</strong> ${esc(BACKTEST_ACTIVE_PATHS.active)}</p>
         <p><strong>Run:</strong> ${esc(meta.run_name || meta.run_id || '-')}</p>
-        <p><strong>Windowing rule:</strong> Render latest 5 years when available; otherwise show full available history.</p>
-        <p><strong>Scenario independence:</strong> 10K and 30K are loaded from separate files and never scaled from each other.</p>
+        <p><strong>Windowing rule:</strong> Visible window follows run start/end dates (no hard-coded rolling window).</p>
       </div>
     `;
   }
@@ -2285,6 +2579,11 @@ function renderBacktestActiveView() {
           <p><span>Run ID</span><strong>${esc(meta.run_id || '-')}</strong></p>
           <p><span>Generated (UTC)</span><strong>${esc(meta.generated_at || '-')}</strong></p>
           <p><span>Rows with metrics</span><strong>${fmtInt(counts.rows_with_metrics)}</strong></p>
+          <p><span>Symbols requested</span><strong>${fmtInt(counts.symbols_excluding_benchmark ?? counts.symbols_requested)}</strong></p>
+          <p><span>Eligible symbols</span><strong>${fmtInt(counts.eligible_symbols)}</strong></p>
+          <p><span>Skipped symbols</span><strong>${fmtInt(counts.skipped_symbols)}</strong></p>
+          <p><span>Sampled symbols</span><strong>${fmtInt(counts.sampled_symbols)}</strong></p>
+          <p><span>Sample target</span><strong>${fmtInt(counts.sample_target)}</strong></p>
         </article>
         <article class="bt-info-card">
           <h4>Execution Funnel</h4>
@@ -2318,19 +2617,7 @@ function renderBacktestActiveView() {
 }
 
 function bindBacktestScenarioControls() {
-  const { toggle } = getBacktestActiveElements();
-  if (!toggle || toggle.dataset.bound) return;
-
-  toggle.addEventListener('click', (evt) => {
-    const btn = evt.target?.closest?.('.scenario-btn');
-    if (!btn) return;
-    const next = String(btn.dataset.capital || '').toLowerCase();
-    if (next !== '10k' && next !== '30k') return;
-    state.backtest.selectedCapital = next;
-    renderBacktestActiveView();
-  });
-
-  toggle.dataset.bound = '1';
+  // Scenario toggle removed (single active run only).
 }
 
 async function ensureBacktestActiveInitialized() {
@@ -3242,7 +3529,7 @@ function renderTrackerTable(items) {
     tr.innerHTML = `
       <td>${esc(r.symbol || '-')}</td>
       <td>${esc(r.engine || '-')}</td>
-      <td>${esc(r.playbook_label || '-')}</td>
+      <td>${esc(r.playbook_label || r.playbook_id || '-')}</td>
       <td>${esc(r.capture_date_utc || '-')}</td>
       <td>${hasEntryDate ? esc(entryDate) : '-'}</td>
       <td>${hasEntryPrice ? fmtNumber(entryPrice) : '-'}</td>
@@ -3401,7 +3688,7 @@ async function boot() {
       derivedActiveEngine: activeEngine,
     });
 
-    renderBanner(meta.regime, activeEngine);
+    renderBanner(meta.regime, activeEngine, payload.trade_policy || payload);
     renderSummary(meta, payload.diagnostics || {}, activeEngine);
     renderFilterFunnel(meta, payload.diagnostics || {});
     renderStrategy(payload);

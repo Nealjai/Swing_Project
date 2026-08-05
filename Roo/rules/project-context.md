@@ -19,7 +19,7 @@
   - ranked candidates
   - technical indicators
   - basic fundamentals
-  - configurable risk guidance such as stop loss and take profit levels
+  - configurable risk guidance such as hard stop loss, activation level (for automatic 50% partial exit), trailing stop offset, and max hold days
 - Configurable scan settings for benchmark selection, moving average length, breakout lookback, RSI threshold, Bollinger Band settings, minimum price, minimum market cap, and minimum average daily volume.
 
 ## Constraints

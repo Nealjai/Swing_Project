@@ -17,8 +17,10 @@ __pycache__/
 .DS_Store
 .vscode/
 
-# Generated dashboard artifacts are workflow-owned.
-# Local commits should contain code/docs only.
-docs/data/*.json
-docs/data/*.csv
+# Generated daily dashboard artifacts are workflow-owned.
+# Backtest artifacts are tracked.
+docs/data/latest.json
+docs/data/latest.csv
+docs/data/tracker.json
+docs/data/market_condition.json
 docs/data/daily/

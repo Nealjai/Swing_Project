@@ -1,0 +1,64 @@
+{
+  "run_name": "BOTH | TEST | 2023-06-27\u21922026-06-27",
+  "run_description": "Backtest using engine=both, universe=test (21 symbols), period=2023-06-27..2026-06-27, benchmark=SPY.",
+  "engine": "both",
+  "date_range": {
+    "start_date": "2023-06-27",
+    "end_date": "2026-06-27",
+    "lookback_years": 3,
+    "warmup_bars": 200,
+    "lookback_calendar_days": 1356,
+    "require_full_history_window": true
+  },
+  "universe": {
+    "symbol_mode": "test",
+    "symbol_count": 21,
+    "universe_file": "universe.txt",
+    "benchmark_symbol": "SPY"
+  },
+  "portfolio": {
+    "initial_capital": 100000.0,
+    "max_positions": 10,
+    "slippage_pct_each_side": 0.0005,
+    "commission_per_side": 0.0,
+    "monthly_drawdown_limit_pct": 0.2,
+    "monthly_risk_per_trade_pct": 0.01,
+    "risk_free_rate_annual": 0.0,
+    "trading_days_per_year": 252,
+    "share_rounding": "floor",
+    "entry_priority": "avg_dollar_volume_20d_desc",
+    "monthly_drawdown_rule": "halt_new_entries_if_equity_below_month_start_equity_threshold"
+  },
+  "data_refresh": {
+    "force_refresh": false,
+    "market_aware_refresh": true
+  },
+  "user_inputs": {
+    "engine": "both",
+    "start_date": "2023-06-27",
+    "end_date": "2026-06-27",
+    "years": 3,
+    "symbol_mode": "test",
+    "universe_file": "universe.txt",
+    "benchmark_symbol": "SPY",
+    "initial_capital": 100000.0,
+    "max_positions": 10,
+    "slippage_pct": 0.0005,
+    "commission_per_side": 0.0,
+    "monthly_dd_limit_pct": 0.2,
+    "monthly_risk_per_trade_pct": 0.01,
+    "risk_free_rate_annual": 0.0,
+    "trading_days_per_year": 252,
+    "force_refresh": false,
+    "market_aware_refresh": true,
+    "sample_size": 0,
+    "sample_seed": 42,
+    "allow_partial_history_window": false,
+    "run_name": "BOTH | TEST | 2023-06-27\u21922026-06-27",
+    "run_description": "Backtest using engine=both, universe=test (21 symbols), period=2023-06-27..2026-06-27, benchmark=SPY."
+  },
+  "scenario": {
+    "candidates_source": "generated",
+    "reuse_candidates_csv": null
+  }
+}

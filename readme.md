@@ -1,8 +1,10 @@
-# US Market Regime Dual-Engine Stock Screener
+# US Market Regime Playbook-First Stock Screener
 
 Static, research-focused U.S. equity screener with:
-- regime-aware dual-engine candidate selection,
-- normalized scoring and ranking,
+- regime-aware candidate generation,
+- playbook-first policy routing,
+- cash-first execution logic,
+- risk-based position sizing for small accounts (default $10,000),
 - tracker lifecycle monitoring,
 - market condition diagnostics,
 - portfolio-style backtesting,
@@ -11,14 +13,24 @@ Static, research-focused U.S. equity screener with:
 ## What the project does (current state)
 
 This project runs a Python pipeline that:
-1. Loads a U.S. stock universe (default: `sp500.txt`).
+1. Loads a U.S. stock universe (default: `universe.txt`).
 2. Fetches EOD OHLCV/fundamental context from Yahoo Finance (`yfinance`).
-3. Detects market regime from SPY vs SMA200.
-4. Activates one engine (`bull` or `weak`) for candidate generation.
-5. Applies normalized scoring + ranking.
-6. Exports static artifacts (`JSON` + `CSV`) for the dashboard.
-7. Updates tracker and market condition artifacts.
-8. Exports 3-year per-symbol daily files for dashboard charting.
+3. Retrieves quote metrics with reliability-first split sources:
+   - `market_cap`: `Ticker.fast_info.market_cap` (cached, with last-resort fallback paths).
+   - `beta_1y`: computed from daily **Adj Close** returns vs benchmark (`SPY` by default), cached and reused.
+4. Detects market regime from SPY market-condition signals.
+5. Runs both engines (`bull` + `weak`) to create raw candidates.
+6. Routes candidates through a playbook-first policy layer:
+   - infer playbook,
+   - apply absolute quality gates,
+   - apply regime permissioning,
+   - assign `intent` (`trade` / `watchlist`).
+7. Enforces cash-first behavior:
+   - if no qualified trade remains, output `trade_allowed=false` with `cash_reason`.
+8. Computes risk fields (stop, activation, and max shares using account constraints).
+9. Exports static artifacts (`JSON` + `CSV`) for the dashboard.
+10. Updates tracker and market condition artifacts.
+11. Exports per-symbol 3Y daily files for dashboard charting.
 
 The frontend (`docs/index.html` + `docs/app.js`) reads those files directly (no backend server).
 
@@ -28,12 +40,14 @@ The frontend (`docs/index.html` + `docs/app.js`) reads those files directly (no 
 
 - `scripts/run_daily.py`: daily screener pipeline + artifact generation.
 - `scripts/run_backtest.py`: backtest runner + portfolio simulation + run history artifacts.
-- `src/screener/engines/bull.py`: bull regime candidate logic.
-- `src/screener/engines/weak.py`: weak regime candidate logic.
+- `src/screener/engines/bull.py`: bull-regime candidate logic.
+- `src/screener/engines/weak.py`: weak-regime candidate logic.
+- `src/screener/engines/playbook.py`: playbook routing, absolute gates, regime permissioning, cash policy.
 - `src/screener/engines/scoring.py`: robust normalization/scoring helpers.
-- `src/screener/tracker.py`: tracker lifecycle engine (active/inactive records).
+- `src/screener/tracker.py`: tracker lifecycle engine and hybrid shortlist admission rules.
 - `src/screener/market_condition.py`: market condition metrics and chart payload.
 - `src/screener/backtest/*`: backtest engine, portfolio simulator, stats, output writers.
+- `src/screener/quote_metrics.py`: reliability-first market-cap and beta retrieval/caching.
 - `docs/*`: static dashboard UI.
 
 ---
@@ -42,18 +56,22 @@ The frontend (`docs/index.html` + `docs/app.js`) reads those files directly (no 
 
 ### Regime detection
 - Benchmark: `SPY`
-- Rule: `Bull` if SPY close > SMA200, else `Weak`
+- Market condition classifier labels `Bull`, `Choppy`, or `Bear`.
 
-### Engine routing
-- `Bull` regime -> bull engine
-- `Weak` regime -> weak engine
+### Candidate generation + playbook policy
+- Both engines run daily and emit raw candidates.
+- Playbook policy layer then:
+  - infers/normalizes playbook IDs,
+  - applies absolute quality gates (price/liquidity/volatility/score constraints),
+  - applies regime-permitted execution logic,
+  - emits final candidates with intent.
 
-### Hard filters (shared)
-- minimum price
-- minimum market cap
-- minimum beta (1y)
-- minimum volume
-- minimum average dollar volume (20d)
+### Cash-first behavior
+- No forced trades.
+- If zero qualified trade-intent candidates survive policy gates:
+  - `trade_allowed=false`
+  - `cash_reason=<explicit reason>`
+  - banner/UI shows `HOLD CASH`.
 
 ### Normalized scoring model
 Scoring uses robust cross-sectional normalization (median/MAD + sigmoid) and outputs normalized sub-scores.
@@ -74,9 +92,8 @@ Dashboard tags are threshold-based:
 - ⚡ actionable when `actionability_score >= 0.58`
 - 👀 watchlist when `0.50 <= actionability_score < 0.58`
 
-<<<<<<< HEAD
-=======
 ### Tracker admission (hybrid dynamic rule)
+
 Tracker is an execution shortlist, not a broad watchlist.
 
 Required:
@@ -100,7 +117,7 @@ Quality route (current code behavior):
 - Cached quote metrics are reused to reduce repeated API pressure and improve run stability.
 - `Ticker.info` remains only as last-resort fallback for compatibility.
 
->>>>>>> f31c2961eb (WIP: save current changes)
+
 ---
 
 ## Dashboard features (`docs/`)
@@ -108,28 +125,27 @@ Quality route (current code behavior):
 Tabs currently available:
 - **Screener Result**
   - List View + Chart View
-  - ranked table, candidate details, fundamentals, 3Y chart
+  - cash-first banner (`TRADE MODE` / `HOLD CASH`) with qualified trade count and reason
+  - ranked table includes Playbook, Intent, Max Shares, Stop Loss, Activation
+  - candidate details, fundamentals, 3Y chart
   - indicator toggles (SMA10/20/50/100/200, volume)
 - **Market Condition**
   - market regime/SPY/VIX/DD/FTD cards
   - SPY condition chart
 - **How It Works**
-  - strategy and scoring explanation panels
+  - high-level strategy flow
+  - playbook-first + cash-first explanation
+  - expandable rule details section with key thresholds
 - **Backtesting**
   - fixed active scenario switch: `10k` and `30k`
   - KPI cards, equity/drawdown chart, strategy-vs-SPY chart
   - monthly and annual breakdown tables
   - methodology + diagnostics sections
 - **Tracker**
-<<<<<<< HEAD
-  - 2-week lifecycle tracker for qualified bull discoveries
-  - active/inactive states, lifecycle tags, per-symbol chart with controls
-=======
   - hybrid-qualified trade-intent discoveries only (rank/intent/positionability gates)
   - dynamic-quantile quality gate + playbook-aware relaxed route
   - active/inactive position lifecycle states (with `dropped` as backward-compat alias)
   - gap-aware status tags (stop-loss / trailing-stop / time-stop), per-symbol chart with controls
->>>>>>> f31c2961eb (WIP: save current changes)
 
 ---
 
@@ -176,9 +192,17 @@ python -m venv .venv
 ```
 
 ### 2) Install dependencies
+Runtime only:
 ```bash
 pip install -r requirements.txt
 ```
+
+Runtime + test tooling:
+```bash
+pip install -r requirements-dev.txt
+```
+
+`requirements.txt` is kept minimal for production/runtime execution. `requirements-dev.txt` layers on dev/test tools (e.g., `pytest`).
 
 ---
 
@@ -194,28 +218,29 @@ python scripts/run_daily.py
 python scripts/run_backtest.py
 ```
 
-Key CLI options (current defaults):
-- `--engine` = `both` (`bull`, `weak`, `both`)
-- `--symbol-mode` = `full` (`full`, `test`)
-- `--years` = `10` (used when `--start-date` omitted)
-- `--start-date`, `--end-date` optional explicit window
-- `--initial-capital` = `10000`
-- `--max-positions` = `10`
-- `--slippage-pct` = `0.0005`
-- `--commission-per-side` = `0.32`
-- `--monthly-dd-limit-pct` = `6.0`
-- `--monthly-risk-per-trade-pct` = `1.0`
-- `--risk-free-rate-annual` = `0.0`
-- `--trading-days-per-year` = `252`
-- `--run-name`, `--run-description`, `--run-id`
-- `--reuse-candidates-csv` (portfolio rerun using prior candidates)
-- `--force-refresh`
-- `--disable-market-aware-refresh`
+### Unit tests
+Run from `Swing_Project/` root:
+```bash
+python3 -m pytest -q
+```
 
-Example explicit run:
+Example backtest run:
 ```bash
 python scripts/run_backtest.py --engine both --symbol-mode full --years 10
 ```
+
+### Scalability knobs for large universes (e.g., 3000+ symbols)
+You can tune these in `src/screener/config.py`:
+- `download_batch_size`: yfinance batch width for OHLCV downloads.
+- `yfinance_max_retries`: retry count for transient yfinance failures.
+- `cache_max_age_days`: acceptable age for cached OHLCV files.
+- `ticker_info_max_workers`: concurrent workers for ticker info fetches.
+- `ticker_info_cache_max_age_days`: cache TTL for ticker info JSON files.
+
+Operational recommendation for 3000+ symbols:
+- Keep `market_aware_refresh` enabled for daily runs.
+- Use incremental cache refresh (already built into `fetch_prices`).
+- Avoid forcing full refresh except when changing lookback assumptions.
 
 ---
 
@@ -257,9 +282,9 @@ Currently staged in workflow commit step:
 
 ### Local Git workflow (code-only commits)
 
-This repository is configured so generated dashboard artifacts are **workflow-owned**.
+This repository is configured so generated dashboard artifacts are workflow-owned.
 
-Ignored locally via [`.gitignore`](.gitignore):
+Ignored locally via `.gitignore`:
 - `docs/data/*.json`
 - `docs/data/*.csv`
 - `docs/data/daily/`
@@ -276,7 +301,7 @@ git push origin main
 ```
 
 Local safety guard:
-- Pre-commit hook at [`.githooks/pre-commit`](.githooks/pre-commit:1) blocks accidental commits of `docs/data/*` artifacts.
+- Pre-commit hook at `.githooks/pre-commit` blocks accidental commits of `docs/data/*` artifacts.
 - If needed on a fresh clone, enable it once:
 
 ```bash

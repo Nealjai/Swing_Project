@@ -56,3 +56,9 @@
 - Relative RS alone is insufficient for bear-tape decisioning; pair it with absolute stock returns and excess returns (`stock - benchmark`) to avoid promoting “slower losers” to trade intent.
 - Regime decisions must be passed explicitly into engines rather than inferred indirectly, otherwise behavior drifts between orchestrator, ranking, tracker, and backtest layers.
 - Tracker contracts should encode intent/regime metadata so downstream monitoring reflects execution policy, not just rank/tag thresholds.
+
+## Execution contract consistency lessons (2026-06-27)
+- Eliminate legacy vocabulary quickly when the execution model changes; even dormant `take_profit` branches can reappear through old fields or stale artifacts and confuse operator behavior.
+- Keep one canonical risk field for each lifecycle concept (`activation_level` for activation) and explicitly version payload schemas so frontend and backend drift is detectable.
+- Backward compatibility aliases should be temporary and clearly marked deprecated in-code; UI should migrate to canonical fields first.
+- Add regression tests for *reason codes* and state transitions, not only returns; naming drift in exit reasons can silently break diagnostics and downstream analytics.

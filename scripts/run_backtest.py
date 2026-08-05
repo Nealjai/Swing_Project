@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -80,9 +81,9 @@ def parse_args() -> argparse.Namespace:
         "--symbol-mode",
         choices=["test", "full"],
         default="full",
-        help="Universe mode: 'full' uses universe file (default sp500.txt), 'test' uses the 21-symbol smoke-test list.",
+        help="Universe mode: 'full' uses universe file (default universe.txt), 'test' uses the 21-symbol smoke-test list.",
     )
-    parser.add_argument("--universe-file", default="sp500.txt", help="Universe text file path (one ticker per line)")
+    parser.add_argument("--universe-file", default="universe.txt", help="Universe text file path (one ticker per line)")
     parser.add_argument("--benchmark-symbol", default="SPY", help="Benchmark symbol used for regime filter/calendar")
 
     # Human-readable run metadata
@@ -91,13 +92,22 @@ def parse_args() -> argparse.Namespace:
 
     # Portfolio simulator assumptions
     parser.add_argument("--initial-capital", type=float, default=10000.0)
-    parser.add_argument("--max-positions", type=int, default=10)
+    parser.add_argument("--max-positions", type=int, default=8)
     parser.add_argument("--slippage-pct", type=float, default=0.0005)
     parser.add_argument("--commission-per-side", type=float, default=0.32)
     parser.add_argument("--monthly-dd-limit-pct", type=float, default=6.0)
     parser.add_argument("--monthly-risk-per-trade-pct", type=float, default=1.0)
     parser.add_argument("--risk-free-rate-annual", type=float, default=0.0)
     parser.add_argument("--trading-days-per-year", type=int, default=252)
+
+    # Universe sampling / eligibility behavior
+    parser.add_argument("--sample-size", type=int, default=500, help="Random sample size from eligible universe (set <=0 to disable sampling)")
+    parser.add_argument("--sample-seed", type=int, default=42, help="Seed for reproducible random sampling")
+    parser.add_argument(
+        "--allow-partial-history-window",
+        action="store_true",
+        help="Allow symbols that do not fully cover [start_date, end_date] after warmup checks",
+    )
 
     # Data refresh behavior
     parser.add_argument("--force-refresh", action="store_true", help="Force refresh of all cached market data")
@@ -282,6 +292,7 @@ def _build_run_config(
             "lookback_years": int(max(1, years)),
             "warmup_bars": 200,
             "lookback_calendar_days": int(lookback_calendar_days),
+            "require_full_history_window": not bool(args.allow_partial_history_window),
         },
         "universe": {
             "symbol_mode": args.symbol_mode,
@@ -312,6 +323,9 @@ def _build_run_config(
             "trading_days_per_year": int(args.trading_days_per_year),
             "force_refresh": bool(args.force_refresh),
             "market_aware_refresh": bool(market_aware_refresh),
+            "sample_size": int(args.sample_size),
+            "sample_seed": int(args.sample_seed),
+            "allow_partial_history_window": bool(args.allow_partial_history_window),
             "run_name": run_name,
             "run_description": run_description,
         },
@@ -423,8 +437,16 @@ def _compute_spy_benchmark_metrics(
 def main() -> int:
     args = parse_args()
     logger = setup_logger()
+    run_started_at_utc = datetime.now(timezone.utc)
+    run_started_perf = time.perf_counter()
+
+    def _checkpoint(label: str) -> None:
+        logger.info("CHECKPOINT | %s | elapsed=%.2fs", label, time.perf_counter() - run_started_perf)
+
+    _checkpoint("run_started")
 
     resolved_start_date, resolved_end_date = _resolve_backtest_window(args.start_date, args.end_date, args.years)
+    _checkpoint(f"resolved_window start={resolved_start_date} end={resolved_end_date}")
 
     settings = Settings()
     backtest_settings = replace(
@@ -435,11 +457,16 @@ def main() -> int:
     )
 
     symbols = _resolve_symbols(backtest_settings, args.symbol_mode)
+    _checkpoint(f"resolved_symbols count={len(symbols)} mode={args.symbol_mode}")
+
     config = BacktestConfig(
         start_date=resolved_start_date,
         end_date=resolved_end_date,
         engine=args.engine,
         warmup_bars=200,
+        universe_sample_size=(None if int(args.sample_size) <= 0 else int(args.sample_size)),
+        universe_sample_seed=int(args.sample_seed),
+        require_full_history_window=not bool(args.allow_partial_history_window),
     )
 
     portfolio_cfg = PortfolioConfig(
@@ -459,6 +486,7 @@ def main() -> int:
     if args.reuse_candidates_csv:
         candidates_source = "reused_csv"
         candidates_df = pd.read_csv(args.reuse_candidates_csv)
+        _checkpoint(f"loaded_reuse_candidates rows={len(candidates_df)}")
         symbols_for_prices = sorted(
             {
                 str(s).strip().upper()
@@ -475,6 +503,11 @@ def main() -> int:
             logger=logger,
             force_refresh=bool(args.force_refresh),
             market_aware_refresh=market_aware_refresh,
+        )
+
+        _checkpoint(
+            "fetched_prices_from_reused_candidates "
+            f"requested={len(symbols_for_prices)} downloaded={data_diag.downloaded_symbols} cached={data_diag.cached_symbols}"
         )
 
         diagnostics = {
@@ -497,9 +530,13 @@ def main() -> int:
                 "force_refresh": bool(args.force_refresh),
                 "market_aware_refresh": bool(market_aware_refresh),
                 "reused_candidates_csv": str(args.reuse_candidates_csv),
+                "sample_size": int(args.sample_size),
+                "sample_seed": int(args.sample_seed),
+                "allow_partial_history_window": bool(args.allow_partial_history_window),
             },
         }
     else:
+        _checkpoint("running_backtest_engine")
         result = run_backtest(
             symbols=symbols,
             settings=backtest_settings,
@@ -511,7 +548,13 @@ def main() -> int:
         candidates_df = result.candidates
         prices_by_symbol = result.prices
         diagnostics = dict(result.diagnostics)
+        _checkpoint(
+            "backtest_engine_complete "
+            f"candidates={len(candidates_df)} "
+            f"trades={int((diagnostics.get('counts') or {}).get('trades', 0))}"
+        )
 
+    _checkpoint("starting_portfolio_simulation")
     portfolio_result = simulate_portfolio(
         candidates=candidates_df,
         prices_by_symbol=prices_by_symbol,
@@ -523,6 +566,10 @@ def main() -> int:
 
     trades_csv_path = write_trade_log(portfolio_result.executed_trades, out_dir="data/backtests")
     stats = summarize_trades(portfolio_result.executed_trades)
+    _checkpoint(
+        "portfolio_simulation_complete "
+        f"executed_trades={len(portfolio_result.executed_trades)} rejected_entries={int(portfolio_result.metrics.get('rejected_entries', 0) or 0)}"
+    )
 
     portfolio_payload = {
         "assumptions": _portfolio_assumptions_dict(portfolio_cfg),
@@ -545,6 +592,17 @@ def main() -> int:
         executed_trades=portfolio_result.executed_trades,
         fills_log=portfolio_result.fills_log,
     )
+
+    run_finished_at_utc = datetime.now(timezone.utc)
+    run_duration_seconds = max(0.0, time.perf_counter() - run_started_perf)
+    run_timing = {
+        "started_at_utc": run_started_at_utc.isoformat(),
+        "finished_at_utc": run_finished_at_utc.isoformat(),
+        "duration_seconds": round(run_duration_seconds, 3),
+    }
+    counts["run_duration_seconds"] = float(run_timing["duration_seconds"])
+    diagnostics["counts"] = counts
+    diagnostics["run_timing"] = run_timing
 
     run_id = str(args.run_id).strip() if args.run_id else datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
@@ -619,7 +677,14 @@ def main() -> int:
     )
     write_summary_json(summary_payload, path="docs/data/backtest_summary.json")
     write_summary_json(summary_payload, path=str(history_path).replace("\\", "/"))
+
+    # Maintain a single "active" scenario file for Backtesting tab.
+    # This should always reflect the *user's* CLI inputs (initial_capital, max_positions, dates, etc.),
+    # not a hard-coded 10k/30k mapping.
+    write_summary_json(summary_payload, path="docs/data/backtest_active.json")
+
     runs_index_path = write_backtest_runs_index_json(out_dir="docs/data/backtest_runs")
+    _checkpoint("artifacts_written")
 
     trade_log_csv = str(trades_csv_path).replace("\\", "/")
     symbols_json = str(symbols_path).replace("\\", "/")
@@ -638,7 +703,9 @@ def main() -> int:
     print(f"Run Config JSON: {run_config_json}")
     print(f"Run Summary JSON: {run_summary_json}")
     print(f"Candidates CSV: {candidates_csv}")
+    print("Active Scenario JSON: docs/data/backtest_active.json")
     print(f"Runs Index JSON: {runs_index_json}")
+    print(f"Runtime (seconds): {run_timing['duration_seconds']}")
     print("Summary JSON: docs/data/backtest_summary.json")
 
     return 0
