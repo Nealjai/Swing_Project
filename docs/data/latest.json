@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-08-09T09:34:26.034917+00:00",
+    "generated_at": "2026-08-09T13:51:08.886872+00:00",
     "regime": "Bull",
     "engine": "playbook",
     "universe_size": 2447,
@@ -3942,7 +3942,7 @@
       "atr14": 6.739286150251116,
       "avg_dollar_volume_20d": 2818486307.401581,
       "median_dollar_volume_20d": 2662581137.5808716,
-      "market_cap": 871430706632.8479,
+      "market_cap": 950354699232.6942,
       "beta_1y": 0.807418772610177,
       "engine": "weak",
       "score": 76.52552904767187,
@@ -4693,7 +4693,7 @@
       "atr14": 6.209999084472656,
       "avg_dollar_volume_20d": 2075712115.7959747,
       "median_dollar_volume_20d": 2044527913.1149292,
-      "market_cap": 549784282537.4414,
+      "market_cap": 624742088752.114,
       "beta_1y": -0.20238813219869697,
       "engine": "weak",
       "score": 76.19075005901587,
@@ -5245,7 +5245,7 @@
       "atr14": 7.399283272879464,
       "avg_dollar_volume_20d": 198515446.33338928,
       "median_dollar_volume_20d": 182462189.25933838,
-      "market_cap": 14112608306.48,
+      "market_cap": 16654483716.637146,
       "beta_1y": 0.4674595535274465,
       "engine": "weak",
       "score": 75.84244082052885,
@@ -5812,7 +5812,7 @@
       "atr14": 2.0657146998814175,
       "avg_dollar_volume_20d": 155505430.55322647,
       "median_dollar_volume_20d": 144218679.75997925,
-      "market_cap": 7614842230.68639,
+      "market_cap": 8256387608.58783,
       "beta_1y": 1.3637408852077393,
       "engine": "weak",
       "score": 75.62508635293953,
@@ -5996,7 +5996,7 @@
       "atr14": 1.7651429857526506,
       "avg_dollar_volume_20d": 121595714.25775528,
       "median_dollar_volume_20d": 111320191.58382416,
-      "market_cap": 8218492679.362213,
+      "market_cap": 9789868248.758286,
       "beta_1y": 0.864255417108376,
       "engine": "weak",
       "score": 75.51947509094539,
@@ -6364,7 +6364,7 @@
       "atr14": 1.861428941999163,
       "avg_dollar_volume_20d": 1490451851.1379623,
       "median_dollar_volume_20d": 1333856047.064209,
-      "market_cap": 341574076538.99316,
+      "market_cap": 374536924733.4883,
       "beta_1y": -0.2860282726434973,
       "engine": "weak",
       "score": 75.28744923631368,
@@ -9340,12 +9340,12 @@
       "quote_metrics_missing_beta_1y_count": 13,
       "quote_metrics_missing_both_count": 2,
       "quote_metrics_success_rate": 0.9922385620915033,
-      "run_duration_seconds": 375.296
+      "run_duration_seconds": 722.989
     },
     "run_timing": {
-      "started_at_utc": "2026-08-09T09:28:10.734431+00:00",
-      "finished_at_utc": "2026-08-09T09:34:26.030121+00:00",
-      "duration_seconds": 375.296
+      "started_at_utc": "2026-08-09T13:39:05.894411+00:00",
+      "finished_at_utc": "2026-08-09T13:51:08.883587+00:00",
+      "duration_seconds": 722.989
     },
     "quote_metrics": {
       "coverage": {
@@ -11813,9 +11813,9 @@
         ]
       },
       "market_cap_source_counts": {
-        "fast_info": 1164,
+        "fast_info": 1327,
         "unavailable": 6,
-        "stale_cache": 1278
+        "stale_cache": 1115
       },
       "beta_1y_source_counts": {
         "computed_adj_close": 2432,
